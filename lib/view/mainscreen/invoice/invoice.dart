@@ -49,51 +49,51 @@ class _InvoicePageState extends State<InvoicePage> {
         child: Column(
           children: [
             // Summary Card
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0xFF667EEA).withOpacity(0.3),
-                    blurRadius: 15,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Total Revenue',
-                    style: TextStyle(color: Colors.white70, fontSize: 16),
-                  ),
-                  SizedBox(height: 8),
-                  Text(
-                    '\$${totalAmount.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(height: 16),
-                  Row(
-                    children: [
-                      _buildQuickStat('Paid', '$paidCount', Colors.white),
-                      SizedBox(width: 24),
-                      _buildQuickStat('Pending', '${_invoices.length - paidCount}', Colors.white70),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            // Container(
+            //   width: double.infinity,
+            //   padding: EdgeInsets.all(24),
+            //   decoration: BoxDecoration(
+            //     gradient: LinearGradient(
+            //       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+            //       begin: Alignment.topLeft,
+            //       end: Alignment.bottomRight,
+            //     ),
+            //     borderRadius: BorderRadius.circular(20),
+            //     boxShadow: [
+            //       BoxShadow(
+            //         color: Color(0xFF667EEA).withOpacity(0.3),
+            //         blurRadius: 15,
+            //         offset: Offset(0, 8),
+            //       ),
+            //     ],
+            //   ),
+            //   child: Column(
+            //     crossAxisAlignment: CrossAxisAlignment.start,
+            //     children: [
+            //       Text(
+            //         'Total Revenue',
+            //         style: TextStyle(color: Colors.white70, fontSize: 16),
+            //       ),
+            //       SizedBox(height: 8),
+            //       Text(
+            //         '₹${totalAmount.toStringAsFixed(2)}',
+            //         style: TextStyle(
+            //           color: Colors.white,
+            //           fontSize: 32,
+            //           fontWeight: FontWeight.bold,
+            //         ),
+            //       ),
+            //       SizedBox(height: 16),
+            //       Row(
+            //         children: [
+            //           _buildQuickStat('Paid', '$paidCount', Colors.white),
+            //           SizedBox(width: 24),
+            //           _buildQuickStat('Pending', '${_invoices.length - paidCount}', Colors.white70),
+            //         ],
+            //       ),
+            //     ],
+            //   ),
+            // ),
             
             SizedBox(height: 24),
             
@@ -145,7 +145,7 @@ class _InvoicePageState extends State<InvoicePage> {
                           ),
                           SizedBox(height: 8),
                           Text(
-                            '\$${invoice.amount.toStringAsFixed(2)}',
+                            '₹${invoice.amount.toStringAsFixed(2)}',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,

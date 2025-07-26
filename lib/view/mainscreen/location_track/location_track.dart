@@ -85,18 +85,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                 child: Row(
                   children: [
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.arrow_back_ios,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
+                    
                     Expanded(
                       child: Center(
                         child: Text(
