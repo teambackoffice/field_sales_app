@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:location_tracker_app/view/homepage/homepage.dart';
+import 'package:location_tracker_app/view/mainscreen/homepage.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       
-      home:  Homepage(),
+      home:  MainScreen(),
     );
   }
 }
