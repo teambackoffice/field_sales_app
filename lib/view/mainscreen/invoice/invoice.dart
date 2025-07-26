@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/view/mainscreen/invoice/payment_page.dart';
 
 class InvoicePage extends StatefulWidget {
   @override
@@ -15,15 +16,17 @@ class _InvoicePageState extends State<InvoicePage> {
   ];
 
   void _makePayment(Invoice invoice) {
-    setState(() {
-      invoice.isPaid = true;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Payment successful! ✓'),
-        backgroundColor: Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PaymentPage(
+          invoice: invoice,
+          onPaymentSuccess: () {
+            setState(() {
+              invoice.isPaid = true;
+            });
+          },
+        ),
       ),
     );
   }
@@ -212,13 +215,5 @@ class _InvoicePageState extends State<InvoicePage> {
       ],
     );
   }
-}
-
-class Invoice {
-  final String number;
-  final String description;
-  final double amount;
-  bool isPaid;
-
-  Invoice(this.number, this.description, this.amount, this.isPaid);
+// Remove Invoice class from here; now imported from invoice_model.dart Invoice(this.number, this.description, this.amount, this.isPaid);
 }

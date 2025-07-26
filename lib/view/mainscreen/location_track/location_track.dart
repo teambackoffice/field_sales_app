@@ -110,18 +110,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                         ),
                       ),
                     ),
-                    Container(
-                      padding: EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.settings,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
+                   
                   ],
                 ),
               ),
@@ -299,50 +288,53 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                       
                       // Enhanced tracking info card
                       if (_isTracking)
-                        BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                          child: AnimatedContainer(
-                            duration: Duration(milliseconds: 500),
-                            padding: EdgeInsets.all(24),
-                            margin: EdgeInsets.symmetric(horizontal: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: Colors.white.withOpacity(0.2),
-                                width: 1,
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                            child: AnimatedContainer(
+                              duration: Duration(milliseconds: 500),
+                              padding: EdgeInsets.all(24),
+                              margin: EdgeInsets.symmetric(horizontal: 10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1,
+                                ),
                               ),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Tracking Details',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
+                              child: Column(
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info_outline,
                                         color: Colors.white,
+                                        size: 20,
                                       ),
-                                    ),
-                                  ],
-                                ),
-                                SizedBox(height: 16),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    _buildInfoItem(Icons.timer, 'Duration', '00:05:23'),
-                                    _buildInfoItem(Icons.update, 'Updated', 'Just now'),
-                                    _buildInfoItem(Icons.my_location, 'Accuracy', 'High'),
-                                  ],
-                                ),
-                              ],
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Tracking Details',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  SizedBox(height: 16),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      _buildInfoItem(Icons.timer, 'Duration', '00:05:23'),
+                                      _buildInfoItem(Icons.update, 'Updated', 'Just now'),
+                                      _buildInfoItem(Icons.my_location, 'Accuracy', 'High'),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
