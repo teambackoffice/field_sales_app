@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/view/bottom_nav/bottom_nav.dart';
 import 'package:location_tracker_app/view/mainscreen/invoice/invoice.dart';
 import 'package:location_tracker_app/view/mainscreen/location_track/location_track.dart';
 import 'package:location_tracker_app/view/mainscreen/profile_page/profile_page.dart';
 import 'package:location_tracker_app/view/mainscreen/sales_order/sales_order.dart';
+// Import the modern bottom nav bar
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
@@ -30,25 +32,16 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(
+        0xFFF5F5F7,
+      ), // Light grayish background like your image
       body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.location_on),
-            label: 'Tracking',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.business_center_rounded),
-            label: 'Sales',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'Invoices'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
+      bottomNavigationBar: ModernBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        selectedItemColor: Color(0xFF667EEA),
+        selectedItemColor: const Color(0xFF667EEA),
         unselectedItemColor: Colors.grey[600],
+        backgroundColor: const Color(0xFFF5F5F7), // Same as scaffold background
       ),
     );
   }
