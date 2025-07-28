@@ -20,10 +20,10 @@ class ModernBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.fromLTRB(
-        16,
+        5,
         0,
-        16,
-        32,
+        10,
+        20,
       ), // Increased bottom margin to lift it up
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(

@@ -32,16 +32,23 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0xFFF5F5F7,
-      ), // Light grayish background like your image
-      body: _pages[_selectedIndex],
-      bottomNavigationBar: ModernBottomNavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: const Color(0xFF667EEA),
-        unselectedItemColor: Colors.grey[600],
-        backgroundColor: const Color(0xFFF5F5F7), // Same as scaffold background
+      backgroundColor: const Color(0xFFF5F5F7),
+      body: Stack(
+        children: [
+          _pages[_selectedIndex],
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 10, // Adjust this value to move it higher/lower
+            child: ModernBottomNavBar(
+              currentIndex: _selectedIndex,
+              onTap: _onItemTapped,
+              selectedItemColor: const Color(0xFF667EEA),
+              unselectedItemColor: Colors.grey[600],
+              backgroundColor: const Color(0xFFF5F5F7),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -366,7 +366,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
         return Transform.scale(
           scale: _fabAnimation.value,
           child: Container(
-            margin: EdgeInsets.only(bottom: 16, right: 4),
+            margin: EdgeInsets.only(bottom: 50, right: 4),
             child: Stack(
               alignment: Alignment.center,
               children: [
