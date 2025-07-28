@@ -71,8 +71,8 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: _isTracking
                 ? [Color(0xFF667eea), Color(0xFF764ba2)]
                 : [Color(0xFF74b9ff), Color(0xFF0984e3)],
@@ -81,27 +81,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
         child: SafeArea(
           child: Column(
             children: [
-              // Custom App Bar
-              Container(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: Text(
-                          'Employee Attendance',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildHeader(), // ✅ Added same header
 
               Expanded(
                 child: Padding(
@@ -113,7 +93,6 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                       Stack(
                         alignment: Alignment.center,
                         children: [
-                          // Outer pulsing ring
                           if (_isTracking)
                             AnimatedBuilder(
                               animation: _pulseAnimation,
@@ -134,8 +113,6 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                                 );
                               },
                             ),
-
-                          // Rotating outer circle
                           if (_isTracking)
                             AnimatedBuilder(
                               animation: _rotationAnimation,
@@ -172,8 +149,6 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                                 );
                               },
                             ),
-
-                          // Main circle
                           Container(
                             width: 120,
                             height: 120,
@@ -203,7 +178,6 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
 
                       SizedBox(height: 40),
 
-                      // Status text with glassmorphism effect
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 24,
@@ -230,7 +204,6 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
 
                       SizedBox(height: 60),
 
-                      // Modern toggle button
                       GestureDetector(
                         onTap: _isTracking ? _stopTracking : _startTracking,
                         child: AnimatedContainer(
@@ -291,29 +264,45 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
     );
   }
 
-  Widget _buildInfoItem(IconData icon, String label, String value) {
-    return Column(
-      children: [
-        Icon(icon, color: Colors.white.withOpacity(0.8), size: 18),
-        SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.7),
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
+  Widget _buildHeader() {
+    return Container(
+      padding: EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF764BA2), Color(0xFF667EEA)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF764BA2).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.check_circle_rounded,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
-        ),
-        SizedBox(height: 2),
-        Text(
-          value,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
+          SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Employee Attendance',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

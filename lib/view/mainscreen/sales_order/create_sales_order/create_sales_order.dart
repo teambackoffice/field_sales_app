@@ -729,7 +729,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Total Amount ',
+              'Total Amount',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,

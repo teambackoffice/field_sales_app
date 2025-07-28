@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:location_tracker_app/view/mainscreen/invoice/payment_page.dart';
 
 class InvoicePage extends StatefulWidget {
+  const InvoicePage({super.key});
+
   @override
   _InvoicePageState createState() => _InvoicePageState();
 }
@@ -33,187 +35,183 @@ class _InvoicePageState extends State<InvoicePage> {
 
   @override
   Widget build(BuildContext context) {
-    final totalAmount = _invoices.fold(0.0, (sum, invoice) => sum + invoice.amount);
+    final totalAmount = _invoices.fold(
+      0.0,
+      (sum, invoice) => sum + invoice.amount,
+    );
     final paidCount = _invoices.where((i) => i.isPaid).length;
 
     return Scaffold(
       backgroundColor: Color(0xFFF5F7FA),
-      appBar: AppBar(
-        title: Text('Invoices', style: TextStyle(fontWeight: FontWeight.w600)),
-        backgroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Summary Card
-            // Container(
-            //   width: double.infinity,
-            //   padding: EdgeInsets.all(24),
-            //   decoration: BoxDecoration(
-            //     gradient: LinearGradient(
-            //       colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            //       begin: Alignment.topLeft,
-            //       end: Alignment.bottomRight,
-            //     ),
-            //     borderRadius: BorderRadius.circular(20),
-            //     boxShadow: [
-            //       BoxShadow(
-            //         color: Color(0xFF667EEA).withOpacity(0.3),
-            //         blurRadius: 15,
-            //         offset: Offset(0, 8),
-            //       ),
-            //     ],
-            //   ),
-            //   child: Column(
-            //     crossAxisAlignment: CrossAxisAlignment.start,
-            //     children: [
-            //       Text(
-            //         'Total Revenue',
-            //         style: TextStyle(color: Colors.white70, fontSize: 16),
-            //       ),
-            //       SizedBox(height: 8),
-            //       Text(
-            //         '₹${totalAmount.toStringAsFixed(2)}',
-            //         style: TextStyle(
-            //           color: Colors.white,
-            //           fontSize: 32,
-            //           fontWeight: FontWeight.bold,
-            //         ),
-            //       ),
-            //       SizedBox(height: 16),
-            //       Row(
-            //         children: [
-            //           _buildQuickStat('Paid', '$paidCount', Colors.white),
-            //           SizedBox(width: 24),
-            //           _buildQuickStat('Pending', '${_invoices.length - paidCount}', Colors.white70),
-            //         ],
-            //       ),
-            //     ],
-            //   ),
-            // ),
-            
-            SizedBox(height: 24),
-            
-            // Invoice List
-            Expanded(
-              child: ListView.builder(
-                itemCount: _invoices.length,
-                itemBuilder: (context, index) {
-                  final invoice = _invoices[index];
-                  return Container(
-                    margin: EdgeInsets.only(bottom: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      contentPadding: EdgeInsets.all(20),
-                      leading: Container(
-                        width: 50,
-                        height: 50,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFFF8F6FA), Color(0xFFEDE7F6)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsets.all(20),
+                  child: ListView.builder(
+                    itemCount: _invoices.length,
+                    itemBuilder: (context, index) {
+                      final invoice = _invoices[index];
+                      return Container(
+                        margin: EdgeInsets.only(bottom: 12),
                         decoration: BoxDecoration(
-                          color: invoice.isPaid ? Color(0xFF10B981).withOpacity(0.1) : Color(0xFFF59E0B).withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 10,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
-                        child: Icon(
-                          invoice.isPaid ? Icons.check_circle_rounded : Icons.schedule_rounded,
-                          color: invoice.isPaid ? Color(0xFF10B981) : Color(0xFFF59E0B),
-                          size: 28,
-                        ),
-                      ),
-                      title: Text(
-                        invoice.number,
-                        style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(height: 4),
-                          Text(
-                            invoice.description,
-                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.all(20),
+                          leading: Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: invoice.isPaid
+                                  ? Color(0xFF10B981).withOpacity(0.1)
+                                  : Color(0xFFF59E0B).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Icon(
+                              invoice.isPaid
+                                  ? Icons.check_circle_rounded
+                                  : Icons.schedule_rounded,
+                              color: invoice.isPaid
+                                  ? Color(0xFF10B981)
+                                  : Color(0xFFF59E0B),
+                              size: 28,
+                            ),
                           ),
-                          SizedBox(height: 8),
-                          Text(
-                            '₹${invoice.amount.toStringAsFixed(2)}',
+                          title: Text(
+                            invoice.number,
                             style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF059669),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
                             ),
                           ),
-                        ],
-                      ),
-                      trailing: invoice.isPaid
-                          ? Container(
-                              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF10B981).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'PAID',
+                          subtitle: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: 4),
+                              Text(
+                                invoice.description,
                                 style: TextStyle(
-                                  color: Color(0xFF10B981),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                  fontSize: 14,
                                 ),
                               ),
-                            )
-                          : ElevatedButton(
-                              onPressed: () => _makePayment(invoice),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF667EEA),
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                              SizedBox(height: 8),
+                              Text(
+                                '₹${invoice.amount.toStringAsFixed(2)}',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF059669),
                                 ),
-                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                               ),
-                              child: Text('Pay Now', style: TextStyle(fontWeight: FontWeight.w600)),
-                            ),
-                    ),
-                  );
-                },
+                            ],
+                          ),
+                          trailing: invoice.isPaid
+                              ? Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFF10B981).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                  child: Text(
+                                    'PAID',
+                                    style: TextStyle(
+                                      color: Color(0xFF10B981),
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                )
+                              : ElevatedButton(
+                                  onPressed: () => _makePayment(invoice),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color(0xFF667EEA),
+                                    foregroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Pay Now',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildQuickStat(String label, String value, Color color) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          value,
-          style: TextStyle(
-            color: color,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+  Widget _buildHeader() {
+    return Container(
+      padding: EdgeInsets.all(20),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFF764BA2), Color(0xFF667EEA)],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF764BA2).withOpacity(0.3),
+                  blurRadius: 8,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(Icons.receipt, color: Colors.white, size: 24),
           ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            color: color.withOpacity(0.8),
-            fontSize: 14,
+          SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Invoices',
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF2D3436),
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
-// Remove Invoice class from here; now imported from invoice_model.dart Invoice(this.number, this.description, this.amount, this.isPaid);
 }

@@ -266,7 +266,6 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                         ],
                       ),
                     ),
-                    _buildStatusBadge(order.status),
                   ],
                 ),
                 SizedBox(height: 16),
@@ -281,24 +280,18 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                       Expanded(
                         child: _buildOrderDetail(
                           'Amount',
-                          '\$${order.totalAmount.toStringAsFixed(2)}',
-                          Icons.attach_money,
+                          '₹${order.totalAmount.toStringAsFixed(2)}',
                         ),
                       ),
                       Container(width: 1, height: 40, color: Color(0xFFE5E5E5)),
                       Expanded(
-                        child: _buildOrderDetail(
-                          'Items',
-                          '${order.itemCount}',
-                          Icons.inventory_2_outlined,
-                        ),
+                        child: _buildOrderDetail('Items', '${order.itemCount}'),
                       ),
                       Container(width: 1, height: 40, color: Color(0xFFE5E5E5)),
                       Expanded(
                         child: _buildOrderDetail(
-                          'Date',
-                          '${order.orderDate.day}/${order.orderDate.month}',
-                          Icons.calendar_today_outlined,
+                          'Delivery Date',
+                          '${order.orderDate.day}/${order.orderDate.month}/${order.orderDate.year}',
                         ),
                       ),
                     ],
@@ -349,20 +342,19 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     );
   }
 
-  Widget _buildOrderDetail(String label, String value, IconData icon) {
+  Widget _buildOrderDetail(String label, String value) {
     return Column(
       children: [
-        Icon(icon, color: Color(0xFF764BA2), size: 16),
         SizedBox(height: 4),
         Text(
           value,
           style: TextStyle(
-            fontSize: 14,
+            fontSize: 16,
             fontWeight: FontWeight.w700,
             color: Color(0xFF2D3436),
           ),
         ),
-        Text(label, style: TextStyle(fontSize: 10, color: Color(0xFF636E72))),
+        Text(label, style: TextStyle(fontSize: 13, color: Color(0xFF636E72))),
       ],
     );
   }
