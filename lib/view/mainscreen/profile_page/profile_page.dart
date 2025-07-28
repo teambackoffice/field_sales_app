@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/view/login/login_page.dart';
 
 class ProfilePage extends StatelessWidget {
+  const ProfilePage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,13 +58,6 @@ class ProfilePage extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Text(
-                    'sandeep.varghese@gmail.com',
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -83,13 +79,23 @@ class ProfilePage extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  _buildDetailItem(Icons.phone, 'Phone', '+91 98765 43210'),
+                  _buildDetailItem(
+                    Icons.phone,
+                    'Email',
+                    'sandeep.varghese@gmail.com',
+                  ),
                   _buildDivider(),
-                  _buildDetailItem(Icons.location_on, 'Address', 'Palazhi, Calicut'),
+                  _buildDetailItem(
+                    Icons.work,
+                    'Job Title',
+                    'Software Engineer',
+                  ),
                   _buildDivider(),
-                  _buildDetailItem(Icons.work, 'Job Title', 'Software Engineer'),
-                  _buildDivider(),
-                  _buildDetailItem(Icons.business, 'Company', 'Tech Solutions Inc'),
+                  _buildDetailItem(
+                    Icons.business,
+                    'Company',
+                    'Tech Solutions Inc',
+                  ),
                 ],
               ),
             ),
@@ -102,19 +108,27 @@ class ProfilePage extends StatelessWidget {
               height: 50,
               child: ElevatedButton(
                 onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginPage()),
+                  );
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Log out functionality not implemented yet.'),
-                      backgroundColor: Color(0xFF667EEA),
+                      content: Text('Log out successful!'),
+                      backgroundColor: Color(0xFF764BA2),
                       behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF667EEA),
+                  backgroundColor: Color(0xFF764BA2),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
                   elevation: 0,
                 ),
                 child: Text(
@@ -148,17 +162,11 @@ class ProfilePage extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  color: Colors.grey[600],
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: Colors.grey[600], fontSize: 14),
               ),
               Text(
                 value,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 16,
-                ),
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
               ),
             ],
           ),

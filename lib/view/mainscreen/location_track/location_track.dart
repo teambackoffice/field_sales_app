@@ -1,17 +1,18 @@
-import 'dart:ui';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 class LocationTrackingPage extends StatefulWidget {
+  const LocationTrackingPage({super.key});
+
   @override
   _LocationTrackingPageState createState() => _LocationTrackingPageState();
 }
 
-class _LocationTrackingPageState extends State<LocationTrackingPage> 
+class _LocationTrackingPageState extends State<LocationTrackingPage>
     with TickerProviderStateMixin {
   bool _isTracking = false;
-  String _trackingStatus = "Ready to track";
+  String _trackingStatus = "You are Signed Out";
   late AnimationController _pulseController;
   late AnimationController _rotationController;
   late Animation<double> _pulseAnimation;
@@ -28,7 +29,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
       duration: Duration(seconds: 20),
       vsync: this,
     );
-    
+
     _pulseAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
@@ -47,7 +48,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
   void _startTracking() {
     setState(() {
       _isTracking = true;
-      _trackingStatus = "Tracking your location";
+      _trackingStatus = " You are Signed In";
     });
     _pulseController.repeat(reverse: true);
     _rotationController.repeat();
@@ -57,7 +58,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
   void _stopTracking() {
     setState(() {
       _isTracking = false;
-      _trackingStatus = "Tracking paused";
+      _trackingStatus = "Signed Out";
     });
     _pulseController.stop();
     _rotationController.stop();
@@ -72,7 +73,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: _isTracking 
+            colors: _isTracking
                 ? [Color(0xFF667eea), Color(0xFF764ba2)]
                 : [Color(0xFF74b9ff), Color(0xFF0984e3)],
           ),
@@ -85,11 +86,10 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                 child: Row(
                   children: [
-                    
                     Expanded(
                       child: Center(
                         child: Text(
-                          'Location Tracker',
+                          'Employee Attendance',
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: 22,
@@ -99,11 +99,10 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                         ),
                       ),
                     ),
-                   
                   ],
                 ),
               ),
-              
+
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(20.0),
@@ -135,7 +134,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                                 );
                               },
                             ),
-                          
+
                           // Rotating outer circle
                           if (_isTracking)
                             AnimatedBuilder(
@@ -173,7 +172,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                                 );
                               },
                             ),
-                          
+
                           // Main circle
                           Container(
                             width: 120,
@@ -190,21 +189,26 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                               ],
                             ),
                             child: Icon(
-                              _isTracking ? Icons.gps_fixed : Icons.gps_not_fixed,
+                              _isTracking
+                                  ? Icons.gps_fixed
+                                  : Icons.gps_not_fixed,
                               size: 50,
-                              color: _isTracking 
-                                  ? Color(0xFF00b894) 
+                              color: _isTracking
+                                  ? Color(0xFF00b894)
                                   : Color(0xFF636e72),
                             ),
                           ),
                         ],
                       ),
-                      
+
                       SizedBox(height: 40),
-                      
+
                       // Status text with glassmorphism effect
                       Container(
-                        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(25),
@@ -223,9 +227,9 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                           ),
                         ),
                       ),
-                      
+
                       SizedBox(height: 60),
-                      
+
                       // Modern toggle button
                       GestureDetector(
                         onTap: _isTracking ? _stopTracking : _startTracking,
@@ -235,16 +239,18 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                           height: 65,
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
-                              colors: _isTracking 
+                              colors: _isTracking
                                   ? [Color(0xFFff7675), Color(0xFFd63031)]
                                   : [Color(0xFF00b894), Color(0xFF00a085)],
                             ),
                             borderRadius: BorderRadius.circular(35),
                             boxShadow: [
                               BoxShadow(
-                                color: (_isTracking 
-                                    ? Color(0xFFff7675) 
-                                    : Color(0xFF00b894)).withOpacity(0.4),
+                                color:
+                                    (_isTracking
+                                            ? Color(0xFFff7675)
+                                            : Color(0xFF00b894))
+                                        .withOpacity(0.4),
                                 blurRadius: 15,
                                 offset: Offset(0, 8),
                               ),
@@ -260,7 +266,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                               ),
                               SizedBox(width: 12),
                               Text(
-                                _isTracking ? 'Stop Tracking' : 'Start Tracking',
+                                _isTracking ? 'Check-Out' : 'Check-In',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 18,
@@ -272,61 +278,8 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                           ),
                         ),
                       ),
-                      
+
                       SizedBox(height: 40),
-                      
-                      // Enhanced tracking info card
-                      if (_isTracking)
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
-                          child: BackdropFilter(
-                            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                            child: AnimatedContainer(
-                              duration: Duration(milliseconds: 500),
-                              padding: EdgeInsets.all(24),
-                              margin: EdgeInsets.symmetric(horizontal: 10),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.15),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: Colors.white.withOpacity(0.2),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Column(
-                                children: [
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.info_outline,
-                                        color: Colors.white,
-                                        size: 20,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Tracking Details',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: 16),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      _buildInfoItem(Icons.timer, 'Duration', '00:05:23'),
-                                      _buildInfoItem(Icons.update, 'Updated', 'Just now'),
-                                      _buildInfoItem(Icons.my_location, 'Accuracy', 'High'),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
                     ],
                   ),
                 ),
@@ -341,11 +294,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
   Widget _buildInfoItem(IconData icon, String label, String value) {
     return Column(
       children: [
-        Icon(
-          icon,
-          color: Colors.white.withOpacity(0.8),
-          size: 18,
-        ),
+        Icon(icon, color: Colors.white.withOpacity(0.8), size: 18),
         SizedBox(height: 4),
         Text(
           label,

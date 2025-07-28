@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:location_tracker_app/view/mainscreen/invoice/invoice.dart';
 import 'package:location_tracker_app/view/mainscreen/location_track/location_track.dart';
 import 'package:location_tracker_app/view/mainscreen/profile_page/profile_page.dart';
+import 'package:location_tracker_app/view/mainscreen/sales_order/sales_order.dart';
 
 class MainScreen extends StatefulWidget {
+  const MainScreen({super.key});
+
   @override
   _MainScreenState createState() => _MainScreenState();
 }
@@ -13,6 +16,7 @@ class _MainScreenState extends State<MainScreen> {
 
   final List<Widget> _pages = [
     LocationTrackingPage(),
+    SalesOrdersListPage(),
     InvoicePage(),
     ProfilePage(),
   ];
@@ -35,13 +39,11 @@ class _MainScreenState extends State<MainScreen> {
             label: 'Tracking',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.receipt),
-            label: 'Invoices',
+            icon: Icon(Icons.business_center_rounded),
+            label: 'Sales',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.receipt), label: 'Invoices'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
