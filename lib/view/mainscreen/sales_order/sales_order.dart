@@ -15,8 +15,8 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
   late AnimationController _filterAnimationController;
   late Animation<double> _filterAnimation;
 
-  String _selectedFilter = 'All';
-  bool _isFilterExpanded = false;
+  final String _selectedFilter = 'All';
+  final bool _isFilterExpanded = false;
 
   // Mock data for sales orders
   final List<SalesOrder> _salesOrders = [
@@ -28,22 +28,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
       status: 'Pending',
       itemCount: 3,
     ),
-    SalesOrder(
-      id: 'SO-20250727-002',
-      customerName: 'XYZ Ltd',
-      orderDate: DateTime.now().subtract(Duration(days: 2)),
-      totalAmount: 1820.00,
-      status: 'Completed',
-      itemCount: 5,
-    ),
-    SalesOrder(
-      id: 'SO-20250726-003',
-      customerName: 'Tech Solutions Inc',
-      orderDate: DateTime.now().subtract(Duration(days: 3)),
-      totalAmount: 3200.00,
-      status: 'Processing',
-      itemCount: 2,
-    ),
+
     SalesOrder(
       id: 'SO-20250725-004',
       customerName: 'Digital Dynamics',
@@ -119,8 +104,6 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
           child: Column(
             children: [
               _buildHeader(),
-              _buildFilterSection(),
-              _buildStatsCards(),
               Expanded(child: _buildOrdersList()),
             ],
           ),
@@ -166,174 +149,9 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                     color: Color(0xFF2D3436),
                   ),
                 ),
-                Text(
-                  'Manage your sales orders',
-                  style: TextStyle(fontSize: 16, color: Color(0xFF636E72)),
-                ),
               ],
             ),
           ),
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _isFilterExpanded = !_isFilterExpanded;
-                if (_isFilterExpanded) {
-                  _filterAnimationController.forward();
-                } else {
-                  _filterAnimationController.reverse();
-                }
-              });
-            },
-            icon: AnimatedRotation(
-              turns: _isFilterExpanded ? 0.5 : 0,
-              duration: Duration(milliseconds: 300),
-              child: Icon(Icons.tune, color: Color(0xFF764BA2), size: 28),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFilterSection() {
-    return AnimatedBuilder(
-      animation: _filterAnimation,
-      builder: (context, child) {
-        return SizedBox(
-          height: _filterAnimation.value * 80,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: 20),
-            child: Row(
-              children: [
-                'All',
-                'Pending',
-                'Processing',
-                'Completed',
-                'Cancelled',
-              ].map((filter) => _buildFilterChip(filter)).toList(),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildFilterChip(String filter) {
-    bool isSelected = _selectedFilter == filter;
-    return Container(
-      margin: EdgeInsets.only(right: 12),
-      child: FilterChip(
-        label: Text(
-          filter,
-          style: TextStyle(
-            color: isSelected ? Colors.white : Color(0xFF764BA2),
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-          ),
-        ),
-        selected: isSelected,
-        onSelected: (selected) {
-          setState(() {
-            _selectedFilter = filter;
-          });
-        },
-        backgroundColor: Colors.white,
-        selectedColor: Color(0xFF764BA2),
-        checkmarkColor: Colors.white,
-        elevation: isSelected ? 4 : 1,
-        shadowColor: Color(0xFF764BA2).withOpacity(0.3),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: isSelected ? Color(0xFF764BA2) : Color(0xFFE5E5E5),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatsCards() {
-    int totalOrders = _salesOrders.length;
-    double totalRevenue = _salesOrders.fold(
-      0,
-      (sum, order) => sum + order.totalAmount,
-    );
-    int pendingOrders = _salesOrders
-        .where((order) => order.status == 'Pending')
-        .length;
-
-    return Container(
-      height: 120,
-      margin: EdgeInsets.symmetric(vertical: 16),
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          _buildStatCard(
-            'Total Orders',
-            totalOrders.toString(),
-            Icons.shopping_cart_outlined,
-            Color(0xFF6C5CE7),
-          ),
-          _buildStatCard(
-            'Revenue',
-            '\$${totalRevenue.toStringAsFixed(0)}',
-            Icons.attach_money,
-            Color(0xFF00B894),
-          ),
-          _buildStatCard(
-            'Pending',
-            pendingOrders.toString(),
-            Icons.pending_actions,
-            Color(0xFFE17055),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      width: 140,
-      margin: EdgeInsets.only(right: 16),
-      padding: EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          Spacer(),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF2D3436),
-            ),
-          ),
-          Text(title, style: TextStyle(fontSize: 12, color: Color(0xFF636E72))),
         ],
       ),
     );
@@ -574,72 +392,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                     ),
                   ),
                 ),
-                // Main button
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Color(0xFF764BA2).withOpacity(0.4),
-                        blurRadius: 16,
-                        offset: Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      onTap: () {
-                        // Navigate to create sales order page
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SalesOrderCreatePage(),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(32),
-                      child: Container(
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Icon(Icons.add, color: Colors.white, size: 28),
-                            Positioned(
-                              bottom: 8,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  'NEW',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.w700,
-                                    letterSpacing: 0.5,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // Animated pulse rings
+                // Animated pulse rings (moved behind main button)
                 ...List.generate(2, (index) {
                   return AnimatedBuilder(
                     animation: _fabAnimationController,
@@ -667,6 +420,38 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                     },
                   );
                 }),
+                // Main button (moved to top for proper touch handling)
+                GestureDetector(
+                  onTap: () {
+                    print("FAB pressed!"); // Debug line
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreateSalesOrder(),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0xFF764BA2).withOpacity(0.4),
+                          blurRadius: 16,
+                          offset: Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Icon(Icons.add, color: Colors.white, size: 28),
+                  ),
+                ),
               ],
             ),
           ),

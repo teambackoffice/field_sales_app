@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/view/mainscreen/sales_order/create_sales_order/create_new_item.dart';
 
-class SalesOrderCreatePage extends StatefulWidget {
-  const SalesOrderCreatePage({super.key});
+class CreateSalesOrder extends StatefulWidget {
+  const CreateSalesOrder({super.key});
 
   @override
-  _SalesOrderCreatePageState createState() => _SalesOrderCreatePageState();
+  _CreateSalesOrderState createState() => _CreateSalesOrderState();
 }
 
-class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
+class _CreateSalesOrderState extends State<CreateSalesOrder> {
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
@@ -15,7 +16,7 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
   final TextEditingController _notesController = TextEditingController();
 
   // Form data
-  DateTime _postingDate = DateTime.now();
+  DateTime delvery_date = DateTime.now();
   String? _selectedCustomer;
   final List<OrderItem> _orderItems = [];
   double _totalAmount = 0.0;
@@ -27,7 +28,7 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
     Customer(id: '3', name: 'Tech Solutions Inc', email: 'tech@solutions.com'),
   ];
 
-  final List<Product> _products = [
+  static final List<Product> _products = [
     Product(id: '1', name: 'Laptop Dell XPS', price: 1200.00, unit: 'pcs'),
     Product(id: '2', name: 'Wireless Mouse', price: 25.00, unit: 'pcs'),
     Product(id: '3', name: 'USB Cable', price: 15.00, unit: 'pcs'),
@@ -126,7 +127,7 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Posting Date ',
+              'Delivery Date ',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
@@ -163,7 +164,7 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
                                   ),
                                 ),
                                 Text(
-                                  '${_postingDate.day}/${_postingDate.month}/${_postingDate.year}',
+                                  '${delvery_date.day}/${delvery_date.month}/${delvery_date.year}',
                                   style: TextStyle(fontSize: 16),
                                 ),
                               ],
@@ -268,30 +269,17 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
                     color: Color(0xFF2D3436),
                   ),
                 ),
-                Row(
-                  children: [
-                    TextButton.icon(
-                      onPressed: _createNewItem,
-                      icon: Icon(Icons.add_circle, color: Color(0xFF667EEA)),
-                      label: Text(
-                        'Create Item',
-                        style: TextStyle(color: Color(0xFF667EEA)),
-                      ),
+                ElevatedButton.icon(
+                  onPressed: _showAddItemBottomSheet,
+                  icon: Icon(Icons.add),
+                  label: Text('Add Item'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF764BA2),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                    SizedBox(width: 8),
-                    ElevatedButton.icon(
-                      onPressed: _addItem,
-                      icon: Icon(Icons.add),
-                      label: Text('Add Item'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF764BA2),
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -339,6 +327,326 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
     );
   }
 
+  // Bottom Sheet approach - shows existing items and option to create new
+  void _showAddItemBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.8,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Add Item to Order',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showCreateNewItemPage();
+                        },
+                        icon: Icon(Icons.add_circle_outline, size: 20),
+                        label: Text('Create New'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Color(0xFF667EEA),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child:
+                  _products
+                      .isEmpty // ✅ Correct - checking products list
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.inventory_outlined,
+                            size: 64,
+                            color: Colors.grey.shade400,
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'No items available',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Create your first item to get started',
+                            style: TextStyle(color: Colors.grey.shade500),
+                          ),
+                          SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              _showCreateNewItemPage();
+                            },
+                            icon: Icon(Icons.add),
+                            label: Text('Create Item'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFF764BA2),
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.all(16),
+                      itemCount: _products.length,
+                      itemBuilder: (context, index) {
+                        final product = _products[index];
+                        final inventoryItem = InventoryItem(
+                          name: product.name,
+                          price: product.price,
+                          unit: product.unit,
+                        );
+                        return Card(
+                          margin: EdgeInsets.only(bottom: 8),
+                          child: ListTile(
+                            leading: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: Color(0xFF764BA2).withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Icon(
+                                Icons.inventory_2,
+                                color: Color(0xFF764BA2),
+                                size: 20,
+                              ),
+                            ),
+                            title: Text(
+                              product.name,
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            subtitle: Text(
+                              '₹${product.price.toStringAsFixed(2)}',
+                              style: TextStyle(color: Colors.grey.shade600),
+                            ),
+                            trailing: ElevatedButton(
+                              onPressed: () {
+                                _showQuantityDialog(inventoryItem);
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF764BA2),
+                                foregroundColor: Colors.white,
+                                minimumSize: Size(60, 36),
+                              ),
+                              child: Text('Add'),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Separate page for creating new items
+  void _showCreateNewItemPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateItemPage(
+          existingProducts: _products, // Pass existing products
+          onItemCreated: (newItem) {
+            final newProduct = Product(
+              id: (_products.length + 1).toString(),
+              name: newItem.name,
+              price: newItem.price,
+              unit: newItem.unit,
+            );
+
+            setState(() {
+              _products.add(newProduct);
+            });
+
+            Future.delayed(Duration(milliseconds: 300), () {
+              _showAddItemBottomSheet();
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  // Dialog to enter quantity when adding existing item
+  void _showQuantityDialog(InventoryItem item) {
+    final quantityController = TextEditingController(text: '1');
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Container(
+          padding: EdgeInsets.all(20),
+          width: double.infinity,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Header
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: Color(0xFF764BA2),
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Center(
+                  child: Text(
+                    "Add ${item.name}",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 20),
+
+              // Price Info
+              Text(
+                'Price: ₹${item.price.toStringAsFixed(2)} per ${item.unit}',
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+
+              SizedBox(height: 20),
+
+              // Quantity Input
+              TextField(
+                controller: quantityController,
+                keyboardType: TextInputType.number,
+                style: TextStyle(fontSize: 18),
+                decoration: InputDecoration(
+                  labelText: 'Quantity',
+                  labelStyle: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  suffixText: item.unit,
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+              ),
+
+              SizedBox(height: 30),
+
+              // Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        side: BorderSide(color: Color(0xFF764BA2), width: 1.5),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Color(0xFF764BA2),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        final quantity =
+                            double.tryParse(quantityController.text) ?? 0;
+                        if (quantity > 0) {
+                          final orderItem = OrderItem(
+                            productName: item.name,
+                            unitPrice: item.price,
+                            quantity: quantity.toInt(),
+                            unit: item.unit,
+                          );
+
+                          setState(() {
+                            _orderItems.add(orderItem);
+                            _calculateTotal();
+                          });
+
+                          Navigator.pop(context); // Close dialog
+                          Navigator.pop(context); // Close bottom sheet
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF764BA2),
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        'Add',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildOrderItemTile(OrderItem item, int index) {
     return Container(
       margin: EdgeInsets.only(bottom: 8),
@@ -360,7 +668,7 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
                   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
                 ),
                 Text(
-                  '\$${item.unitPrice.toStringAsFixed(2)} per ${item.unit}',
+                  '₹${item.unitPrice.toStringAsFixed(2)} per ${item.unit}',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
               ],
@@ -399,6 +707,10 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
     );
   }
 
+  // Separate Create Item Page
+
+  // Data models (add these to your existing models)
+
   Widget _buildTotalCard() {
     return Card(
       elevation: 2,
@@ -407,7 +719,7 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
         padding: EdgeInsets.all(16),
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Color(0xFF764BA2), Color(0xFF667EEA)],
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
@@ -655,7 +967,6 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
                 }
 
                 OrderItem newItem = OrderItem(
-                  productId: DateTime.now().millisecondsSinceEpoch.toString(),
                   productName: itemNameController.text,
                   unitPrice: unitPrice,
                   quantity: quantity,
@@ -761,8 +1072,8 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
   void _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _postingDate,
-      firstDate: DateTime(2020),
+      initialDate: delvery_date,
+      firstDate: DateTime.now(),
       lastDate: DateTime(2030),
       builder: (context, child) {
         return Theme(
@@ -774,9 +1085,9 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
       },
     );
 
-    if (picked != null && picked != _postingDate) {
+    if (picked != null && picked != delvery_date) {
       setState(() {
-        _postingDate = picked;
+        delvery_date = picked;
       });
     }
   }
@@ -796,7 +1107,7 @@ class _SalesOrderCreatePageState extends State<SalesOrderCreatePage> {
       // Here you would typically send the data to your backend
       Map<String, dynamic> salesOrderData = {
         'orderNumber': _orderNumberController.text,
-        'postingDate': _postingDate.toIso8601String(),
+        'postingDate': delvery_date.toIso8601String(),
         'customerId': _selectedCustomer,
         'items': _orderItems.map((item) => item.toJson()).toList(),
         'totalAmount': _totalAmount,
@@ -843,14 +1154,12 @@ class Product {
 }
 
 class OrderItem {
-  final String productId;
   final String productName;
   final double unitPrice;
   final int quantity;
   final String unit;
 
   OrderItem({
-    required this.productId,
     required this.productName,
     required this.unitPrice,
     required this.quantity,
@@ -861,7 +1170,6 @@ class OrderItem {
 
   Map<String, dynamic> toJson() {
     return {
-      'productId': productId,
       'productName': productName,
       'unitPrice': unitPrice,
       'quantity': quantity,
@@ -869,4 +1177,18 @@ class OrderItem {
       'totalPrice': totalPrice,
     };
   }
+}
+
+class InventoryItem {
+  final String name;
+  final double price;
+  final String unit;
+  final String description;
+
+  InventoryItem({
+    required this.name,
+    required this.price,
+    required this.unit,
+    this.description = '',
+  });
 }
