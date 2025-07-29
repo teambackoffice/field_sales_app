@@ -1,23 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/controller/login_controller.dart';
+import 'package:location_tracker_app/service/login_service.dart';
 import 'package:location_tracker_app/view/login/login_page.dart';
 import 'package:location_tracker_app/view/mainscreen/homepage.dart';
+import 'package:provider/provider.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final authService = LoginService();
+  final isLoggedIn = await authService.isLoggedIn();
+
+  runApp(
+    MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => LoginController())],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Location Tracker',
+        theme: ThemeData(primarySwatch: Colors.deepPurple),
+        home: isLoggedIn ? MainScreen() : LoginPage(),
+      ),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final LoginService _authService = LoginService();
 
-  // This widget is the root of your application.
+  MyApp({super.key});
+
+  Future<bool> checkLogin() async {
+    return await _authService.isLoggedIn();
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
-      
-      home:  LoginPage(),
+      title: 'Location Tracker',
+      theme: ThemeData(primarySwatch: Colors.deepPurple),
+      home: FutureBuilder<bool>(
+        future: checkLogin(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          return snapshot.data! ? MainScreen() : LoginPage();
+        },
+      ),
     );
   }
 }
-
