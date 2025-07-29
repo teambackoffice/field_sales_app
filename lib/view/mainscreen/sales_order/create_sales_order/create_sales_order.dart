@@ -23,9 +23,27 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
 
   // Mock data - replace with backend API calls
   final List<Customer> _customers = [
-    Customer(id: '1', name: 'ABC Corporation', email: 'abc@corp.com'),
-    Customer(id: '2', name: 'XYZ Ltd', email: 'xyz@ltd.com'),
-    Customer(id: '3', name: 'Tech Solutions Inc', email: 'tech@solutions.com'),
+    Customer(
+      id: '1',
+      name: 'ABC Corporation',
+      email: 'abc@corp.com',
+      isGstRegistered: true,
+      gstNumber: 'GST123456789',
+    ),
+    Customer(
+      id: '2',
+      name: 'XYZ Ltd',
+      email: 'xyz@ltd.com',
+      isGstRegistered: false,
+      gstNumber: null,
+    ),
+    Customer(
+      id: '3',
+      name: 'Tech Solutions Inc',
+      email: 'tech@solutions.com',
+      isGstRegistered: true,
+      gstNumber: 'GST987654321',
+    ),
   ];
 
   static final List<Product> _products = [
@@ -207,17 +225,44 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                 ),
               ),
               value: _selectedCustomer,
+              isExpanded: true, // Add this to prevent overflow
               items: _customers.map((customer) {
                 return DropdownMenuItem<String>(
                   value: customer.id,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min, // Add this
                     children: [
-                      Text(
-                        customer.name,
-                        style: TextStyle(
-                          fontWeight: FontWeight.w500,
-                          fontSize: 14,
+                      Expanded(
+                        child: Text(
+                          customer.name,
+                          style: TextStyle(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 14,
+                          ),
+                          overflow: TextOverflow.ellipsis, // Add this
+                        ),
+                      ),
+                      SizedBox(width: 8), // Add spacing
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: customer.isGstRegistered
+                              ? Colors.green.withOpacity(0.1)
+                              : Colors.red.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          customer.isGstRegistered ? 'GST' : 'No GST',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w500,
+                            color: customer.isGstRegistered
+                                ? Colors.green[700]
+                                : Colors.red[700],
+                          ),
                         ),
                       ),
                     ],
@@ -236,8 +281,84 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                 return null;
               },
             ),
+
+            // Display selected customer's GST information
+            if (_selectedCustomer != null) ...[
+              SizedBox(height: 12),
+              _buildSelectedCustomerInfo(),
+            ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildSelectedCustomerInfo() {
+    final selectedCustomer = _customers.firstWhere(
+      (customer) => customer.id == _selectedCustomer,
+    );
+
+    return Container(
+      padding: EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                selectedCustomer.isGstRegistered
+                    ? Icons.verified_user
+                    : Icons.info_outline,
+                size: 16,
+                color: selectedCustomer.isGstRegistered
+                    ? Colors.green[600]
+                    : Colors.orange[600],
+              ),
+              SizedBox(width: 8),
+              Text(
+                selectedCustomer.isGstRegistered
+                    ? 'GST Registered Customer'
+                    : 'Non-GST Registered Customer',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: selectedCustomer.isGstRegistered
+                      ? Colors.green[700]
+                      : Colors.orange[700],
+                ),
+              ),
+            ],
+          ),
+          if (selectedCustomer.isGstRegistered &&
+              selectedCustomer.gstNumber != null) ...[
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  'GST No: ',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Text(
+                  selectedCustomer.gstNumber!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2D3436),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -348,17 +469,17 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                   ),
                   Row(
                     children: [
-                      TextButton.icon(
-                        onPressed: () {
-                          Navigator.pop(context);
-                          _showCreateNewItemPage();
-                        },
-                        icon: Icon(Icons.add_circle_outline, size: 20),
-                        label: Text('Create New'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Color(0xFF667EEA),
-                        ),
-                      ),
+                      // TextButton.icon(
+                      //   onPressed: () {
+                      //     Navigator.pop(context);
+                      //     _showCreateNewItemPage();
+                      //   },
+                      //   icon: Icon(Icons.add_circle_outline, size: 20),
+                      //   label: Text('Create New'),
+                      //   style: TextButton.styleFrom(
+                      //     foregroundColor: Color(0xFF667EEA),
+                      //   ),
+                      // ),
                       IconButton(
                         onPressed: () => Navigator.pop(context),
                         icon: Icon(Icons.close),
@@ -1127,9 +1248,47 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
 class Customer {
   final String id;
   final String name;
-  final String email;
+  final bool isGstRegistered;
+  final String? gstNumber;
+  final String? email;
+  final String? phone;
+  final String? address;
 
-  Customer({required this.id, required this.name, required this.email});
+  Customer({
+    required this.id,
+    required this.name,
+    required this.isGstRegistered,
+    this.gstNumber,
+    this.email,
+    this.phone,
+    this.address,
+  });
+
+  // Factory constructor for creating Customer from JSON
+  factory Customer.fromJson(Map<String, dynamic> json) {
+    return Customer(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      isGstRegistered: json['isGstRegistered'] ?? false,
+      gstNumber: json['gstNumber'],
+      email: json['email'],
+      phone: json['phone'],
+      address: json['address'],
+    );
+  }
+
+  // Method to convert Customer to JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'isGstRegistered': isGstRegistered,
+      'gstNumber': gstNumber,
+      'email': email,
+      'phone': phone,
+      'address': address,
+    };
+  }
 }
 
 class Product {

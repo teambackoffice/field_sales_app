@@ -354,6 +354,30 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
               ),
             ),
           ),
+          // PopupMenuButton(
+          //   icon: Icon(Icons.filter_list, color: Colors.white),
+          //   shape: RoundedRectangleBorder(
+          //     borderRadius: BorderRadius.circular(12),
+          //   ),
+          //   onSelected: (value) {
+          //     setState(() {
+          //       Navigator.push(
+          //         context,
+          //         MaterialPageRoute(
+          //           builder: (context) => CustomerVisitLogger(),
+          //         ),
+          //       );
+          //     });
+          //   },
+          //   itemBuilder: (context) {
+          //     return [
+          //       PopupMenuItem(
+          //         value: 'Customer Visit Log',
+          //         child: Text('Customer Visit Log'),
+          //       ),
+          //     ];
+          //   },
+          // ),
         ],
       ),
     );

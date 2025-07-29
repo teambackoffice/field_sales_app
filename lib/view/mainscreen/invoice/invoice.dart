@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/view/mainscreen/invoice/payment_entry.dart'
+    hide Invoice;
 import 'package:location_tracker_app/view/mainscreen/invoice/payment_page.dart';
 
 class InvoicePage extends StatefulWidget {
@@ -225,16 +227,7 @@ class _InvoicePageState extends State<InvoicePage> {
                                   fontSize: 14,
                                 ),
                               ),
-                              if (invoice.items.isNotEmpty) ...[
-                                SizedBox(height: 4),
-                                Text(
-                                  '${invoice.items.length} item(s)',
-                                  style: TextStyle(
-                                    color: Colors.grey[500],
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+
                               SizedBox(height: 8),
                               Text(
                                 '₹${invoice.amount.toStringAsFixed(2)}',
@@ -333,6 +326,30 @@ class _InvoicePageState extends State<InvoicePage> {
                     color: Color(0xFF2D3436),
                   ),
                 ),
+              ),
+              PopupMenuButton(
+                icon: Icon(Icons.filter_list, color: Colors.black),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onSelected: (value) {
+                  setState(() {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PremiumPaymentEntryPage(),
+                      ),
+                    );
+                  });
+                },
+                itemBuilder: (context) {
+                  return [
+                    PopupMenuItem(
+                      value: 'Payment Entry',
+                      child: Text('Payment Entry'),
+                    ),
+                  ];
+                },
               ),
             ],
           ),
