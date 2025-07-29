@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:location_tracker_app/view/mainscreen/sales_order/create_sales_order/create_sales_order.dart';
+import 'package:location_tracker_app/view/mainscreen/sales_order/sales_return.dart';
 
 class SalesOrdersListPage extends StatefulWidget {
   const SalesOrdersListPage({super.key});
@@ -151,6 +152,28 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                 ),
               ],
             ),
+          ),
+          PopupMenuButton(
+            icon: Icon(Icons.filter_list, color: Color(0xFF2D3436)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+
+            itemBuilder: (context) {
+              return [
+                PopupMenuItem(value: 'All', child: Text('Sales Returns')),
+              ];
+            },
+            onSelected: (value) {
+              setState(() {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => SalesReturnListPage(),
+                  ),
+                );
+              });
+            },
           ),
         ],
       ),
@@ -455,40 +478,347 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
   void _showOrderDetails(SalesOrder order) {
     showModalBottomSheet(
       context: context,
+      isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        padding: EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Order Details',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+      builder: (context) => DraggableScrollableSheet(
+        initialChildSize: 0.7,
+        minChildSize: 0.5,
+        maxChildSize: 0.95,
+        builder: (_, controller) => Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Drag handle
+              Container(
+                margin: EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // Header
+              Padding(
+                padding: EdgeInsets.fromLTRB(24, 8, 16, 16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        Icons.receipt_long,
+                        color: Colors.blue[600],
+                        size: 20,
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Order Details',
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: Icon(
+                          Icons.close,
+                          color: Colors.grey[600],
+                          size: 20,
+                        ),
+                        padding: EdgeInsets.all(8),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: controller,
+                  padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Order summary card
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Colors.blue[50]!, Colors.blue[100]!],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.blue[200]!,
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                SizedBox(width: 8),
+                                Text(
+                                  'Order ${order.id}',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.blue[800],
+                                  ),
+                                ),
+                                Spacer(),
+                              ],
+                            ),
+                            SizedBox(height: 16),
+
+                            _buildInfoRow(
+                              Icons.person_outline,
+                              'Customer',
+                              order.customerName,
+                            ),
+                            SizedBox(height: 12),
+                            _buildInfoRow(
+                              Icons.money,
+                              'Total Amount',
+                              '\$${order.totalAmount.toStringAsFixed(2)}',
+                            ),
+                            SizedBox(height: 12),
+                            _buildInfoRow(
+                              Icons.calendar_today,
+                              'Order Date',
+                              order.orderDate.toString().substring(0, 10),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      SizedBox(height: 24),
+
+                      // Items section
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.shopping_bag_outlined,
+                            color: Colors.grey[700],
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Order Items',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[800],
+                            ),
+                          ),
+                          Spacer(),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[200],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '${order.status.length ?? 0} items', // Assuming you have an items list
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      SizedBox(height: 16),
+
+                      // Items list - Fixed the iteration issue
+                      ListView.separated(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount:
+                            order.status.length ??
+                            0, // Use items instead of status
+                        separatorBuilder: (context, index) =>
+                            SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          final item = order.status[index]; // Use items list
+                          return Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[200]!),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.08),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 48,
+                                  height: 48,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.inventory_2_outlined,
+                                    color: Colors.grey[600],
+                                    size: 24,
+                                  ),
+                                ),
+                                SizedBox(width: 16),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        item, // Assuming item has name property
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.grey[800],
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Qty: $item  •  \$$item each',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Text(
+                                //   '\$${(item }',
+                                //   style: TextStyle(
+                                //     fontSize: 16,
+                                //     fontWeight: FontWeight.w700,
+                                //     color: Colors.green[600],
+                                //   ),
+                                // ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+
+                      SizedBox(height: 32),
+
+                      // Action buttons
+                    ],
                   ),
                 ),
-                IconButton(
-                  onPressed: () => Navigator.pop(context),
-                  icon: Icon(Icons.close),
-                ),
-              ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helper widget for info rows
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: Colors.blue[600]),
+        SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[800],
             ),
-            SizedBox(height: 16),
-            Text('Order ID: ${order.id}'),
-            Text('Customer: ${order.customerName}'),
-            Text('Amount: \$${order.totalAmount.toStringAsFixed(2)}'),
-            Text('Status: ${order.status}'),
-            Text('Items: ${order.itemCount}'),
-            Text('Date: ${order.orderDate.toString().substring(0, 10)}'),
-            SizedBox(height: 20),
-          ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper widget for status chip
+  Widget _buildStatusChip(String status) {
+    Color chipColor;
+    Color textColor;
+
+    switch (status.toLowerCase()) {
+      case 'completed':
+        chipColor = Colors.green[100]!;
+        textColor = Colors.green[800]!;
+        break;
+      case 'pending':
+        chipColor = Colors.orange[100]!;
+        textColor = Colors.orange[800]!;
+        break;
+      case 'cancelled':
+        chipColor = Colors.red[100]!;
+        textColor = Colors.red[800]!;
+        break;
+      default:
+        chipColor = Colors.grey[100]!;
+        textColor = Colors.grey[800]!;
+    }
+
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: chipColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          color: textColor,
         ),
       ),
     );

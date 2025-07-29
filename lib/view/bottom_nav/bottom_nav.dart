@@ -40,9 +40,9 @@ class ModernBottomNavBar extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildNavItem(0, Icons.check_circle, 'Home'),
+          _buildNavItem(0, Icons.check_circle, 'Attendance'),
           _buildNavItem(1, Icons.business_center_rounded, 'Sales'),
-          _buildNavItem(2, Icons.receipt, 'Invoices'),
+          _buildNavItem(2, Icons.receipt, 'Invoice'),
           _buildNavItem(3, Icons.person_outline, 'Profile'),
         ],
       ),

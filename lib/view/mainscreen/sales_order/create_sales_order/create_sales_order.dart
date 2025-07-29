@@ -157,13 +157,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Posting Date',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                ),
-                                Text(
                                   '${delvery_date.day}/${delvery_date.month}/${delvery_date.year}',
                                   style: TextStyle(fontSize: 16),
                                 ),
