@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 
 class LocationTrackingPage extends StatefulWidget {
@@ -21,19 +19,23 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
   @override
   void initState() {
     super.initState();
+
     _pulseController = AnimationController(
-      duration: Duration(seconds: 2),
-      vsync: this,
-    );
-    _rotationController = AnimationController(
-      duration: Duration(seconds: 20),
+      duration: const Duration(seconds: 2),
       vsync: this,
     );
 
-    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
+    _rotationController = AnimationController(
+      duration: const Duration(seconds: 20),
+      vsync: this,
+    );
+
+    // Initialize animations
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.2).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
-    _rotationAnimation = Tween<double>(begin: 0, end: 2 * math.pi).animate(
+
+    _rotationAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _rotationController, curve: Curves.linear),
     );
   }
@@ -76,8 +78,6 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                   _isTracking = true;
                   _trackingStatus = "You are Signed In";
                 });
-                _pulseController.repeat(reverse: true);
-                _rotationController.repeat();
                 print("Location tracking started");
 
                 Navigator.pop(context); // Close confirmation dialog
@@ -201,42 +201,7 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                                 );
                               },
                             ),
-                          if (_isTracking)
-                            AnimatedBuilder(
-                              animation: _rotationAnimation,
-                              builder: (context, child) {
-                                return Transform.rotate(
-                                  angle: _rotationAnimation.value,
-                                  child: Container(
-                                    width: 160,
-                                    height: 160,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                        color: Colors.white.withOpacity(0.4),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Stack(
-                                      children: [
-                                        Positioned(
-                                          top: 5,
-                                          left: 75,
-                                          child: Container(
-                                            width: 8,
-                                            height: 8,
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+
                           Container(
                             width: 120,
                             height: 120,
