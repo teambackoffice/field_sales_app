@@ -46,23 +46,111 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
   }
 
   void _startTracking() {
-    setState(() {
-      _isTracking = true;
-      _trackingStatus = " You are Signed In";
-    });
-    _pulseController.repeat(reverse: true);
-    _rotationController.repeat();
-    print("Location tracking started");
+    // First show confirmation dialog
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Row(children: [SizedBox(width: 8), Text("Check - In ?")]),
+          content: Text(
+            "Are you sure you want to check - in?",
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                "Cancel",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _isTracking = true;
+                  _trackingStatus = "You are Signed In";
+                });
+                _pulseController.repeat(reverse: true);
+                _rotationController.repeat();
+                print("Location tracking started");
+
+                Navigator.pop(context); // Close confirmation dialog
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                "Yes, Check - In",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _stopTracking() {
-    setState(() {
-      _isTracking = false;
-      _trackingStatus = "Signed Out";
-    });
-    _pulseController.stop();
-    _rotationController.stop();
-    print("Location tracking stopped");
+    // First show confirmation dialog
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          title: Row(children: [SizedBox(width: 8), Text("Check - Out ?")]),
+          content: Text(
+            "Are you sure you want to check - out?",
+            style: TextStyle(fontSize: 16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                "Cancel",
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  _isTracking = false;
+                  _trackingStatus = "Signed Out";
+                });
+                _pulseController.stop();
+                _rotationController.stop();
+                print("Location tracking stopped");
+
+                Navigator.pop(context); // Close confirmation dialog
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                "Yes, Check - Out",
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   @override
