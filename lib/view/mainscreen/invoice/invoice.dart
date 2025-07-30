@@ -337,7 +337,7 @@ class _InvoicePageState extends State<InvoicePage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => PremiumPaymentEntryPage(),
+                        builder: (context) => PaymentEntryPage(),
                       ),
                     );
                   });

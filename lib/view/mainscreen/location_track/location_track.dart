@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/view/mainscreen/location_track/customer_visit_log.dart';
 
 class LocationTrackingPage extends StatefulWidget {
   const LocationTrackingPage({super.key});
@@ -354,30 +355,30 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
               ),
             ),
           ),
-          // PopupMenuButton(
-          //   icon: Icon(Icons.filter_list, color: Colors.white),
-          //   shape: RoundedRectangleBorder(
-          //     borderRadius: BorderRadius.circular(12),
-          //   ),
-          //   onSelected: (value) {
-          //     setState(() {
-          //       Navigator.push(
-          //         context,
-          //         MaterialPageRoute(
-          //           builder: (context) => CustomerVisitLogger(),
-          //         ),
-          //       );
-          //     });
-          //   },
-          //   itemBuilder: (context) {
-          //     return [
-          //       PopupMenuItem(
-          //         value: 'Customer Visit Log',
-          //         child: Text('Customer Visit Log'),
-          //       ),
-          //     ];
-          //   },
-          // ),
+          PopupMenuButton(
+            icon: Icon(Icons.filter_list, color: Colors.white),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            onSelected: (value) {
+              setState(() {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => CustomerVisitLogger(),
+                  ),
+                );
+              });
+            },
+            itemBuilder: (context) {
+              return [
+                PopupMenuItem(
+                  value: 'Customer Visit Log',
+                  child: Text('Customer Visit Log'),
+                ),
+              ];
+            },
+          ),
         ],
       ),
     );
