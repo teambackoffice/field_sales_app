@@ -6,8 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:location_tracker_app/config/api_constant.dart';
 
 class LoginService {
-  final String baseUrl =
-      '${ApiConstants.baseUrl}/api/method/field_sales.Api.auth.user_login';
+  final String baseUrl = '${ApiConstants.baseUrl}user_login';
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   Future<bool> isLoggedIn() async {
     final sid = await _secureStorage.read(key: 'sid');

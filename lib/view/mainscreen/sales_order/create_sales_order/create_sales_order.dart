@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/controller/customer_list_controller.dart';
+import 'package:location_tracker_app/modal/customer_list_modal.dart';
 import 'package:location_tracker_app/view/mainscreen/sales_order/create_sales_order/create_new_item.dart';
+import 'package:provider/provider.dart';
 
 class CreateSalesOrder extends StatefulWidget {
   const CreateSalesOrder({super.key});
@@ -21,31 +24,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   final List<OrderItem> _orderItems = [];
   double _totalAmount = 0.0;
 
-  // Mock data - replace with backend API calls
-  final List<Customer> _customers = [
-    Customer(
-      id: '1',
-      name: 'ABC Corporation',
-      email: 'abc@corp.com',
-      isGstRegistered: true,
-      gstNumber: 'GST123456789',
-    ),
-    Customer(
-      id: '2',
-      name: 'XYZ Ltd',
-      email: 'xyz@ltd.com',
-      isGstRegistered: false,
-      gstNumber: null,
-    ),
-    Customer(
-      id: '3',
-      name: 'Tech Solutions Inc',
-      email: 'tech@solutions.com',
-      isGstRegistered: true,
-      gstNumber: 'GST987654321',
-    ),
-  ];
-
   static final List<Product> _products = [
     Product(id: '1', name: 'Laptop Dell XPS', price: 1200.00, unit: 'pcs'),
     Product(id: '2', name: 'Wireless Mouse', price: 25.00, unit: 'pcs'),
@@ -57,6 +35,12 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   void initState() {
     super.initState();
     _generateOrderNumber();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<GetCustomerListController>(
+        context,
+        listen: false,
+      ).fetchCustomerList();
+    });
   }
 
   void _generateOrderNumber() {
@@ -99,37 +83,46 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
       ),
       body: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          padding: EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Order Header Card
-              _buildHeaderCard(),
+        child: Consumer<GetCustomerListController>(
+          builder: (context, controller, child) {
+            if (controller.isLoading)
+              return Center(child: CircularProgressIndicator());
+            if (controller.error != null)
+              return Text('Error: ${controller.error}');
+            final customers = controller.customerlist!.message.message;
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Order Header Card
+                  _buildHeaderCard(),
 
-              SizedBox(height: 16),
+                  SizedBox(height: 16),
 
-              // Customer Selection Card
-              _buildCustomerCard(),
+                  // Customer Selection Card
+                  _buildCustomerCard(customers: customers),
 
-              SizedBox(height: 16),
+                  SizedBox(height: 16),
 
-              // Items Section
-              _buildItemsCard(),
+                  // Items Section
+                  _buildItemsCard(),
 
-              SizedBox(height: 16),
+                  SizedBox(height: 16),
 
-              // Total Amount Card
-              _buildTotalCard(),
+                  // Total Amount Card
+                  _buildTotalCard(),
 
-              SizedBox(height: 16),
+                  SizedBox(height: 16),
 
-              // Save Button
-              _buildSaveButton(),
+                  // Save Button
+                  _buildSaveButton(),
 
-              SizedBox(height: 20),
-            ],
-          ),
+                  SizedBox(height: 20),
+                ],
+              ),
+            );
+          },
         ),
       ),
     );
@@ -194,7 +187,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  Widget _buildCustomerCard() {
+  Widget _buildCustomerCard({required List<MessageElement> customers}) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -225,12 +218,11 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                 ),
               ),
               value: _selectedCustomer,
-              isExpanded: true, // Add this to prevent overflow
-              items: _customers.map((customer) {
+              isExpanded: true,
+              items: customers.map((customer) {
                 return DropdownMenuItem<String>(
-                  value: customer.id,
+                  value: customer.name, // assuming `id` is unique
                   child: Row(
-                    mainAxisSize: MainAxisSize.min, // Add this
                     children: [
                       Expanded(
                         child: Text(
@@ -239,32 +231,32 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                             fontWeight: FontWeight.w500,
                             fontSize: 14,
                           ),
-                          overflow: TextOverflow.ellipsis, // Add this
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      SizedBox(width: 8), // Add spacing
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: customer.isGstRegistered
-                              ? Colors.green.withOpacity(0.1)
-                              : Colors.red.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          customer.isGstRegistered ? 'GST' : 'No GST',
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w500,
-                            color: customer.isGstRegistered
-                                ? Colors.green[700]
-                                : Colors.red[700],
-                          ),
-                        ),
-                      ),
+                      SizedBox(width: 8),
+                      // Container(
+                      //   padding: EdgeInsets.symmetric(
+                      //     horizontal: 6,
+                      //     vertical: 2,
+                      //   ),
+                      //   decoration: BoxDecoration(
+                      //     // color: _customers.name
+                      //     //     ? Colors.green.withOpacity(0.1)
+                      //     //     : Colors.red.withOpacity(0.1),
+                      //     borderRadius: BorderRadius.circular(4),
+                      //   ),
+                      //   child: Text(
+                      //     customer. ? 'GST' : 'No GST',
+                      //     style: TextStyle(
+                      //       fontSize: 10,
+                      //       fontWeight: FontWeight.w500,
+                      //       color: customer.isGstRegistered
+                      //           ? Colors.green[700]
+                      //           : Colors.red[700],
+                      //     ),
+                      //   ),
+                      // ),
                     ],
                   ),
                 );
@@ -282,10 +274,10 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
               },
             ),
 
-            // Display selected customer's GST information
+            // Display selected customer's GST info
             if (_selectedCustomer != null) ...[
               SizedBox(height: 12),
-              _buildSelectedCustomerInfo(),
+              _buildSelectedCustomerInfo(customers),
             ],
           ],
         ),
@@ -293,9 +285,10 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  Widget _buildSelectedCustomerInfo() {
-    final selectedCustomer = _customers.firstWhere(
-      (customer) => customer.id == _selectedCustomer,
+  Widget _buildSelectedCustomerInfo(List<MessageElement> customers) {
+    final selectedCustomer = customers.firstWhere(
+      (customer) => customer.name == _selectedCustomer,
+      orElse: () => customers.first,
     );
 
     return Container(
@@ -308,56 +301,56 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                selectedCustomer.isGstRegistered
-                    ? Icons.verified_user
-                    : Icons.info_outline,
-                size: 16,
-                color: selectedCustomer.isGstRegistered
-                    ? Colors.green[600]
-                    : Colors.orange[600],
-              ),
-              SizedBox(width: 8),
-              Text(
-                selectedCustomer.isGstRegistered
-                    ? 'GST Registered Customer'
-                    : 'Non-GST Registered Customer',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: selectedCustomer.isGstRegistered
-                      ? Colors.green[700]
-                      : Colors.orange[700],
-                ),
-              ),
-            ],
-          ),
-          if (selectedCustomer.isGstRegistered &&
-              selectedCustomer.gstNumber != null) ...[
-            SizedBox(height: 8),
-            Row(
-              children: [
-                Text(
-                  'GST No: ',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                Text(
-                  selectedCustomer.gstNumber!,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF2D3436),
-                  ),
-                ),
-              ],
-            ),
-          ],
+          // Row(
+          //   children: [
+          //     Icon(
+          //       selectedCustomer.isGstRegistered
+          //           ? Icons.verified_user
+          //           : Icons.info_outline,
+          //       size: 16,
+          //       color: selectedCustomer.isGstRegistered
+          //           ? Colors.green[600]
+          //           : Colors.orange[600],
+          //     ),
+          //     SizedBox(width: 8),
+          //     Text(
+          //       selectedCustomer.isGstRegistered
+          //           ? 'GST Registered Customer'
+          //           : 'Non-GST Registered Customer',
+          //       style: TextStyle(
+          //         fontSize: 13,
+          //         fontWeight: FontWeight.w500,
+          //         color: selectedCustomer.isGstRegistered
+          //             ? Colors.green[700]
+          //             : Colors.orange[700],
+          //       ),
+          //     ),
+          //   ],
+          // ),
+          // if (selectedCustomer.isGstRegistered &&
+          //     selectedCustomer.gstNumber != null) ...[
+          //   SizedBox(height: 8),
+          //   Row(
+          //     children: [
+          //       Text(
+          //         'GST No: ',
+          //         style: TextStyle(
+          //           fontSize: 12,
+          //           fontWeight: FontWeight.w500,
+          //           color: Colors.grey[600],
+          //         ),
+          //       ),
+          //       Text(
+          //         selectedCustomer.gstNumber!,
+          //         style: TextStyle(
+          //           fontSize: 12,
+          //           fontWeight: FontWeight.w600,
+          //           color: Color(0xFF2D3436),
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ],
         ],
       ),
     );
