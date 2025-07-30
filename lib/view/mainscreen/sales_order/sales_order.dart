@@ -290,7 +290,10 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                       ),
                       Container(width: 1, height: 40, color: Color(0xFFE5E5E5)),
                       Expanded(
-                        child: _buildOrderDetail('Items', '${order.items}'),
+                        child: _buildOrderDetail(
+                          'Items',
+                          '${order.items.length}',
+                        ),
                       ),
                       Container(width: 1, height: 40, color: Color(0xFFE5E5E5)),
                       Expanded(

@@ -11,10 +11,9 @@ class SalesOrderService {
 
   Future<SalesOrderModal?> getsalesorder() async {
     try {
-      print(url);
       final String? sid = await _secureStorage.read(key: 'sid');
       if (sid == null)
-        throw Exception('Authentication required. Please login again.');
+        throw Exception(' Authentication required. Please login again.');
 
       final response = await http.get(
         Uri.parse(url),
@@ -22,9 +21,6 @@ class SalesOrderService {
       );
 
       if (response.statusCode == 200) {
-        print(response);
-        print(response.body);
-        print(response.statusCode);
         try {
           final decoded = jsonDecode(response.body);
           return salesOrderModalFromJson(response.body);
@@ -37,7 +33,6 @@ class SalesOrderService {
         );
       }
     } catch (e) {
-      print(e);
       throw Exception('Network error: $e');
     }
   }
