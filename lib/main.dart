@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:location_tracker_app/controller/customer_list_controller.dart';
 import 'package:location_tracker_app/controller/login_controller.dart';
+import 'package:location_tracker_app/controller/sales_order_controller.dart';
 import 'package:location_tracker_app/service/login_service.dart';
 import 'package:location_tracker_app/view/login/login_page.dart';
 import 'package:location_tracker_app/view/mainscreen/homepage.dart';
@@ -16,6 +17,7 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => LoginController()),
         ChangeNotifierProvider(create: (_) => GetCustomerListController()),
+        ChangeNotifierProvider(create: (_) => SalesOrderController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

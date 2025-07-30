@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/controller/sales_order_controller.dart';
+import 'package:location_tracker_app/modal/sales_order_modal.dart' as modal;
 import 'package:location_tracker_app/view/mainscreen/sales_order/create_sales_order/create_sales_order.dart';
 import 'package:location_tracker_app/view/mainscreen/sales_order/sales_return.dart';
+import 'package:provider/provider.dart';
 
 class SalesOrdersListPage extends StatefulWidget {
   const SalesOrdersListPage({super.key});
@@ -19,38 +22,15 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
   final String _selectedFilter = 'All';
   final bool _isFilterExpanded = false;
 
-  // Mock data for sales orders
-  final List<SalesOrder> _salesOrders = [
-    SalesOrder(
-      id: 'SO-20250728-001',
-      customerName: 'ABC Corporation',
-      orderDate: DateTime.now().subtract(Duration(days: 1)),
-      totalAmount: 2450.00,
-      status: 'Pending',
-      itemCount: 3,
-    ),
-
-    SalesOrder(
-      id: 'SO-20250725-004',
-      customerName: 'Digital Dynamics',
-      orderDate: DateTime.now().subtract(Duration(days: 4)),
-      totalAmount: 950.00,
-      status: 'Cancelled',
-      itemCount: 1,
-    ),
-    SalesOrder(
-      id: 'SO-20250724-005',
-      customerName: 'Innovation Labs',
-      orderDate: DateTime.now().subtract(Duration(days: 5)),
-      totalAmount: 4100.00,
-      status: 'Completed',
-      itemCount: 7,
-    ),
-  ];
-
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<SalesOrderController>(
+        context,
+        listen: false,
+      ).fetchsalesorder();
+    });
     _fabAnimationController = AnimationController(
       duration: Duration(milliseconds: 800),
       vsync: this,
@@ -83,32 +63,37 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     super.dispose();
   }
 
-  List<SalesOrder> get _filteredOrders {
-    if (_selectedFilter == 'All') return _salesOrders;
-    return _salesOrders
-        .where((order) => order.status == _selectedFilter)
-        .toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFF8F6FA), Color(0xFFEDE7F6)],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              Expanded(child: _buildOrdersList()),
-            ],
-          ),
-        ),
+      body: Consumer<SalesOrderController>(
+        builder: (context, controller, child) {
+          if (controller.isLoading) {
+            return Center(child: CircularProgressIndicator());
+          }
+          final filteredOrders =
+              controller.salesorder!.message.salesOrders ?? [];
+
+          return Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Color(0xFFF8F6FA), Color(0xFFEDE7F6)],
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+              ),
+            ),
+            child: SafeArea(
+              child: Column(
+                children: [
+                  _buildHeader(),
+                  Expanded(
+                    child: _buildOrdersList(salesOrders: filteredOrders),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
       floatingActionButton: _buildUniqueFloatingButton(),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
@@ -180,15 +165,15 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     );
   }
 
-  Widget _buildOrdersList() {
+  Widget _buildOrdersList({required List<modal.SalesOrder> salesOrders}) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20),
-      child: _filteredOrders.isEmpty
+      child: salesOrders.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
-              itemCount: _filteredOrders.length,
+              itemCount: salesOrders.length,
               itemBuilder: (context, index) {
-                return _buildOrderCard(_filteredOrders[index], index);
+                return _buildOrderCard(salesOrders[index], index);
               },
             ),
     );
@@ -231,7 +216,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     );
   }
 
-  Widget _buildOrderCard(SalesOrder order, int index) {
+  Widget _buildOrderCard(modal.SalesOrder order, int index) {
     return AnimatedContainer(
       duration: Duration(milliseconds: 300 + (index * 100)),
       curve: Curves.easeOutBack,
@@ -271,7 +256,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            order.id,
+                            order.name,
                             style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -280,7 +265,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                           ),
                           SizedBox(height: 4),
                           Text(
-                            order.customerName,
+                            order.customer,
                             style: TextStyle(
                               fontSize: 14,
                               color: Color(0xFF636E72),
@@ -301,20 +286,17 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                   child: Row(
                     children: [
                       Expanded(
-                        child: _buildOrderDetail(
-                          'Amount',
-                          '₹${order.totalAmount.toStringAsFixed(2)}',
-                        ),
+                        child: _buildOrderDetail('Amount', '₹${order.items})}'),
                       ),
                       Container(width: 1, height: 40, color: Color(0xFFE5E5E5)),
                       Expanded(
-                        child: _buildOrderDetail('Items', '${order.itemCount}'),
+                        child: _buildOrderDetail('Items', '${order.items}'),
                       ),
                       Container(width: 1, height: 40, color: Color(0xFFE5E5E5)),
                       Expanded(
                         child: _buildOrderDetail(
                           'Delivery Date',
-                          '${order.orderDate.day}/${order.orderDate.month}/${order.orderDate.year}',
+                          '${order.deliveryDate.day}/${order.deliveryDate.month}/${order.deliveryDate.year}',
                         ),
                       ),
                     ],
@@ -475,7 +457,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     );
   }
 
-  void _showOrderDetails(SalesOrder order) {
+  void _showOrderDetails(modal.SalesOrder order) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -587,7 +569,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                               children: [
                                 SizedBox(width: 8),
                                 Text(
-                                  'Order ${order.id}',
+                                  'Order ${order..name}',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
@@ -602,19 +584,19 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                             _buildInfoRow(
                               Icons.person_outline,
                               'Customer',
-                              order.customerName,
+                              order.customer,
                             ),
                             SizedBox(height: 12),
-                            _buildInfoRow(
-                              Icons.money,
-                              'Total Amount',
-                              '\$${order.totalAmount.toStringAsFixed(2)}',
-                            ),
+                            // _buildInfoRow(
+                            //   Icons.money,
+                            //   'Total Amount',
+                            //   '\$${order.items.amount.toStringAsFixed(2)}',
+                            // ),
                             SizedBox(height: 12),
                             _buildInfoRow(
                               Icons.calendar_today,
                               'Order Date',
-                              order.orderDate.toString().substring(0, 10),
+                              order.deliveryDate.toString().substring(0, 10),
                             ),
                           ],
                         ),
@@ -640,24 +622,6 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                             ),
                           ),
                           Spacer(),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[200],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              '${order.status.length ?? 0} items', // Assuming you have an items list
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          ),
                         ],
                       ),
 
@@ -668,12 +632,12 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                         shrinkWrap: true,
                         physics: NeverScrollableScrollPhysics(),
                         itemCount:
-                            order.status.length ??
+                            order.items.length ??
                             0, // Use items instead of status
                         separatorBuilder: (context, index) =>
                             SizedBox(height: 12),
                         itemBuilder: (context, index) {
-                          final item = order.status[index]; // Use items list
+                          final item = order.items[index]; // Use items list
                           return Container(
                             padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -710,7 +674,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        item, // Assuming item has name property
+                                        item.itemCode, // Assuming item has name property
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
@@ -719,7 +683,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                                       ),
                                       SizedBox(height: 4),
                                       Text(
-                                        'Qty: $item  •  \$$item each',
+                                        'Qty: ${item.qty} ',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color: Colors.grey[600],
@@ -728,14 +692,6 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                                     ],
                                   ),
                                 ),
-                                // Text(
-                                //   '\$${(item }',
-                                //   style: TextStyle(
-                                //     fontSize: 16,
-                                //     fontWeight: FontWeight.w700,
-                                //     color: Colors.green[600],
-                                //   ),
-                                // ),
                               ],
                             ),
                           );
@@ -826,20 +782,5 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
 }
 
 // Data Models
-class SalesOrder {
-  final String id;
-  final String customerName;
-  final DateTime orderDate;
-  final double totalAmount;
-  final String status;
-  final int itemCount;
-
-  SalesOrder({
-    required this.id,
-    required this.customerName,
-    required this.orderDate,
-    required this.totalAmount,
-    required this.status,
-    required this.itemCount,
-  });
-}
+// Removed duplicate SalesOrder class to avoid type conflicts.
+// Use the SalesOrder class from modal (sales_order_modal.dart).
