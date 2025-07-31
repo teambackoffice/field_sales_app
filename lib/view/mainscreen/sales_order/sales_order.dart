@@ -5,6 +5,7 @@ import 'package:location_tracker_app/modal/sales_order_modal.dart' as modal;
 import 'package:location_tracker_app/view/mainscreen/sales_order/create_sales_order/create_sales_order.dart';
 import 'package:location_tracker_app/view/mainscreen/sales_order/sales_return.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 
 class SalesOrdersListPage extends StatefulWidget {
   const SalesOrdersListPage({super.key});
@@ -69,9 +70,6 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     return Scaffold(
       body: Consumer<SalesOrderController>(
         builder: (context, controller, child) {
-          if (controller.isLoading) {
-            return Center(child: CircularProgressIndicator());
-          }
           final filteredOrders =
               controller.salesorder!.message.salesOrders ?? [];
 
@@ -88,7 +86,10 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                 children: [
                   _buildHeader(),
                   Expanded(
-                    child: _buildOrdersList(salesOrders: filteredOrders),
+                    child: _buildOrdersList(
+                      salesOrders: filteredOrders,
+                      controller: controller,
+                    ),
                   ),
                 ],
               ),
@@ -166,10 +167,15 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     );
   }
 
-  Widget _buildOrdersList({required List<modal.SalesOrder> salesOrders}) {
+  Widget _buildOrdersList({
+    required List<modal.SalesOrder> salesOrders,
+    required SalesOrderController controller,
+  }) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20),
-      child: salesOrders.isEmpty
+      child: controller.isLoading
+          ? _buildShimmerOrdersList() // <-- Show shimmer while loading
+          : salesOrders.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
               itemCount: salesOrders.length,
@@ -177,6 +183,77 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                 return _buildOrderCard(salesOrders[index], index);
               },
             ),
+    );
+  }
+
+  Widget _buildShimmerOrdersList() {
+    return Expanded(
+      child: ListView.builder(
+        itemCount: 4, // Number of shimmer items
+        itemBuilder: (context, index) {
+          return Shimmer.fromColors(
+            baseColor: Colors.grey[300]!,
+            highlightColor: Colors.grey[100]!,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  // Icon Placeholder
+                  Container(
+                    height: 150,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  // Texts
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          height: 16,
+                          width: 80,
+                          color: Colors.grey[300],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 14,
+                          width: 140,
+                          color: Colors.grey[300],
+                        ),
+                        const SizedBox(height: 8),
+                        Container(
+                          height: 18,
+                          width: 60,
+                          color: Colors.grey[300],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Button Placeholder
+                  Container(
+                    height: 36,
+                    width: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 

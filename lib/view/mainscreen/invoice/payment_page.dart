@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/modal/invoice_list_modal.dart';
 
 class PaymentPage extends StatefulWidget {
   final Invoice invoice;
@@ -24,9 +25,7 @@ class _PaymentPageState extends State<PaymentPage> {
 
   void _processPayment() async {
     setState(() => _isProcessing = true);
-
-    await Future.delayed(Duration(seconds: 2)); // simulate payment
-
+    await Future.delayed(const Duration(seconds: 2)); // simulate payment
     setState(() => _isProcessing = false);
 
     widget.onPaymentSuccess();
@@ -34,8 +33,8 @@ class _PaymentPageState extends State<PaymentPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Payment successful! ✓'),
-        backgroundColor: Color(0xFF10B981),
+        content: const Text('Payment successful! ✓'),
+        backgroundColor: const Color(0xFF10B981),
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -43,15 +42,15 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   void _showItemsModal() {
+    final items = widget.invoice.items ?? [];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-        height:
-            MediaQuery.of(context).size.height *
-            0.7, // Make it bigger (70% of screen)
-        decoration: BoxDecoration(
+        height: MediaQuery.of(context).size.height * 0.7,
+        decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.only(
             topLeft: Radius.circular(24),
@@ -62,7 +61,7 @@ class _PaymentPageState extends State<PaymentPage> {
           children: [
             // Handle bar
             Container(
-              margin: EdgeInsets.only(top: 12),
+              margin: const EdgeInsets.only(top: 12),
               width: 40,
               height: 4,
               decoration: BoxDecoration(
@@ -70,14 +69,13 @@ class _PaymentPageState extends State<PaymentPage> {
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-
             // Header
             Padding(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
+                  const Text(
                     'Invoice Items',
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
                   ),
@@ -88,18 +86,17 @@ class _PaymentPageState extends State<PaymentPage> {
                 ],
               ),
             ),
-
             // Items list
             Expanded(
-              child: widget.invoice.items.isNotEmpty
+              child: items.isNotEmpty
                   ? ListView.builder(
-                      padding: EdgeInsets.symmetric(horizontal: 20),
-                      itemCount: widget.invoice.items.length,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: items.length,
                       itemBuilder: (context, index) {
-                        final item = widget.invoice.items[index];
+                        final item = items[index];
                         return Container(
-                          margin: EdgeInsets.only(bottom: 12),
-                          padding: EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.grey[50],
                             borderRadius: BorderRadius.circular(12),
@@ -107,36 +104,35 @@ class _PaymentPageState extends State<PaymentPage> {
                           ),
                           child: Row(
                             children: [
-                              // Item icon or image placeholder
                               Container(
                                 width: 48,
                                 height: 48,
                                 decoration: BoxDecoration(
-                                  color: Color(0xFF667EEA).withOpacity(0.1),
+                                  color: const Color(
+                                    0xFF667EEA,
+                                  ).withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: Icon(
+                                child: const Icon(
                                   Icons.shopping_bag_outlined,
                                   color: Color(0xFF667EEA),
                                   size: 24,
                                 ),
                               ),
-                              SizedBox(width: 12),
-
-                              // Item details
+                              const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      item.name,
-                                      style: TextStyle(
+                                      item.itemName,
+                                      style: const TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
                                     if (item.description.isNotEmpty) ...[
-                                      SizedBox(height: 4),
+                                      const SizedBox(height: 4),
                                       Text(
                                         item.description,
                                         style: TextStyle(
@@ -145,20 +141,20 @@ class _PaymentPageState extends State<PaymentPage> {
                                         ),
                                       ),
                                     ],
-                                    SizedBox(height: 8),
+                                    const SizedBox(height: 8),
                                     Row(
                                       children: [
                                         Text(
-                                          'Qty: ${item.quantity}',
+                                          'Qty: ${item.qty}',
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey[600],
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
-                                        SizedBox(width: 12),
+                                        const SizedBox(width: 12),
                                         Text(
-                                          '₹${item.unitPrice.toStringAsFixed(2)} each',
+                                          '₹${item.rate.toStringAsFixed(2)} each',
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.grey[600],
@@ -169,20 +165,13 @@ class _PaymentPageState extends State<PaymentPage> {
                                   ],
                                 ),
                               ),
-
-                              // Item total
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    '₹${item.totalPrice.toStringAsFixed(2)}',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF059669),
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                '₹${(item.qty * item.rate).toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF059669),
+                                ),
                               ),
                             ],
                           ),
@@ -198,7 +187,7 @@ class _PaymentPageState extends State<PaymentPage> {
                             size: 64,
                             color: Colors.grey[400],
                           ),
-                          SizedBox(height: 16),
+                          const SizedBox(height: 16),
                           Text(
                             'No items available',
                             style: TextStyle(
@@ -210,35 +199,27 @@ class _PaymentPageState extends State<PaymentPage> {
                       ),
                     ),
             ),
-
             // Summary footer
             Container(
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.grey[50],
                 border: Border(top: BorderSide(color: Colors.grey[200]!)),
               ),
-              child: Column(
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Total:',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        '₹${widget.invoice.amount.toStringAsFixed(2)}',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF059669),
-                        ),
-                      ),
-                    ],
+                  const Text(
+                    'Total:',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '₹${widget.invoice.grandTotal.toStringAsFixed(2)}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF059669),
+                    ),
                   ),
                 ],
               ),
@@ -252,22 +233,25 @@ class _PaymentPageState extends State<PaymentPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFFF5F7FA),
       appBar: AppBar(
-        title: Text('Payment', style: TextStyle(fontWeight: FontWeight.w600)),
+        title: const Text(
+          'Payment',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(20),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Invoice Summary
             Container(
               width: double.infinity,
-              padding: EdgeInsets.all(20),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(16),
@@ -281,21 +265,21 @@ class _PaymentPageState extends State<PaymentPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
+                  const Text(
                     'Invoice Summary',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                   ),
-                  SizedBox(height: 16),
+                  const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        widget.invoice.number,
+                        widget.invoice.invoiceId,
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                       Text(
-                        '₹${widget.invoice.amount.toStringAsFixed(2)}',
-                        style: TextStyle(
+                        '₹${widget.invoice.grandTotal.toStringAsFixed(2)}',
+                        style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
                           color: Color(0xFF059669),
@@ -303,19 +287,19 @@ class _PaymentPageState extends State<PaymentPage> {
                       ),
                     ],
                   ),
-                  SizedBox(height: 8),
+                  const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Expanded(
                         child: Text(
-                          widget.invoice.description,
-                          style: TextStyle(fontSize: 16),
+                          widget.invoice.customer,
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ),
                       TextButton(
                         onPressed: _showItemsModal,
-                        child: Text(
+                        child: const Text(
                           'Items',
                           style: TextStyle(color: Color(0xFF667EEA)),
                         ),
@@ -325,30 +309,25 @@ class _PaymentPageState extends State<PaymentPage> {
                 ],
               ),
             ),
-
-            SizedBox(height: 24),
-
+            const SizedBox(height: 24),
             // Payment Methods
-            Text(
+            const Text(
               'Payment Method',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
-            SizedBox(height: 16),
+            const SizedBox(height: 16),
             Row(
               children: [
                 Expanded(
                   child: _buildPaymentMethod('card', 'Card', Icons.credit_card),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: _buildPaymentMethod('cash', 'Cash', Icons.money),
                 ),
               ],
             ),
-
-            // Card Payment Form (only show when card is selected)
-            SizedBox(height: 32),
-
+            const SizedBox(height: 32),
             // Pay Button
             SizedBox(
               width: double.infinity,
@@ -356,7 +335,7 @@ class _PaymentPageState extends State<PaymentPage> {
               child: ElevatedButton(
                 onPressed: _isProcessing ? null : _processPayment,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Color(0xFF667EEA),
+                  backgroundColor: const Color(0xFF667EEA),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -364,13 +343,13 @@ class _PaymentPageState extends State<PaymentPage> {
                   elevation: 0,
                 ),
                 child: _isProcessing
-                    ? CircularProgressIndicator(
+                    ? const CircularProgressIndicator(
                         color: Colors.white,
                         strokeWidth: 2,
                       )
                     : Text(
-                        'Pay ₹${widget.invoice.amount.toStringAsFixed(2)}',
-                        style: TextStyle(
+                        'Pay ₹${widget.invoice.grandTotal.toStringAsFixed(2)}',
+                        style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w600,
                         ),
@@ -388,12 +367,14 @@ class _PaymentPageState extends State<PaymentPage> {
     return GestureDetector(
       onTap: () => setState(() => _selectedMethod = method),
       child: Container(
-        padding: EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFF667EEA).withOpacity(0.1) : Colors.white,
+          color: isSelected
+              ? const Color(0xFF667EEA).withOpacity(0.1)
+              : Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Color(0xFF667EEA) : Colors.grey[300]!,
+            color: isSelected ? const Color(0xFF667EEA) : Colors.grey[300]!,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -401,46 +382,20 @@ class _PaymentPageState extends State<PaymentPage> {
           children: [
             Icon(
               icon,
-              color: isSelected ? Color(0xFF667EEA) : Colors.grey[600],
+              color: isSelected ? const Color(0xFF667EEA) : Colors.grey[600],
               size: 28,
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               title,
               style: TextStyle(
-                color: isSelected ? Color(0xFF667EEA) : Colors.grey[600],
+                color: isSelected ? const Color(0xFF667EEA) : Colors.grey[600],
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 fontSize: 12,
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label,
-    IconData icon, [
-    String? hint,
-  ]) {
-    return TextField(
-      controller: controller,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        prefixIcon: Icon(icon, color: Colors.grey[600]),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey[300]!),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFF667EEA)),
-        ),
-        filled: true,
-        fillColor: Colors.grey[50],
       ),
     );
   }
@@ -453,33 +408,6 @@ class _PaymentPageState extends State<PaymentPage> {
     _nameController.dispose();
     super.dispose();
   }
-}
-
-// Updated Invoice class with items support
-class Invoice {
-  final String number;
-  final String description;
-  final double amount;
-  final double subtotal;
-  final double tax;
-  final List<InvoiceItem> items;
-  bool isPaid;
-
-  Invoice({
-    required this.number,
-    required this.description,
-    required this.amount,
-    this.subtotal = 0.0,
-    this.tax = 0.0,
-    this.items = const [],
-    this.isPaid = false,
-  });
-
-  // Constructor for backward compatibility with existing code
-  Invoice.simple(this.number, this.description, this.amount, this.isPaid)
-    : subtotal = amount * 0.85, // Assume 15% tax
-      tax = amount * 0.15,
-      items = [];
 }
 
 // InvoiceItem class for individual items
