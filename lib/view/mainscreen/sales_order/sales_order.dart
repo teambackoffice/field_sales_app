@@ -71,7 +71,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
       body: Consumer<SalesOrderController>(
         builder: (context, controller, child) {
           final filteredOrders =
-              controller.salesorder!.message.salesOrders ?? [];
+              controller.salesorder?.message.salesOrders ?? [];
 
           return Container(
             decoration: BoxDecoration(
@@ -140,12 +140,12 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
               ],
             ),
           ),
-          PopupMenuButton(
+          PopupMenuButton<String>(
+            key: Key('filterPopupMenu'), // Add a key here
             icon: Icon(Icons.filter_list, color: Color(0xFF2D3436)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
-
             itemBuilder: (context) {
               return [
                 PopupMenuItem(value: 'All', child: Text('Sales Returns')),
@@ -389,43 +389,6 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatusBadge(String status) {
-    Color color;
-    switch (status) {
-      case 'Completed':
-        color = Color(0xFF00B894);
-        break;
-      case 'Processing':
-        color = Color(0xFF0984E3);
-        break;
-      case 'Pending':
-        color = Color(0xFFE17055);
-        break;
-      case 'Cancelled':
-        color = Color(0xFFD63031);
-        break;
-      default:
-        color = Color(0xFF636E72);
-    }
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          color: color,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
         ),
       ),
     );
@@ -825,46 +788,4 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
   }
 
   // Helper widget for status chip
-  Widget _buildStatusChip(String status) {
-    Color chipColor;
-    Color textColor;
-
-    switch (status.toLowerCase()) {
-      case 'completed':
-        chipColor = Colors.green[100]!;
-        textColor = Colors.green[800]!;
-        break;
-      case 'pending':
-        chipColor = Colors.orange[100]!;
-        textColor = Colors.orange[800]!;
-        break;
-      case 'cancelled':
-        chipColor = Colors.red[100]!;
-        textColor = Colors.red[800]!;
-        break;
-      default:
-        chipColor = Colors.grey[100]!;
-        textColor = Colors.grey[800]!;
-    }
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: chipColor,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        status,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: textColor,
-        ),
-      ),
-    );
-  }
 }
-
-// Data Models
-// Removed duplicate SalesOrder class to avoid type conflicts.
-// Use the SalesOrder class from modal (sales_order_modal.dart).

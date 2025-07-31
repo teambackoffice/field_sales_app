@@ -137,11 +137,13 @@ class _InvoicePageState extends State<InvoicePage> {
                       ),
                     );
                   }
-                  if (controller.invoiceList!.message.invoices.isEmpty) {
-                    return Text("No Invoices found!");
+                  if (controller.invoiceList == null ||
+                      controller.invoiceList!.message.invoices.isEmpty) {
+                    return const Center(child: Text("No Invoices found!"));
                   }
+
                   final invoicesList =
-                      controller.invoiceList!.message.invoices ?? [];
+                      controller.invoiceList?.message.invoices ?? [];
 
                   return Expanded(
                     child: Padding(
