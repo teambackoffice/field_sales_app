@@ -48,6 +48,8 @@ class MessageElement {
   String? territory;
   String? mobileNo;
   String? emailId;
+  String? gstin;
+  bool hasGstin;
 
   MessageElement({
     required this.name,
@@ -57,6 +59,8 @@ class MessageElement {
     required this.territory,
     required this.mobileNo,
     required this.emailId,
+    required this.gstin,
+    required this.hasGstin,
   });
 
   factory MessageElement.fromJson(Map<String, dynamic> json) => MessageElement(
@@ -67,6 +71,8 @@ class MessageElement {
     territory: json["territory"] ?? '',
     mobileNo: json["mobile_no"] ?? '',
     emailId: json["email_id"] ?? '',
+    gstin: json["gstin"] ?? '',
+    hasGstin: json["has_gstin"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -77,5 +83,7 @@ class MessageElement {
     "territory": territory,
     "mobile_no": mobileNo,
     "email_id": emailId,
+    "gstin": gstin,
+    "has_gstin": hasGstin,
   };
 }

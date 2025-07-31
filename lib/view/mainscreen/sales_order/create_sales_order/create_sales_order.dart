@@ -223,6 +223,52 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                         ),
                       ),
                       SizedBox(width: 8),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: customer.hasGstin == true
+                                ? [Color(0xFF667EEA), Color(0xFF764BA2)]
+                                : [Color(0xFFF59E0B), Color(0xFFD97706)],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color:
+                                  (customer.hasGstin == true
+                                          ? Colors.green
+                                          : Colors.orange)
+                                      .withOpacity(0.2),
+                              blurRadius: 2,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              customer.hasGstin == true
+                                  ? Icons.verified_rounded
+                                  : Icons.warning_rounded,
+                              size: 12,
+                              color: Colors.white,
+                            ),
+                            SizedBox(width: 3),
+                            Text(
+                              customer.hasGstin == true ? 'GST' : 'No GST',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -267,56 +313,56 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row(
-          //   children: [
-          //     Icon(
-          //       selectedCustomer.isGstRegistered
-          //           ? Icons.verified_user
-          //           : Icons.info_outline,
-          //       size: 16,
-          //       color: selectedCustomer.isGstRegistered
-          //           ? Colors.green[600]
-          //           : Colors.orange[600],
-          //     ),
-          //     SizedBox(width: 8),
-          //     Text(
-          //       selectedCustomer.isGstRegistered
-          //           ? 'GST Registered Customer'
-          //           : 'Non-GST Registered Customer',
-          //       style: TextStyle(
-          //         fontSize: 13,
-          //         fontWeight: FontWeight.w500,
-          //         color: selectedCustomer.isGstRegistered
-          //             ? Colors.green[700]
-          //             : Colors.orange[700],
-          //       ),
-          //     ),
-          //   ],
-          // ),
-          // if (selectedCustomer.isGstRegistered &&
-          //     selectedCustomer.gstNumber != null) ...[
-          //   SizedBox(height: 8),
-          //   Row(
-          //     children: [
-          //       Text(
-          //         'GST No: ',
-          //         style: TextStyle(
-          //           fontSize: 12,
-          //           fontWeight: FontWeight.w500,
-          //           color: Colors.grey[600],
-          //         ),
-          //       ),
-          //       Text(
-          //         selectedCustomer.gstNumber!,
-          //         style: TextStyle(
-          //           fontSize: 12,
-          //           fontWeight: FontWeight.w600,
-          //           color: Color(0xFF2D3436),
-          //         ),
-          //       ),
-          //     ],
-          //   ),
-          // ],
+          Row(
+            children: [
+              Icon(
+                selectedCustomer.hasGstin == true
+                    ? Icons.verified_user
+                    : Icons.info_outline,
+                size: 16,
+                color: selectedCustomer.hasGstin == true
+                    ? Colors.green[600]
+                    : Colors.orange[600],
+              ),
+              SizedBox(width: 8),
+              Text(
+                selectedCustomer.hasGstin == true
+                    ? 'GST Registered Customer'
+                    : 'Non-GST Registered Customer',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: selectedCustomer.hasGstin == true
+                      ? Colors.green[700]
+                      : Colors.orange[700],
+                ),
+              ),
+            ],
+          ),
+          if (selectedCustomer.hasGstin == true &&
+              selectedCustomer.gstin != null) ...[
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  'GST No: ',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[600],
+                  ),
+                ),
+                Text(
+                  selectedCustomer.gstin!,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF2D3436),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
