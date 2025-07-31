@@ -30,7 +30,7 @@ class Message {
   String itemName;
   String description;
   String uom;
-  int price;
+  double price;
   int maintainStock;
 
   Message({

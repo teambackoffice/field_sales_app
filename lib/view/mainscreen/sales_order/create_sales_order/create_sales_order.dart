@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:location_tracker_app/controller/customer_list_controller.dart';
+import 'package:location_tracker_app/controller/item_list_controller.dart';
 import 'package:location_tracker_app/modal/customer_list_modal.dart';
-import 'package:location_tracker_app/view/mainscreen/sales_order/create_sales_order/create_new_item.dart';
 import 'package:provider/provider.dart';
 
 class CreateSalesOrder extends StatefulWidget {
@@ -24,13 +24,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   final List<OrderItem> _orderItems = [];
   double _totalAmount = 0.0;
 
-  static final List<Product> _products = [
-    Product(id: '1', name: 'Laptop Dell XPS', price: 1200.00, unit: 'pcs'),
-    Product(id: '2', name: 'Wireless Mouse', price: 25.00, unit: 'pcs'),
-    Product(id: '3', name: 'USB Cable', price: 15.00, unit: 'pcs'),
-    Product(id: '4', name: 'Monitor 24"', price: 300.00, unit: 'pcs'),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -40,6 +33,9 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
         context,
         listen: false,
       ).fetchCustomerList();
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ItemListController>(context, listen: false).fetchItemList();
     });
   }
 
@@ -55,17 +51,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   void _calculateTotal() {
     _totalAmount = _orderItems.fold(0.0, (sum, item) => sum + item.totalPrice);
     setState(() {});
-  }
-
-  void _addItem() {
-    showDialog(context: context, builder: (context) => _buildAddItemDialog());
-  }
-
-  void _createNewItem() {
-    showDialog(
-      context: context,
-      builder: (context) => _buildCreateItemDialog(),
-    );
   }
 
   @override
@@ -235,28 +220,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                         ),
                       ),
                       SizedBox(width: 8),
-                      // Container(
-                      //   padding: EdgeInsets.symmetric(
-                      //     horizontal: 6,
-                      //     vertical: 2,
-                      //   ),
-                      //   decoration: BoxDecoration(
-                      //     // color: _customers.name
-                      //     //     ? Colors.green.withOpacity(0.1)
-                      //     //     : Colors.red.withOpacity(0.1),
-                      //     borderRadius: BorderRadius.circular(4),
-                      //   ),
-                      //   child: Text(
-                      //     customer. ? 'GST' : 'No GST',
-                      //     style: TextStyle(
-                      //       fontSize: 10,
-                      //       fontWeight: FontWeight.w500,
-                      //       color: customer.isGstRegistered
-                      //           ? Colors.green[700]
-                      //           : Colors.red[700],
-                      //     ),
-                      //   ),
-                      // ),
                     ],
                   ),
                 );
@@ -446,163 +409,148 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Add Item to Order',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        child: Consumer<ItemListController>(
+          builder: (context, controller, child) {
+            if (controller.isLoading) {
+              return SizedBox();
+            }
+            final itemlist = controller.itemlist!.message ?? [];
+            return Column(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Colors.grey.shade200),
+                    ),
                   ),
-                  Row(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // TextButton.icon(
-                      //   onPressed: () {
-                      //     Navigator.pop(context);
-                      //     _showCreateNewItemPage();
-                      //   },
-                      //   icon: Icon(Icons.add_circle_outline, size: 20),
-                      //   label: Text('Create New'),
-                      //   style: TextButton.styleFrom(
-                      //     foregroundColor: Color(0xFF667EEA),
-                      //   ),
-                      // ),
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: Icon(Icons.close),
+                      Text(
+                        'Add Item to Order',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child:
-                  _products
-                      .isEmpty // ✅ Correct - checking products list
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Row(
                         children: [
-                          Icon(
-                            Icons.inventory_outlined,
-                            size: 64,
-                            color: Colors.grey.shade400,
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'No items available',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Create your first item to get started',
-                            style: TextStyle(color: Colors.grey.shade500),
-                          ),
-                          SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(context);
-                              _showCreateNewItemPage();
-                            },
-                            icon: Icon(Icons.add),
-                            label: Text('Create Item'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Color(0xFF764BA2),
-                              foregroundColor: Colors.white,
-                            ),
+                          // TextButton.icon(
+                          //   onPressed: () {
+                          //     Navigator.pop(context);
+                          //     _showCreateNewItemPage();
+                          //   },
+                          //   icon: Icon(Icons.add_circle_outline, size: 20),
+                          //   label: Text('Create New'),
+                          //   style: TextButton.styleFrom(
+                          //     foregroundColor: Color(0xFF667EEA),
+                          //   ),
+                          // ),
+                          IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: Icon(Icons.close),
                           ),
                         ],
                       ),
-                    )
-                  : ListView.builder(
-                      padding: EdgeInsets.all(16),
-                      itemCount: _products.length,
-                      itemBuilder: (context, index) {
-                        final product = _products[index];
-                        final inventoryItem = InventoryItem(
-                          name: product.name,
-                          price: product.price,
-                          unit: product.unit,
-                        );
-                        return Card(
-                          margin: EdgeInsets.only(bottom: 8),
-                          child: ListTile(
-                            leading: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(
-                                color: Color(0xFF764BA2).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(8),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child:
+                      itemlist
+                          .isEmpty // ✅ Correct - checking products list
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.inventory_outlined,
+                                size: 64,
+                                color: Colors.grey.shade400,
                               ),
-                              child: Icon(
-                                Icons.inventory_2,
-                                color: Color(0xFF764BA2),
-                                size: 20,
+                              SizedBox(height: 16),
+                              Text(
+                                'No items available',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey.shade600,
+                                ),
                               ),
-                            ),
-                            title: Text(
-                              product.name,
-                              style: TextStyle(fontWeight: FontWeight.w500),
-                            ),
-                            subtitle: Text(
-                              '₹${product.price.toStringAsFixed(2)}',
-                              style: TextStyle(color: Colors.grey.shade600),
-                            ),
-                            trailing: ElevatedButton(
-                              onPressed: () {
-                                _showQuantityDialog(inventoryItem);
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Color(0xFF764BA2),
-                                foregroundColor: Colors.white,
-                                minimumSize: Size(60, 36),
+                              SizedBox(height: 8),
+                              Text(
+                                'Create your first item to get started',
+                                style: TextStyle(color: Colors.grey.shade500),
                               ),
-                              child: Text('Add'),
-                            ),
+                              SizedBox(height: 24),
+                              ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.pop(context);
+                                  // _showCreateNewItemPage();
+                                },
+                                icon: Icon(Icons.add),
+                                label: Text('Create Item'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xFF764BA2),
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
-                        );
-                      },
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Separate page for creating new items
-  void _showCreateNewItemPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CreateItemPage(
-          existingProducts: _products, // Pass existing products
-          onItemCreated: (newItem) {
-            final newProduct = Product(
-              id: (_products.length + 1).toString(),
-              name: newItem.name,
-              price: newItem.price,
-              unit: newItem.unit,
+                        )
+                      : ListView.builder(
+                          padding: EdgeInsets.all(16),
+                          itemCount: itemlist.length,
+                          itemBuilder: (context, index) {
+                            final product = itemlist[index];
+                            final inventoryItem = InventoryItem(
+                              name: product.itemCode,
+                              price: product.price,
+                              unit: product.uom,
+                            );
+                            return Card(
+                              margin: EdgeInsets.only(bottom: 8),
+                              child: ListTile(
+                                leading: Container(
+                                  width: 40,
+                                  height: 40,
+                                  decoration: BoxDecoration(
+                                    color: Color(0xFF764BA2).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Icon(
+                                    Icons.inventory_2,
+                                    color: Color(0xFF764BA2),
+                                    size: 20,
+                                  ),
+                                ),
+                                title: Text(
+                                  product.itemCode,
+                                  style: TextStyle(fontWeight: FontWeight.w500),
+                                ),
+                                subtitle: Text(
+                                  '₹${product.price.toStringAsFixed(2)}',
+                                  style: TextStyle(color: Colors.grey.shade600),
+                                ),
+                                trailing: ElevatedButton(
+                                  onPressed: () {
+                                    _showQuantityDialog(inventoryItem);
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Color(0xFF764BA2),
+                                    foregroundColor: Colors.white,
+                                    minimumSize: Size(60, 36),
+                                  ),
+                                  child: Text('Add'),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             );
-
-            setState(() {
-              _products.add(newProduct);
-            });
-
-            Future.delayed(Duration(milliseconds: 300), () {
-              _showAddItemBottomSheet();
-            });
           },
         ),
       ),
@@ -814,10 +762,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  // Separate Create Item Page
-
-  // Data models (add these to your existing models)
-
   Widget _buildTotalCard() {
     return Card(
       elevation: 2,
@@ -889,293 +833,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  Widget _buildAddItemDialog() {
-    TextEditingController itemNameController = TextEditingController();
-    TextEditingController priceController = TextEditingController();
-    TextEditingController quantityController = TextEditingController(text: '1');
-    TextEditingController unitController = TextEditingController(text: 'pcs');
-
-    return StatefulBuilder(
-      builder: (context, setDialogState) {
-        return AlertDialog(
-          title: Text('Add Item'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextFormField(
-                  controller: itemNameController,
-                  decoration: InputDecoration(
-                    labelText: 'Item Name',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    prefixIcon: Icon(
-                      Icons.inventory_2,
-                      color: Color(0xFF764BA2),
-                    ),
-                  ),
-                ),
-                SizedBox(height: 16),
-                TextFormField(
-                  controller: priceController,
-                  decoration: InputDecoration(
-                    labelText: 'Unit Price',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    prefixIcon: Icon(
-                      Icons.attach_money,
-                      color: Color(0xFF764BA2),
-                    ),
-                    prefixText: '\$',
-                  ),
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Expanded(
-                      flex: 2,
-                      child: TextFormField(
-                        controller: quantityController,
-                        decoration: InputDecoration(
-                          labelText: 'Quantity',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.numbers,
-                            color: Color(0xFF764BA2),
-                          ),
-                        ),
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      flex: 1,
-                      child: TextFormField(
-                        controller: unitController,
-                        decoration: InputDecoration(
-                          labelText: 'Unit',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          hintText: 'pcs, kg, lbs',
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16),
-                // Quick select from existing products (optional)
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade50,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.grey.shade200),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Quick Select from Existing Products:',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey.shade700,
-                        ),
-                      ),
-                      SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        children: _products.take(3).map((product) {
-                          return InkWell(
-                            onTap: () {
-                              setDialogState(() {
-                                itemNameController.text = product.name;
-                                priceController.text = product.price.toString();
-                                unitController.text = product.unit;
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Color(0xFF764BA2).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Color(0xFF764BA2).withOpacity(0.3),
-                                ),
-                              ),
-                              child: Text(
-                                product.name,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF764BA2),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                // Validate fields
-                if (itemNameController.text.isEmpty ||
-                    priceController.text.isEmpty ||
-                    quantityController.text.isEmpty ||
-                    unitController.text.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Please fill all fields'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-
-                double? unitPrice = double.tryParse(priceController.text);
-                int? quantity = int.tryParse(quantityController.text);
-
-                if (unitPrice == null || unitPrice <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Please enter a valid price'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-
-                if (quantity == null || quantity <= 0) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Please enter a valid quantity'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                  return;
-                }
-
-                OrderItem newItem = OrderItem(
-                  productName: itemNameController.text,
-                  unitPrice: unitPrice,
-                  quantity: quantity,
-                  unit: unitController.text,
-                );
-
-                setState(() {
-                  _orderItems.add(newItem);
-                  _calculateTotal();
-                });
-
-                Navigator.pop(context);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xFF764BA2),
-              ),
-              child: Text('Add Item', style: TextStyle(color: Colors.white)),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildCreateItemDialog() {
-    TextEditingController nameController = TextEditingController();
-    TextEditingController priceController = TextEditingController();
-    TextEditingController unitController = TextEditingController();
-
-    return AlertDialog(
-      title: Text('Create New Item'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextFormField(
-            controller: nameController,
-            decoration: InputDecoration(
-              labelText: 'Product Name',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          SizedBox(height: 16),
-          TextFormField(
-            controller: priceController,
-            decoration: InputDecoration(
-              labelText: 'Price',
-              border: OutlineInputBorder(),
-              prefixText: '\$',
-            ),
-            keyboardType: TextInputType.numberWithOptions(decimal: true),
-          ),
-          SizedBox(height: 16),
-          TextFormField(
-            controller: unitController,
-            decoration: InputDecoration(
-              labelText: 'Unit (e.g., pcs, kg, lbs)',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: () {
-            if (nameController.text.isNotEmpty &&
-                priceController.text.isNotEmpty &&
-                unitController.text.isNotEmpty) {
-              Product newProduct = Product(
-                id: (_products.length + 1).toString(),
-                name: nameController.text,
-                price: double.tryParse(priceController.text) ?? 0.0,
-                unit: unitController.text,
-              );
-
-              setState(() {
-                _products.add(newProduct);
-              });
-
-              Navigator.pop(context);
-
-              // Show success message
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Product "${newProduct.name}" created successfully!',
-                  ),
-                  backgroundColor: Color(0xFF764BA2),
-                ),
-              );
-            }
-          },
-          style: ElevatedButton.styleFrom(backgroundColor: Color(0xFF667EEA)),
-          child: Text('Create', style: TextStyle(color: Colors.white)),
-        ),
-      ],
-    );
-  }
-
   void _selectDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
@@ -1235,67 +892,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
       Navigator.pop(context);
     }
   }
-}
-
-// Data Models
-class Customer {
-  final String id;
-  final String name;
-  final bool isGstRegistered;
-  final String? gstNumber;
-  final String? email;
-  final String? phone;
-  final String? address;
-
-  Customer({
-    required this.id,
-    required this.name,
-    required this.isGstRegistered,
-    this.gstNumber,
-    this.email,
-    this.phone,
-    this.address,
-  });
-
-  // Factory constructor for creating Customer from JSON
-  factory Customer.fromJson(Map<String, dynamic> json) {
-    return Customer(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-      isGstRegistered: json['isGstRegistered'] ?? false,
-      gstNumber: json['gstNumber'],
-      email: json['email'],
-      phone: json['phone'],
-      address: json['address'],
-    );
-  }
-
-  // Method to convert Customer to JSON
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-      'isGstRegistered': isGstRegistered,
-      'gstNumber': gstNumber,
-      'email': email,
-      'phone': phone,
-      'address': address,
-    };
-  }
-}
-
-class Product {
-  final String id;
-  final String name;
-  final double price;
-  final String unit;
-
-  Product({
-    required this.id,
-    required this.name,
-    required this.price,
-    required this.unit,
-  });
 }
 
 class OrderItem {
