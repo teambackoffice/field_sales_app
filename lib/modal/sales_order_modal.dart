@@ -44,12 +44,14 @@ class SalesOrder {
   String name;
   String customer;
   DateTime deliveryDate;
+  double totalAmount;
   List<Item> items;
 
   SalesOrder({
     required this.name,
     required this.customer,
     required this.deliveryDate,
+    required this.totalAmount,
     required this.items,
   });
 
@@ -57,6 +59,7 @@ class SalesOrder {
     name: json["name"],
     customer: json["customer"],
     deliveryDate: DateTime.parse(json["delivery_date"]),
+    totalAmount: json["Total"],
     items: List<Item>.from(json["items"].map((x) => Item.fromJson(x))),
   );
 

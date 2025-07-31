@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:location_tracker_app/controller/sales_order_controller.dart';
 import 'package:location_tracker_app/modal/sales_order_modal.dart' as modal;
 import 'package:location_tracker_app/view/mainscreen/sales_order/create_sales_order/create_sales_order.dart';
@@ -286,7 +287,10 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                   child: Row(
                     children: [
                       Expanded(
-                        child: _buildOrderDetail('Amount', '₹${order.items})}'),
+                        child: _buildOrderDetail(
+                          'Amount',
+                          '₹${order.totalAmount.toStringAsFixed(2)}',
+                        ),
                       ),
                       Container(width: 1, height: 40, color: Color(0xFFE5E5E5)),
                       Expanded(
@@ -299,7 +303,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                       Expanded(
                         child: _buildOrderDetail(
                           'Delivery Date',
-                          '${order.deliveryDate.day}/${order.deliveryDate.month}/${order.deliveryDate.year}',
+                          DateFormat('yMMMd').format(order.deliveryDate),
                         ),
                       ),
                     ],
@@ -572,7 +576,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                               children: [
                                 SizedBox(width: 8),
                                 Text(
-                                  'Order ${order..name}',
+                                  'Order ${order.name}',
                                   style: TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w600,
