@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:location_tracker_app/controller/create_sales_order_controller.dart';
 import 'package:location_tracker_app/controller/customer_list_controller.dart';
 import 'package:location_tracker_app/controller/item_list_controller.dart';
+import 'package:location_tracker_app/controller/sales_order_controller.dart';
 import 'package:location_tracker_app/modal/customer_list_modal.dart';
 import 'package:provider/provider.dart';
 
@@ -661,10 +664,9 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                             double.tryParse(quantityController.text) ?? 0;
                         if (quantity > 0) {
                           final orderItem = OrderItem(
-                            productName: item.name,
-                            unitPrice: item.price,
-                            quantity: quantity.toInt(),
-                            unit: item.unit,
+                            item_code: item.name,
+                            rate: item.price,
+                            qty: quantity.toInt(),
                           );
 
                           setState(() {
@@ -719,11 +721,11 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.productName,
+                  item.item_code,
                   style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
                 ),
                 Text(
-                  '₹${item.unitPrice.toStringAsFixed(2)} per ${item.unit}',
+                  '₹${item.rate.toStringAsFixed(2)}',
                   style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
                 ),
               ],
@@ -732,7 +734,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
           Expanded(
             flex: 1,
             child: Text(
-              '${item.quantity}',
+              '${item.qty}',
               textAlign: TextAlign.center,
               style: TextStyle(fontWeight: FontWeight.w500),
             ),
@@ -802,11 +804,12 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   }
 
   Widget _buildSaveButton() {
+    final controller = Provider.of<CreateSalesOrderController>(context);
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: _saveSalesOrder,
+        onPressed: controller.isLoading ? null : _saveSalesOrder,
         style: ElevatedButton.styleFrom(
           backgroundColor: Color(0xFF764BA2),
           shape: RoundedRectangleBorder(
@@ -814,21 +817,23 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
           ),
           elevation: 2,
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.save, color: Colors.white),
-            SizedBox(width: 8),
-            Text(
-              'Save Sales Order',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
+        child: controller.isLoading
+            ? CircularProgressIndicator(color: Colors.white)
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.save, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text(
+                    'Create Sales Order',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -856,7 +861,12 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     }
   }
 
-  void _saveSalesOrder() {
+  Future<void> _saveSalesOrder() async {
+    final controller = Provider.of<CreateSalesOrderController>(
+      context,
+      listen: false,
+    );
+
     if (_formKey.currentState!.validate()) {
       if (_orderItems.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -868,17 +878,25 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
         return;
       }
 
-      // Here you would typically send the data to your backend
-      Map<String, dynamic> salesOrderData = {
-        'orderNumber': _orderNumberController.text,
-        'postingDate': delvery_date.toIso8601String(),
-        'customerId': _selectedCustomer,
-        'items': _orderItems.map((item) => item.toJson()).toList(),
-        'totalAmount': _totalAmount,
-        'notes': _notesController.text,
-      };
+      // Call API
+      await controller.createSalesOrder(
+        customer: _selectedCustomer ?? "anupam",
+        deliveryDate: DateFormat('yyyy-MM-dd').format(delvery_date),
+        items: _orderItems.map((item) => item.toJson()).toList(),
+      );
 
-      // Show success message
+      if (controller.error != null) {
+        // Show error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${controller.error}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // On success
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Sales Order created successfully!'),
@@ -886,37 +904,28 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
         ),
       );
 
-      print('Sales Order Data: $salesOrderData');
+      // Optional: Print or use response
 
-      // Navigate back or to order list
       Navigator.pop(context);
+      Provider.of<SalesOrderController>(
+        context,
+        listen: false,
+      ).fetchsalesorder();
     }
   }
 }
 
 class OrderItem {
-  final String productName;
-  final double unitPrice;
-  final int quantity;
-  final String unit;
+  final String item_code;
+  final double rate;
+  final int qty;
 
-  OrderItem({
-    required this.productName,
-    required this.unitPrice,
-    required this.quantity,
-    required this.unit,
-  });
+  OrderItem({required this.item_code, required this.rate, required this.qty});
 
-  double get totalPrice => unitPrice * quantity;
+  double get totalPrice => rate * qty;
 
   Map<String, dynamic> toJson() {
-    return {
-      'productName': productName,
-      'unitPrice': unitPrice,
-      'quantity': quantity,
-      'unit': unit,
-      'totalPrice': totalPrice,
-    };
+    return {'item_code': item_code, 'rate': rate, 'qty': qty};
   }
 }
 
