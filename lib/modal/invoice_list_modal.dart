@@ -37,6 +37,7 @@ class Message {
   };
 }
 
+// Updated Invoice class with local draft state management
 class Invoice {
   String invoiceId;
   String customer;
@@ -46,6 +47,11 @@ class Invoice {
   double outstandingAmount;
   String status;
   List<Item> items;
+
+  // Local state management for draft payments
+  bool _hasPendingPayment = false;
+  double _pendingPaymentAmount = 0.0;
+  String _pendingPaymentMethod = '';
 
   Invoice({
     required this.invoiceId,
@@ -58,13 +64,40 @@ class Invoice {
     required this.items,
   });
 
+  // Getters for draft state
+  bool get hasPendingPayment => _hasPendingPayment;
+  double get pendingPaymentAmount => _pendingPaymentAmount;
+  String get pendingPaymentMethod => _pendingPaymentMethod;
+
+  // Computed property for display status
+  String get displayStatus {
+    if (_hasPendingPayment) {
+      return "Processing";
+    }
+    return status;
+  }
+
+  // Method to mark payment as pending
+  void markPaymentAsPending(double amount, String method) {
+    _hasPendingPayment = true;
+    _pendingPaymentAmount = amount;
+    _pendingPaymentMethod = method;
+  }
+
+  // Method to clear pending payment (when invoice is refreshed from backend)
+  void clearPendingPayment() {
+    _hasPendingPayment = false;
+    _pendingPaymentAmount = 0.0;
+    _pendingPaymentMethod = '';
+  }
+
   factory Invoice.fromJson(Map<String, dynamic> json) => Invoice(
     invoiceId: json["invoice_id"],
     customer: json["customer"],
     postingDate: DateTime.parse(json["posting_date"]),
     dueDate: DateTime.parse(json["due_date"]),
-    grandTotal: json["grand_total"],
-    outstandingAmount: json["outstanding_amount"],
+    grandTotal: json["grand_total"]?.toDouble() ?? 0.0,
+    outstandingAmount: json["outstanding_amount"]?.toDouble() ?? 0.0,
     status: json["status"],
     items: List<Item>.from(json["items"].map((x) => Item.fromJson(x))),
   );

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:location_tracker_app/controller/pay_sales_invoice_controller.dart';
 import 'package:location_tracker_app/modal/invoice_list_modal.dart';
+import 'package:provider/provider.dart';
 
 class PaymentPage extends StatefulWidget {
   final Invoice invoice;
-  final VoidCallback onPaymentSuccess;
+  final void Function(double amount, String method) onPaymentSuccess;
 
   const PaymentPage({
     super.key,
@@ -15,30 +18,91 @@ class PaymentPage extends StatefulWidget {
   _PaymentPageState createState() => _PaymentPageState();
 }
 
-class _PaymentPageState extends State<PaymentPage> {
+class _PaymentPageState extends State<PaymentPage>
+    with TickerProviderStateMixin {
   String _selectedMethod = 'card'; // card or cash
   final _cardController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
+  final _amountController = TextEditingController();
   bool _isProcessing = false;
+  bool _isCustomAmount = false;
+  late AnimationController _amountAnimationController;
+  late Animation<double> _amountScaleAnimation;
 
-  void _processPayment() async {
-    setState(() => _isProcessing = true);
-    await Future.delayed(const Duration(seconds: 2)); // simulate payment
-    setState(() => _isProcessing = false);
+  @override
+  void initState() {
+    super.initState();
+    _amountController.text = widget.invoice.outstandingAmount.toStringAsFixed(
+      2,
+    );
 
-    widget.onPaymentSuccess();
-    Navigator.pop(context);
+    _amountAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Payment successful! ✓'),
-        backgroundColor: const Color(0xFF10B981),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    _amountScaleAnimation = Tween<double>(begin: 1.0, end: 1.05).animate(
+      CurvedAnimation(
+        parent: _amountAnimationController,
+        curve: Curves.easeInOut,
       ),
     );
+  }
+
+  void _processPayment() async {
+    final controller = Provider.of<PaySalesInvoiceController>(
+      context,
+      listen: false,
+    );
+
+    setState(() => _isProcessing = true);
+
+    final paymentAmount = double.tryParse(_amountController.text) ?? 0.0;
+
+    await controller.paySalesInvoice(
+      invoice_id: widget.invoice.invoiceId,
+      amount: _amountController.text,
+      mode_of_payment: _selectedMethod, // "card" or "cash"
+    );
+
+    setState(() => _isProcessing = false);
+
+    if (controller.error == null) {
+      // Pass the payment amount and method back to the parent
+      widget.onPaymentSuccess(paymentAmount, _selectedMethod);
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.hourglass_empty, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Text('Payment submitted for processing! ⏳'),
+            ],
+          ),
+          backgroundColor: const Color(0xFF9333EA),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          duration: Duration(seconds: 4),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Payment failed: ${controller.error}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    }
   }
 
   void _showItemsModal() {
@@ -230,6 +294,129 @@ class _PaymentPageState extends State<PaymentPage> {
     );
   }
 
+  Widget _buildAmountInput() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF667EEA).withOpacity(0.1),
+            const Color(0xFF764BA2).withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFF667EEA).withOpacity(0.2),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Payment Amount',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF374151),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Amount Display/Input
+          AnimatedBuilder(
+            animation: _amountScaleAnimation,
+            builder: (context, child) => Transform.scale(
+              scale: _amountScaleAnimation.value,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 16,
+                  horizontal: 20,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF667EEA).withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF667EEA).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.currency_rupee,
+                        color: Color(0xFF667EEA),
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: TextFormField(
+                        controller: _amountController,
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                            RegExp(r'^\d*\.?\d{0,2}'),
+                          ),
+                        ],
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF374151),
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: '0.00',
+                          hintStyle: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        onTap: () {
+                          _amountAnimationController.forward().then((_) {
+                            _amountAnimationController.reverse();
+                          });
+                        },
+                        onChanged: (value) {
+                          setState(() {
+                            _isCustomAmount =
+                                value !=
+                                widget.invoice.outstandingAmount
+                                    .toStringAsFixed(2);
+                          });
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -278,7 +465,7 @@ class _PaymentPageState extends State<PaymentPage> {
                         style: TextStyle(color: Colors.grey[600]),
                       ),
                       Text(
-                        '₹${widget.invoice.grandTotal.toStringAsFixed(2)}',
+                        '₹${widget.invoice.outstandingAmount.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
@@ -310,6 +497,11 @@ class _PaymentPageState extends State<PaymentPage> {
               ),
             ),
             const SizedBox(height: 24),
+
+            // Amount Input Section
+            _buildAmountInput(),
+            const SizedBox(height: 24),
+
             // Payment Methods
             const Text(
               'Payment Method',
@@ -332,28 +524,30 @@ class _PaymentPageState extends State<PaymentPage> {
             SizedBox(
               width: double.infinity,
               height: 56,
-              child: ElevatedButton(
-                onPressed: _isProcessing ? null : _processPayment,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF667EEA),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+              child: Consumer<PaySalesInvoiceController>(
+                builder: (context, controller, _) => ElevatedButton(
+                  onPressed: controller.isLoading ? null : _processPayment,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF667EEA),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    elevation: 0,
                   ),
-                  elevation: 0,
-                ),
-                child: _isProcessing
-                    ? const CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      )
-                    : Text(
-                        'Pay ₹${widget.invoice.grandTotal.toStringAsFixed(2)}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                  child: controller.isLoading
+                      ? const CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        )
+                      : Text(
+                          'Pay ₹${_amountController.text.isEmpty ? '0.00' : _amountController.text}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
+                ),
               ),
             ),
           ],
@@ -406,23 +600,8 @@ class _PaymentPageState extends State<PaymentPage> {
     _expiryController.dispose();
     _cvvController.dispose();
     _nameController.dispose();
+    _amountController.dispose();
+    _amountAnimationController.dispose();
     super.dispose();
   }
-}
-
-// InvoiceItem class for individual items
-class InvoiceItem {
-  final String name;
-  final String description;
-  final int quantity;
-  final double unitPrice;
-
-  InvoiceItem({
-    required this.name,
-    this.description = '',
-    required this.quantity,
-    required this.unitPrice,
-  });
-
-  double get totalPrice => quantity * unitPrice;
 }
