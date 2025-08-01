@@ -1,84 +1,94 @@
 // To parse this JSON data, do
 //
-//     final invoiceListModal = invoiceListModalFromJson(jsonString);
+//     final paymentEntryModal = paymentEntryModalFromJson(jsonString);
 
 import 'dart:convert';
 
-InvoiceListModal invoiceListModalFromJson(String str) =>
-    InvoiceListModal.fromJson(json.decode(str));
+PaymentEntryModal paymentEntryModalFromJson(String str) =>
+    PaymentEntryModal.fromJson(json.decode(str));
 
-String invoiceListModalToJson(InvoiceListModal data) =>
+String paymentEntryModalToJson(PaymentEntryModal data) =>
     json.encode(data.toJson());
 
-class InvoiceListModal {
+class PaymentEntryModal {
   Message message;
 
-  InvoiceListModal({required this.message});
+  PaymentEntryModal({required this.message});
 
-  factory InvoiceListModal.fromJson(Map<String, dynamic> json) =>
-      InvoiceListModal(message: Message.fromJson(json["message"]));
+  factory PaymentEntryModal.fromJson(Map<String, dynamic> json) =>
+      PaymentEntryModal(message: Message.fromJson(json["message"]));
 
   Map<String, dynamic> toJson() => {"message": message.toJson()};
 }
 
 class Message {
+  String status;
+  String customer;
+  int invoiceCount;
+  int totalOutstandingAmount;
   List<Invoice> invoices;
 
-  Message({required this.invoices});
+  Message({
+    required this.status,
+    required this.customer,
+    required this.invoiceCount,
+    required this.totalOutstandingAmount,
+    required this.invoices,
+  });
 
   factory Message.fromJson(Map<String, dynamic> json) => Message(
+    status: json["status"],
+    customer: json["customer"],
+    invoiceCount: json["invoice_count"],
+    totalOutstandingAmount: json["total_outstanding_amount"],
     invoices: List<Invoice>.from(
       json["invoices"].map((x) => Invoice.fromJson(x)),
     ),
   );
 
   Map<String, dynamic> toJson() => {
+    "status": status,
+    "customer": customer,
+    "invoice_count": invoiceCount,
+    "total_outstanding_amount": totalOutstandingAmount,
     "invoices": List<dynamic>.from(invoices.map((x) => x.toJson())),
   };
 }
 
 class Invoice {
-  String invoiceId;
-  String customer;
+  String invoiceName;
   DateTime postingDate;
   DateTime dueDate;
-  double grandTotal;
-  double outstandingAmount;
-  String status;
+  int grandTotal;
+  int outstandingAmount;
   List<Item> items;
 
   Invoice({
-    required this.invoiceId,
-    required this.customer,
+    required this.invoiceName,
     required this.postingDate,
     required this.dueDate,
     required this.grandTotal,
     required this.outstandingAmount,
-    required this.status,
     required this.items,
   });
 
   factory Invoice.fromJson(Map<String, dynamic> json) => Invoice(
-    invoiceId: json["invoice_id"],
-    customer: json["customer"],
+    invoiceName: json["invoice_name"],
     postingDate: DateTime.parse(json["posting_date"]),
     dueDate: DateTime.parse(json["due_date"]),
     grandTotal: json["grand_total"],
     outstandingAmount: json["outstanding_amount"],
-    status: json["status"],
     items: List<Item>.from(json["items"].map((x) => Item.fromJson(x))),
   );
 
   Map<String, dynamic> toJson() => {
-    "invoice_id": invoiceId,
-    "customer": customer,
+    "invoice_name": invoiceName,
     "posting_date":
         "${postingDate.year.toString().padLeft(4, '0')}-${postingDate.month.toString().padLeft(2, '0')}-${postingDate.day.toString().padLeft(2, '0')}",
     "due_date":
         "${dueDate.year.toString().padLeft(4, '0')}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.day.toString().padLeft(2, '0')}",
     "grand_total": grandTotal,
     "outstanding_amount": outstandingAmount,
-    "status": status,
     "items": List<dynamic>.from(items.map((x) => x.toJson())),
   };
 }
@@ -86,10 +96,9 @@ class Invoice {
 class Item {
   String itemCode;
   String itemName;
-  double qty;
-  double rate;
-  double amount;
-  String description;
+  int qty;
+  int rate;
+  int amount;
 
   Item({
     required this.itemCode,
@@ -97,7 +106,6 @@ class Item {
     required this.qty,
     required this.rate,
     required this.amount,
-    required this.description,
   });
 
   factory Item.fromJson(Map<String, dynamic> json) => Item(
@@ -106,7 +114,6 @@ class Item {
     qty: json["qty"],
     rate: json["rate"],
     amount: json["amount"],
-    description: json["description"],
   );
 
   Map<String, dynamic> toJson() => {
@@ -115,6 +122,5 @@ class Item {
     "qty": qty,
     "rate": rate,
     "amount": amount,
-    "description": description,
   };
 }
