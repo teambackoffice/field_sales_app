@@ -66,76 +66,120 @@ class _InvoicePageState extends State<InvoicePage> {
                 builder: (context, controller, child) {
                   if (controller.isLoading) {
                     return Expanded(
-                      child: ListView.builder(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        itemCount: 4, // Number of shimmer items
-                        itemBuilder: (context, index) {
-                          return Shimmer.fromColors(
-                            baseColor: Colors.grey[300]!,
-                            highlightColor: Colors.grey[100]!,
-                            child: Container(
-                              margin: const EdgeInsets.symmetric(
-                                vertical: 8,
-                                horizontal: 16,
-                              ),
-                              padding: const EdgeInsets.all(16),
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: ListView.builder(
+                          itemCount: 6, // Number of shimmer items
+                          itemBuilder: (context, index) {
+                            return Container(
+                              margin: EdgeInsets.only(bottom: 12),
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Row(
-                                children: [
-                                  // Icon Placeholder
-                                  Container(
-                                    height: 120,
-                                    width: 50,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  // Texts
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Container(
-                                          height: 16,
-                                          width: 80,
-                                          color: Colors.grey[300],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Container(
-                                          height: 14,
-                                          width: 140,
-                                          color: Colors.grey[300],
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Container(
-                                          height: 18,
-                                          width: 60,
-                                          color: Colors.grey[300],
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  // Button Placeholder
-                                  Container(
-                                    height: 36,
-                                    width: 80,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[300],
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: Offset(0, 2),
                                   ),
                                 ],
                               ),
-                            ),
-                          );
-                        },
+                              child: Shimmer.fromColors(
+                                baseColor: Colors.grey[300]!,
+                                highlightColor: Colors.grey[100]!,
+                                child: Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: Row(
+                                    children: [
+                                      // Leading icon shimmer
+                                      Container(
+                                        width: 50,
+                                        height: 50,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                      SizedBox(width: 16),
+
+                                      // Content section shimmer
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            // Invoice ID shimmer
+                                            Container(
+                                              width: double.infinity * 0.6,
+                                              height: 16,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                            ),
+                                            SizedBox(height: 8),
+
+                                            // Customer name shimmer
+                                            Container(
+                                              width: double.infinity * 0.4,
+                                              height: 14,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                            ),
+                                            SizedBox(height: 12),
+
+                                            // Total amount shimmer
+                                            Container(
+                                              width: double.infinity * 0.5,
+                                              height: 16,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                            ),
+                                            SizedBox(height: 4),
+
+                                            // Due amount shimmer
+                                            Container(
+                                              width: double.infinity * 0.45,
+                                              height: 16,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+
+                                      SizedBox(width: 12),
+
+                                      // Trailing button/badge shimmer
+                                      Container(
+                                        width: 80,
+                                        height: 36,
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
                       ),
                     );
                   }

@@ -174,7 +174,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20),
       child: controller.isLoading
-          ? _buildShimmerOrdersList() // <-- Show shimmer while loading
+          ? _buildShimmerOrdersListEnhanced() // <-- Show shimmer while loading
           : salesOrders.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
@@ -186,74 +186,164 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     );
   }
 
-  Widget _buildShimmerOrdersList() {
-    return Expanded(
-      child: ListView.builder(
-        itemCount: 4, // Number of shimmer items
-        itemBuilder: (context, index) {
-          return Shimmer.fromColors(
-            baseColor: Colors.grey[300]!,
-            highlightColor: Colors.grey[100]!,
-            child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Row(
-                children: [
-                  // Icon Placeholder
-                  Container(
-                    height: 150,
-                    width: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  // Texts
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildShimmerOrdersListEnhanced() {
+    return ListView.builder(
+      itemCount: 6,
+      itemBuilder: (context, index) {
+        return AnimatedContainer(
+          duration: Duration(milliseconds: 300 + (index * 100)),
+          curve: Curves.easeOutBack,
+          margin: EdgeInsets.only(bottom: 16),
+          child: Card(
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Container(
+                padding: EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    Row(
                       children: [
                         Container(
-                          height: 16,
-                          width: 80,
-                          color: Colors.grey[300],
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        const SizedBox(height: 8),
-                        Container(
-                          height: 14,
-                          width: 140,
-                          color: Colors.grey[300],
-                        ),
-                        const SizedBox(height: 8),
-                        Container(
-                          height: 18,
-                          width: 60,
-                          color: Colors.grey[300],
+                        SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: double.infinity * 0.7,
+                                height: 16,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                              SizedBox(height: 8),
+                              Container(
+                                width: double.infinity * 0.5,
+                                height: 14,
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Button Placeholder
-                  Container(
-                    height: 36,
-                    width: 80,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(8),
+                    SizedBox(height: 16),
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFF8F6FA),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              children: [
+                                SizedBox(height: 4),
+                                Container(
+                                  width: 60,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Container(
+                                  width: 40,
+                                  height: 13,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 40,
+                            color: Color(0xFFE5E5E5),
+                          ),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                SizedBox(height: 4),
+                                Container(
+                                  width: 20,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Container(
+                                  width: 30,
+                                  height: 13,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            width: 1,
+                            height: 40,
+                            color: Color(0xFFE5E5E5),
+                          ),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                SizedBox(height: 4),
+                                Container(
+                                  width: 60,
+                                  height: 16,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                                SizedBox(height: 4),
+                                Container(
+                                  width: 70,
+                                  height: 13,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
