@@ -503,7 +503,7 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
             Text('Payment Entry'),
           ],
         ),
-        backgroundColor: Colors.blue,
+        backgroundColor: Color(0xFF764BA2),
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
