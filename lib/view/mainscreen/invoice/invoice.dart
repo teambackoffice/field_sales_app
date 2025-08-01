@@ -277,49 +277,50 @@ class _InvoicePageState extends State<InvoicePage> {
                                   ),
                                 ],
                               ),
-                              trailing: invoice.status == "Paid"
-                                  ? Container(
-                                      padding: EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Color(
-                                          0xFF10B981,
-                                        ).withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        'PAID',
-                                        style: TextStyle(
-                                          color: Color(0xFF10B981),
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    )
-                                  : ElevatedButton(
-                                      onPressed: () => _makePayment(invoice),
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: Color(0xFF667EEA),
-                                        foregroundColor: Colors.white,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
-                                        ),
-                                        padding: EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 8,
-                                        ),
-                                      ),
-                                      child: Text(
-                                        'Pay Now',
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
+                              trailing: _buildTrailingWidget(invoice),
+                              //  invoice.status == "Paid" && invoice.payments.status == "Submitted"
+                              //     ? Container(
+                              //         padding: EdgeInsets.symmetric(
+                              //           horizontal: 12,
+                              //           vertical: 6,
+                              //         ),
+                              //         decoration: BoxDecoration(
+                              //           color: Color(
+                              //             0xFF10B981,
+                              //           ).withOpacity(0.1),
+                              //           borderRadius: BorderRadius.circular(20),
+                              //         ),
+                              //         child: Text(
+                              //           'PAID',
+                              //           style: TextStyle(
+                              //             color: Color(0xFF10B981),
+                              //             fontWeight: FontWeight.w600,
+                              //             fontSize: 12,
+                              //           ),
+                              //         ),
+                              //       )
+                              //     : ElevatedButton(
+                              //         onPressed: () => _makePayment(invoice),
+                              //         style: ElevatedButton.styleFrom(
+                              //           backgroundColor: Color(0xFF667EEA),
+                              //           foregroundColor: Colors.white,
+                              //           shape: RoundedRectangleBorder(
+                              //             borderRadius: BorderRadius.circular(
+                              //               12,
+                              //             ),
+                              //           ),
+                              //           padding: EdgeInsets.symmetric(
+                              //             horizontal: 16,
+                              //             vertical: 8,
+                              //           ),
+                              //         ),
+                              //         child: Text(
+                              //           'Pay Now',
+                              //           style: TextStyle(
+                              //             fontWeight: FontWeight.w600,
+                              //           ),
+                              //         ),
+                              //       ),
                             ),
                           );
                         },
@@ -333,6 +334,69 @@ class _InvoicePageState extends State<InvoicePage> {
         ),
       ),
     );
+  }
+
+  Widget _buildTrailingWidget(Invoice invoice) {
+    // Check if outstanding amount is 0 and all payments are submitted
+    bool isFullyPaid =
+        invoice.outstandingAmount == 0 &&
+        invoice.payments.isNotEmpty &&
+        invoice.payments.every((payment) => payment.status == "Submitted");
+
+    // Check if any payment is drafted
+    bool hasDraftedPayment = invoice.payments.any(
+      (payment) => payment.status == "Draft",
+    );
+
+    if (isFullyPaid) {
+      return Container(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: Color(0xFF10B981).withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          'PAID',
+          style: TextStyle(
+            color: Color(0xFF10B981),
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+        ),
+      );
+    } else if (hasDraftedPayment == true) {
+      return ElevatedButton(
+        onPressed: () {
+          // Handle submission to supervisor action here if needed
+          // For now, it's disabled since it's already submitted
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Color(0xFFF59E0B),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        ),
+        child: Text(
+          'Submitted ',
+          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
+        ),
+      );
+    } else {
+      return ElevatedButton(
+        onPressed: () => _makePayment(invoice),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Color(0xFF667EEA),
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        ),
+        child: Text('Pay Now', style: TextStyle(fontWeight: FontWeight.w600)),
+      );
+    }
   }
 
   Widget _buildHeader() {

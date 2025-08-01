@@ -28,18 +28,12 @@ class PaySalesInvoiceService {
     });
 
     // 🔹 Debugging logs
-    print("🔹 API URL: $url");
-    print("🔹 Headers: $headers");
-    print("🔹 Request Body: $body");
 
     final response = await http.post(
       Uri.parse(url),
       headers: headers,
       body: body,
     );
-
-    print("🔹 Status Code: ${response.statusCode}");
-    print("🔹 Response Body: ${response.body}");
 
     if (response.statusCode == 200) {
       return json.decode(response.body);
