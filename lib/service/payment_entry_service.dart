@@ -7,16 +7,23 @@ import 'package:location_tracker_app/modal/payment_entry_modal.dart';
 
 class PaymentEntryService {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  final String url = '${ApiConstants.baseUrl}get_customer_sales_invoices';
+  final String baseUrl = '${ApiConstants.baseUrl}get_customer_sales_invoices';
 
-  Future<PaymentEntryModal?> getcustomerpaymententry() async {
+  Future<PaymentEntryModal?> getCustomerPaymentEntry({
+    required String customer,
+  }) async {
     try {
       final String? sid = await _secureStorage.read(key: 'sid');
       if (sid == null)
-        throw Exception(' Authentication required. Please login again.');
+        throw Exception('Authentication required. Please login again.');
+
+      // Append customer parameter to URL
+      final uri = Uri.parse(
+        baseUrl,
+      ).replace(queryParameters: {'customer': customer});
 
       final response = await http.get(
-        Uri.parse(url),
+        uri,
         headers: {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'},
       );
 

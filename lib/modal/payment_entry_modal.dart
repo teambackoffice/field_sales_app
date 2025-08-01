@@ -1,15 +1,3 @@
-// To parse this JSON data, do
-//
-//     final paymentEntryModal = paymentEntryModalFromJson(jsonString);
-
-import 'dart:convert';
-
-PaymentEntryModal paymentEntryModalFromJson(String str) =>
-    PaymentEntryModal.fromJson(json.decode(str));
-
-String paymentEntryModalToJson(PaymentEntryModal data) =>
-    json.encode(data.toJson());
-
 class PaymentEntryModal {
   Message message;
 
@@ -24,8 +12,8 @@ class PaymentEntryModal {
 class Message {
   String status;
   String customer;
-  int invoiceCount;
-  int totalOutstandingAmount;
+  double invoiceCount;
+  double totalOutstandingAmount;
   List<Invoice> invoices;
 
   Message({
@@ -39,8 +27,9 @@ class Message {
   factory Message.fromJson(Map<String, dynamic> json) => Message(
     status: json["status"],
     customer: json["customer"],
-    invoiceCount: json["invoice_count"],
-    totalOutstandingAmount: json["total_outstanding_amount"],
+    invoiceCount: (json["invoice_count"] as num).toDouble(),
+    totalOutstandingAmount: (json["total_outstanding_amount"] as num)
+        .toDouble(),
     invoices: List<Invoice>.from(
       json["invoices"].map((x) => Invoice.fromJson(x)),
     ),
@@ -59,8 +48,8 @@ class Invoice {
   String invoiceName;
   DateTime postingDate;
   DateTime dueDate;
-  int grandTotal;
-  int outstandingAmount;
+  double grandTotal;
+  double outstandingAmount;
   List<Item> items;
 
   Invoice({
@@ -76,8 +65,8 @@ class Invoice {
     invoiceName: json["invoice_name"],
     postingDate: DateTime.parse(json["posting_date"]),
     dueDate: DateTime.parse(json["due_date"]),
-    grandTotal: json["grand_total"],
-    outstandingAmount: json["outstanding_amount"],
+    grandTotal: (json["grand_total"] as num).toDouble(),
+    outstandingAmount: (json["outstanding_amount"] as num).toDouble(),
     items: List<Item>.from(json["items"].map((x) => Item.fromJson(x))),
   );
 
@@ -96,9 +85,9 @@ class Invoice {
 class Item {
   String itemCode;
   String itemName;
-  int qty;
-  int rate;
-  int amount;
+  double qty;
+  double rate;
+  double amount;
 
   Item({
     required this.itemCode,
@@ -111,9 +100,9 @@ class Item {
   factory Item.fromJson(Map<String, dynamic> json) => Item(
     itemCode: json["item_code"],
     itemName: json["item_name"],
-    qty: json["qty"],
-    rate: json["rate"],
-    amount: json["amount"],
+    qty: (json["qty"] as num).toDouble(),
+    rate: (json["rate"] as num).toDouble(),
+    amount: (json["amount"] as num).toDouble(),
   );
 
   Map<String, dynamic> toJson() => {
