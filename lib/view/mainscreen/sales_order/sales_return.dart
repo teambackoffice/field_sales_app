@@ -1,6 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/view/mainscreen/sales_order/create%20_sales_rqst.dart/create_sales_rqst.dart';
 
-class SalesReturnListPage extends StatelessWidget {
+class SalesReturnListPage extends StatefulWidget {
+  const SalesReturnListPage({super.key});
+
+  @override
+  _SalesReturnListPageState createState() => _SalesReturnListPageState();
+}
+
+class _SalesReturnListPageState extends State<SalesReturnListPage> {
   final List<Map<String, dynamic>> salesReturns = [
     {
       "invoice": "INV-001",
@@ -25,8 +33,6 @@ class SalesReturnListPage extends StatelessWidget {
     },
   ];
 
-  SalesReturnListPage({super.key});
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -35,6 +41,23 @@ class SalesReturnListPage extends StatelessWidget {
         backgroundColor: const Color(0xFF764BA2),
         foregroundColor: Colors.white,
         elevation: 0,
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const CreateSalesReturnPage(),
+            ),
+          );
+          if (result != null) {
+            setState(() {
+              salesReturns.add(result);
+            });
+          }
+        },
+        backgroundColor: const Color(0xFF764BA2),
+        child: const Icon(Icons.add, color: Colors.white),
       ),
       backgroundColor: const Color(0xFFF8F9FA),
       body: Padding(
@@ -86,14 +109,14 @@ class SalesReturnListPage extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              item['item'],
+                              item['item'] ?? '',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
                             Text(
-                              item['invoice'],
+                              item['invoice'] ?? '',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.grey[600],
@@ -114,7 +137,7 @@ class SalesReturnListPage extends StatelessWidget {
                   const Divider(height: 1),
                   const SizedBox(height: 12),
 
-                  // Details
+                  // Date
                   Row(
                     children: [
                       Icon(
@@ -124,12 +147,13 @@ class SalesReturnListPage extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        item['date'],
+                        item['date'] ?? '',
                         style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
+                  // Reason
                   Row(
                     children: [
                       Icon(
@@ -140,7 +164,7 @@ class SalesReturnListPage extends StatelessWidget {
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
-                          item['reason'],
+                          item['reason'] ?? '',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.grey[700],

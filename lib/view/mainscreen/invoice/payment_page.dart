@@ -27,8 +27,6 @@ class _PaymentPageState extends State<PaymentPage>
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
-  bool _isProcessing = false;
-  bool _isCustomAmount = false;
   late AnimationController _amountAnimationController;
   late Animation<double> _amountScaleAnimation;
 
@@ -58,8 +56,6 @@ class _PaymentPageState extends State<PaymentPage>
       listen: false,
     );
 
-    setState(() => _isProcessing = true);
-
     final paymentAmount = double.tryParse(_amountController.text) ?? 0.0;
 
     await controller.paySalesInvoice(
@@ -68,13 +64,12 @@ class _PaymentPageState extends State<PaymentPage>
       mode_of_payment: _selectedMethod, // "card" or "cash"
     );
 
-    setState(() => _isProcessing = false);
-
     if (controller.error == null) {
       // Pass the payment amount and method back to the parent
       widget.onPaymentSuccess(paymentAmount, _selectedMethod);
       Navigator.pop(context);
       Provider.of<InvoiceListController>(
+        // ignore: use_build_context_synchronously
         context,
         listen: false,
       ).fetchInvoiceList();
@@ -403,12 +398,7 @@ class _PaymentPageState extends State<PaymentPage>
                           });
                         },
                         onChanged: (value) {
-                          setState(() {
-                            _isCustomAmount =
-                                value !=
-                                widget.invoice.outstandingAmount
-                                    .toStringAsFixed(2);
-                          });
+                          setState(() {});
                         },
                       ),
                     ),
