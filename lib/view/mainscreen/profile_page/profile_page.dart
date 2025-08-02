@@ -1,15 +1,49 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:location_tracker_app/view/login/login_page.dart';
 
-class ProfilePage extends StatelessWidget {
+class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
+
+  @override
+  State<ProfilePage> createState() => _ProfilePageState();
+}
+
+class _ProfilePageState extends State<ProfilePage> {
+  final FlutterSecureStorage storage = const FlutterSecureStorage();
+  String username = "User"; // default value
+  String email = "user@example.com"; // default value
+  String role = "technician"; // default value
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    String? storedUsername = await storage.read(key: 'full_name');
+    String? storedEmail = await storage.read(key: 'email');
+    String? storedRole = await storage.read(key: 'roles');
+
+    setState(() {
+      if (storedUsername != null) username = storedUsername;
+      if (storedEmail != null) email = storedEmail;
+      if (storedRole != null) {
+        List rolesList = jsonDecode(storedRole);
+        role = rolesList.isNotEmpty ? rolesList[0].toString() : 'User';
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFFF5F7FA),
+      backgroundColor: const Color(0xFFF5F7FA),
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: LinearGradient(
             colors: [Color(0xFFF8F6FA), Color(0xFFEDE7F6)],
             begin: Alignment.topCenter,
@@ -22,15 +56,15 @@ class ProfilePage extends StatelessWidget {
               _buildHeader(),
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.all(20),
+                  padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
                       // Profile Card
                       Container(
                         width: double.infinity,
-                        padding: EdgeInsets.all(24),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
-                          gradient: LinearGradient(
+                          gradient: const LinearGradient(
                             colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
@@ -38,9 +72,9 @@ class ProfilePage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: Color(0xFF667EEA).withOpacity(0.3),
+                              color: const Color(0xFF667EEA).withOpacity(0.3),
                               blurRadius: 15,
-                              offset: Offset(0, 8),
+                              offset: const Offset(0, 8),
                             ),
                           ],
                         ),
@@ -51,15 +85,25 @@ class ProfilePage extends StatelessWidget {
                               backgroundColor: Colors.white.withOpacity(0.2),
                               child: CircleAvatar(
                                 radius: 30,
-                                backgroundImage: NetworkImage(
-                                  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+                                backgroundColor: Colors.white,
+                                child: Text(
+                                  username.isNotEmpty
+                                      ? username[0].toUpperCase()
+                                      : 'U',
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    color: Colors.black,
+                                  ),
                                 ),
                               ),
                             ),
-                            SizedBox(height: 16),
+                            const SizedBox(height: 16),
                             Text(
-                              'Sandeep Varghese',
-                              style: TextStyle(
+                              username.isNotEmpty
+                                  ? username[0].toUpperCase() +
+                                        username.substring(1)
+                                  : '',
+                              style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -69,7 +113,7 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
 
-                      SizedBox(height: 30),
+                      const SizedBox(height: 30),
 
                       // Details List
                       Container(
@@ -80,23 +124,15 @@ class ProfilePage extends StatelessWidget {
                             BoxShadow(
                               color: Colors.black.withOpacity(0.05),
                               blurRadius: 10,
-                              offset: Offset(0, 2),
+                              offset: const Offset(0, 2),
                             ),
                           ],
                         ),
                         child: Column(
                           children: [
-                            _buildDetailItem(
-                              Icons.email,
-                              'Email',
-                              'sandeep.varghese@gmail.com',
-                            ),
+                            _buildDetailItem(Icons.email, 'Email', email),
                             _buildDivider(),
-                            _buildDetailItem(
-                              Icons.work,
-                              'Job Title',
-                              'Software Engineer',
-                            ),
+                            _buildDetailItem(Icons.work, 'Job Title', role),
                             _buildDivider(),
                             _buildDetailItem(
                               Icons.business,
@@ -107,7 +143,7 @@ class ProfilePage extends StatelessWidget {
                         ),
                       ),
 
-                      SizedBox(height: 30),
+                      const SizedBox(height: 30),
 
                       // Logout Button
                       SizedBox(
@@ -118,13 +154,13 @@ class ProfilePage extends StatelessWidget {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => LoginPage(),
+                                builder: (context) => const LoginPage(),
                               ),
                             );
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Log out successful!'),
-                                backgroundColor: Color(0xFF764BA2),
+                                content: const Text('Log out successful!'),
+                                backgroundColor: const Color(0xFF764BA2),
                                 behavior: SnackBarBehavior.floating,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -133,14 +169,14 @@ class ProfilePage extends StatelessWidget {
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Color(0xFF764BA2),
+                            backgroundColor: const Color(0xFF764BA2),
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(16),
                             ),
                             elevation: 0,
                           ),
-                          child: Text(
+                          child: const Text(
                             'Log Out',
                             style: TextStyle(
                               fontSize: 16,
@@ -162,28 +198,28 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildHeader() {
     return Container(
-      padding: EdgeInsets.all(20),
+      padding: const EdgeInsets.all(20),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [Color(0xFF764BA2), Color(0xFF667EEA)],
               ),
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0xFF764BA2).withOpacity(0.3),
+                  color: const Color(0xFF764BA2).withOpacity(0.3),
                   blurRadius: 8,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: Icon(Icons.person, color: Colors.white, size: 24),
+            child: const Icon(Icons.person, color: Colors.white, size: 24),
           ),
-          SizedBox(width: 16),
-          Expanded(
+          const SizedBox(width: 16),
+          const Expanded(
             child: Text(
               'Profile',
               style: TextStyle(
@@ -200,18 +236,18 @@ class ProfilePage extends StatelessWidget {
 
   Widget _buildDetailItem(IconData icon, String label, String value) {
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       child: Row(
         children: [
           Container(
-            padding: EdgeInsets.all(8),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Color(0xFF667EEA).withOpacity(0.1),
+              color: const Color(0xFF667EEA).withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(icon, color: Color(0xFF667EEA), size: 20),
+            child: Icon(icon, color: const Color(0xFF667EEA), size: 20),
           ),
-          SizedBox(width: 16),
+          const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -221,7 +257,10 @@ class ProfilePage extends StatelessWidget {
               ),
               Text(
                 value,
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 16,
+                ),
               ),
             ],
           ),

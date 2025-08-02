@@ -27,12 +27,14 @@ class LoginService {
         final sid = message['sid'];
         final branch = message['branch'];
         final roles = message['roles'];
+        final email = message['email'];
 
         // Store values in secure storage
         await _secureStorage.write(key: 'full_name', value: fullName);
         await _secureStorage.write(key: 'api_key', value: apiKey);
         await _secureStorage.write(key: 'sid', value: sid);
         await _secureStorage.write(key: "branch", value: branch);
+        await _secureStorage.write(key: 'email', value: email);
 
         // Convert roles to JSON string and store
         await _secureStorage.write(key: 'roles', value: jsonEncode(roles));
