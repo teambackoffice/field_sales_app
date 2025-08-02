@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:location_tracker_app/controller/invoice_list_controller.dart';
+import 'package:location_tracker_app/controller/mode_of_pay_controller.dart';
 import 'package:location_tracker_app/controller/pay_sales_invoice_controller.dart';
 import 'package:location_tracker_app/modal/invoice_list_modal.dart';
 import 'package:provider/provider.dart';
@@ -48,6 +49,9 @@ class _PaymentPageState extends State<PaymentPage>
         curve: Curves.easeInOut,
       ),
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ModeOfPayController>(context, listen: false).fetchmodeofpay();
+    });
   }
 
   void _processPayment() async {
@@ -503,17 +507,77 @@ class _PaymentPageState extends State<PaymentPage>
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildPaymentMethod('card', 'Card', Icons.credit_card),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildPaymentMethod('cash', 'Cash', Icons.money),
-                ),
-              ],
+            Consumer<ModeOfPayController>(
+              builder: (context, modeController, _) {
+                if (modeController.isLoading) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (modeController.error != null) {
+                  return Text('Error: ${modeController.error}');
+                }
+                final modes = modeController.modeofpay!.message
+                    .where(
+                      (e) => e.execute,
+                    ) // only keep items where execute == true
+                    .map((e) => e.name)
+                    .toList();
+
+                if (modes.isEmpty) {
+                  return const Text('No payment methods available');
+                }
+
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: modes.map((mode) {
+                    return GestureDetector(
+                      onTap: () => setState(() => _selectedMethod = mode),
+                      child: Container(
+                        width: (MediaQuery.of(context).size.width / 2) - 30,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _selectedMethod == mode
+                              ? const Color(0xFF667EEA).withOpacity(0.1)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _selectedMethod == mode
+                                ? const Color(0xFF667EEA)
+                                : Colors.grey[300]!,
+                            width: _selectedMethod == mode ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            Icon(
+                              _getPaymentIcon(mode),
+                              color: _selectedMethod == mode
+                                  ? const Color(0xFF667EEA)
+                                  : Colors.grey[600],
+                              size: 28,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              mode,
+                              style: TextStyle(
+                                color: _selectedMethod == mode
+                                    ? const Color(0xFF667EEA)
+                                    : Colors.grey[600],
+                                fontWeight: _selectedMethod == mode
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
             ),
+
             const SizedBox(height: 32),
             // Pay Button
             SizedBox(
@@ -549,6 +613,21 @@ class _PaymentPageState extends State<PaymentPage>
         ),
       ),
     );
+  }
+
+  IconData _getPaymentIcon(String mode) {
+    switch (mode.toLowerCase()) {
+      case 'cash':
+        return Icons.money;
+      case 'card':
+        return Icons.credit_card;
+      case 'upi':
+        return Icons.qr_code;
+      case 'bank transfer':
+        return Icons.account_balance;
+      default:
+        return Icons.payment; // fallback
+    }
   }
 
   Widget _buildPaymentMethod(String method, String title, IconData icon) {
