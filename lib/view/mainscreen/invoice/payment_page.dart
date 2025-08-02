@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:location_tracker_app/controller/invoice_list_controller.dart';
 import 'package:location_tracker_app/controller/pay_sales_invoice_controller.dart';
 import 'package:location_tracker_app/modal/invoice_list_modal.dart';
 import 'package:provider/provider.dart';
@@ -73,6 +74,10 @@ class _PaymentPageState extends State<PaymentPage>
       // Pass the payment amount and method back to the parent
       widget.onPaymentSuccess(paymentAmount, _selectedMethod);
       Navigator.pop(context);
+      Provider.of<InvoiceListController>(
+        context,
+        listen: false,
+      ).fetchInvoiceList();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
