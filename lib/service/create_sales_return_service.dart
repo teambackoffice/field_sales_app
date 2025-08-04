@@ -37,20 +37,11 @@ class CreateSalesReturnService {
       "notes": notes ?? "",
     });
 
-    // Debug prints
-    print("🔹 [SalesReturnService] API URL: $url");
-    print("🔹 [SalesReturnService] Headers: $headers");
-    print("🔹 [SalesReturnService] Body: $body");
-
     final response = await http.post(
       Uri.parse(url),
       headers: headers,
       body: body,
     );
-
-    // Print full response
-    print("🔹 [SalesReturnService] Status Code: ${response.statusCode}");
-    print("🔹 [SalesReturnService] Response Body: ${response.body}");
 
     return response;
   }

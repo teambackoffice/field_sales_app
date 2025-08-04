@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:location_tracker_app/controller/create_sales_return_contoller.dart';
+import 'package:location_tracker_app/controller/sales_return_controller.dart';
 import 'package:provider/provider.dart';
 
 class CreateSalesReturnPage extends StatefulWidget {
@@ -156,7 +157,11 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                   child: ElevatedButton(
                     onPressed: () {
                       Navigator.of(context).pop(); // Close dialog
-                      Navigator.of(context).pop(); // Go back to previous screen
+                      Navigator.of(context).pop();
+                      Provider.of<SalesReturnController>(
+                        context,
+                        listen: false,
+                      ).fetchsalesreturn(); // Go back to previous screen
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF764BA2),

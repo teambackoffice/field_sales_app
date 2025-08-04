@@ -12,6 +12,7 @@ import 'package:location_tracker_app/controller/mode_of_pay_controller.dart';
 import 'package:location_tracker_app/controller/pay_sales_invoice_controller.dart';
 import 'package:location_tracker_app/controller/payment_entry_controller.dart';
 import 'package:location_tracker_app/controller/sales_order_controller.dart';
+import 'package:location_tracker_app/controller/sales_return_controller.dart';
 import 'package:location_tracker_app/firebase_options.dart';
 import 'package:location_tracker_app/service/login_service.dart';
 import 'package:location_tracker_app/view/login/login_page.dart';
@@ -42,6 +43,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ModeOfPayController()),
         ChangeNotifierProvider(create: (_) => CraetePaymentEntryController()),
         ChangeNotifierProvider(create: (_) => CreateSalesReturnController()),
+        ChangeNotifierProvider(create: (_) => SalesReturnController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
