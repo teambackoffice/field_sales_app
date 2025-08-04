@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/controller/create_sales_return_contoller.dart';
+import 'package:provider/provider.dart';
 
 class CreateSalesReturnPage extends StatefulWidget {
   const CreateSalesReturnPage({super.key});
@@ -9,38 +11,38 @@ class CreateSalesReturnPage extends StatefulWidget {
 
 class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
   final _formKey = GlobalKey<FormState>();
-  final _invoiceController = TextEditingController();
-  final _itemController = TextEditingController();
-  final _quantityController = TextEditingController();
-  final _dateController = TextEditingController();
+  final _invoiceNameController = TextEditingController();
+  final _productNameController = TextEditingController();
+  final _qtyController = TextEditingController();
+  final _buyingDateController = TextEditingController();
+  final _notesController = TextEditingController();
 
   String? _selectedReason;
-  DateTime? _selectedDate;
+  DateTime? _selectedBuyingDate;
 
   final List<String> _returnReasons = [
-    'Damaged Item',
+    'Damaged Product',
     'Wrong Product Delivered',
     'Quality Issue',
-    'Customer Changed Mind',
-    'Defective Product',
-    'Size/Color Issue',
-    'Other',
+    'Size Mismatch',
+    'Others',
   ];
 
   @override
   void initState() {
     super.initState();
-    // Set today's date as default
-    _selectedDate = DateTime.now();
-    _dateController.text = _formatDate(_selectedDate!);
+    // Set today's date as default for buying date
+    _selectedBuyingDate = DateTime.now();
+    _buyingDateController.text = _formatDate(_selectedBuyingDate!);
   }
 
   @override
   void dispose() {
-    _invoiceController.dispose();
-    _itemController.dispose();
-    _quantityController.dispose();
-    _dateController.dispose();
+    _invoiceNameController.dispose();
+    _productNameController.dispose();
+    _qtyController.dispose();
+    _buyingDateController.dispose();
+    _notesController.dispose();
     super.dispose();
   }
 
@@ -48,10 +50,10 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     return "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
   }
 
-  Future<void> _selectDate() async {
+  Future<void> _selectBuyingDate() async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
+      initialDate: _selectedBuyingDate ?? DateTime.now(),
       firstDate: DateTime(2020),
       lastDate: DateTime.now(),
       builder: (context, child) {
@@ -69,38 +71,219 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
       },
     );
 
-    if (picked != null && picked != _selectedDate) {
+    if (picked != null && picked != _selectedBuyingDate) {
       setState(() {
-        _selectedDate = picked;
-        _dateController.text = _formatDate(picked);
+        _selectedBuyingDate = picked;
+        _buyingDateController.text = _formatDate(picked);
       });
     }
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      // Create the new sales return object
-      final newSalesReturn = {
-        "invoice": _invoiceController.text,
-        "item": _itemController.text,
-        "quantity": int.parse(_quantityController.text),
-        "date": _dateController.text,
-        "reason": _selectedReason!,
-      };
-
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Sales return created successfully!'),
-          backgroundColor: const Color(0xFF764BA2),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
+      final controller = Provider.of<CreateSalesReturnController>(
+        context,
+        listen: false,
       );
 
-      // Navigate back and pass the new return data
-      Navigator.pop(context, newSalesReturn);
+      await controller.createSalesReturn(
+        invoiceName: _invoiceNameController.text,
+        productName: _productNameController.text,
+        qty: int.parse(_qtyController.text),
+        reason: _selectedReason!,
+        buyingDate: _buyingDateController.text,
+        notes: _notesController.text,
+      );
+
+      // Check the result and show appropriate feedback
+      if (mounted) {
+        if (controller.errorMessage != null) {
+          // Show error dialog
+          _showErrorDialog(controller.errorMessage!);
+        } else if (controller.responseData != null) {
+          // Show success dialog and navigate back
+          _showSuccessDialog();
+        }
+      }
     }
+  }
+
+  void _showSuccessDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.green.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade600,
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Success!',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2C3E50),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Sales return has been created successfully.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close dialog
+                      Navigator.of(context).pop(); // Go back to previous screen
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF764BA2),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showErrorDialog(String errorMessage) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.error,
+                    color: Colors.red.shade600,
+                    size: 50,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Error!',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF2C3E50),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  errorMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close dialog
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF764BA2),
+                          side: const BorderSide(color: Color(0xFF764BA2)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          'Try Again',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(); // Close dialog
+                          Navigator.of(
+                            context,
+                          ).pop(); // Go back to previous screen
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: const Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Widget _buildTextField({
@@ -112,6 +295,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     String? Function(String?)? validator,
     VoidCallback? onTap,
     bool readOnly = false,
+    int maxLines = 1,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -131,6 +315,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
           validator: validator,
           onTap: onTap,
           readOnly: readOnly,
+          maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, color: const Color(0xFF764BA2)),
@@ -152,9 +337,9 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
             ),
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
+            contentPadding: EdgeInsets.symmetric(
               horizontal: 16,
-              vertical: 16,
+              vertical: maxLines > 1 ? 16 : 16,
             ),
           ),
         ),
@@ -311,13 +496,13 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                 child: Column(
                   children: [
                     _buildTextField(
-                      controller: _invoiceController,
-                      label: 'Invoice Number',
-                      hint: 'Enter invoice number (e.g., INV-001)',
-                      icon: Icons.receipt,
+                      controller: _invoiceNameController,
+                      label: 'Invoice Name',
+                      hint: 'Enter invoice name (e.g., SINV-25-00001)',
+                      icon: Icons.receipt_long,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter invoice number';
+                          return 'Please enter invoice name';
                         }
                         return null;
                       },
@@ -326,8 +511,8 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                     const SizedBox(height: 20),
 
                     _buildTextField(
-                      controller: _itemController,
-                      label: 'Product/Item Name',
+                      controller: _productNameController,
+                      label: 'Product Name',
                       hint: 'Enter product name',
                       icon: Icons.inventory_2,
                       validator: (value) {
@@ -341,7 +526,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                     const SizedBox(height: 20),
 
                     _buildTextField(
-                      controller: _quantityController,
+                      controller: _qtyController,
                       label: 'Quantity',
                       hint: 'Enter quantity to return',
                       icon: Icons.numbers,
@@ -360,16 +545,20 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
 
                     const SizedBox(height: 20),
 
+                    _buildDropdown(),
+
+                    const SizedBox(height: 20),
+
                     _buildTextField(
-                      controller: _dateController,
-                      label: 'Return Date',
-                      hint: 'Select return date',
+                      controller: _buyingDateController,
+                      label: 'Purchase Date',
+                      hint: 'Select purchase date',
                       icon: Icons.calendar_today,
                       readOnly: true,
-                      onTap: _selectDate,
+                      onTap: _selectBuyingDate,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please select return date';
+                          return 'Please select purchase date';
                         }
                         return null;
                       },
@@ -377,39 +566,76 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
 
                     const SizedBox(height: 20),
 
-                    _buildDropdown(),
+                    _buildTextField(
+                      controller: _notesController,
+                      label: 'Notes',
+                      hint: 'Enter additional notes (optional)',
+                      icon: Icons.note_alt,
+                      maxLines: 3,
+                      keyboardType: TextInputType.multiline,
+                    ),
                   ],
                 ),
               ),
 
               const SizedBox(height: 32),
 
-              // Submit Button
-              ElevatedButton(
-                onPressed: _submitForm,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF764BA2),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 2,
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.save, size: 20),
-                    SizedBox(width: 8),
-                    Text(
-                      'Create Sales Return',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+              // Submit Button with Loading State
+              Consumer<CreateSalesReturnController>(
+                builder: (context, controller, child) {
+                  return ElevatedButton(
+                    onPressed: controller.isLoading ? null : _submitForm,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: controller.isLoading
+                          ? Colors.grey[400]
+                          : const Color(0xFF764BA2),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      elevation: controller.isLoading ? 0 : 2,
                     ),
-                  ],
-                ),
+                    child: controller.isLoading
+                        ? const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    Colors.white,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(width: 12),
+                              Text(
+                                'Creating Sales Return...',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.save, size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'Create Sales Return',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                  );
+                },
               ),
             ],
           ),
