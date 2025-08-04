@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "653300730533",
+    "project_id": "field-sales-763fe",
+    "storage_bucket": "field-sales-763fe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:653300730533:android:dbed720520f7601fd81b4c",
+        "android_client_info": {
+          "package_name": "com.example.location_tracker_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCJV1rMslpHxre3hSNjArnrAORWbCsQuo4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
