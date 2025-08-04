@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:location_tracker_app/controller/create_payment_entry_controller.dart';
 import 'package:location_tracker_app/controller/customer_list_controller.dart';
+import 'package:location_tracker_app/controller/mode_of_pay_controller.dart'; // Add this import
 import 'package:location_tracker_app/controller/payment_entry_controller.dart';
 import 'package:location_tracker_app/modal/customer_list_modal.dart';
 import 'package:location_tracker_app/modal/payment_entry_modal.dart';
@@ -23,18 +25,22 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
   double totalAllocated = 0.0;
   double advanceAmount = 0.0;
   bool isLoadingPaymentData = false;
+  String selectedPaymentMethod = 'Cash'; // Default payment method
 
   @override
   void initState() {
     super.initState();
     paymentController.addListener(_calculateTotals);
 
-    // Fetch customer list on page load
+    // Fetch customer list and payment methods on page load
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<GetCustomerListController>(
         context,
         listen: false,
       ).fetchCustomerList();
+
+      // Fetch payment methods
+      Provider.of<ModeOfPayController>(context, listen: false).fetchmodeofpay();
     });
   }
 
@@ -150,6 +156,7 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
       paymentEntryData = null;
       paymentController.clear();
       invoiceAllocations.clear();
+      selectedPaymentMethod = 'Cash'; // Reset to default
 
       for (var controller in invoiceControllers.values) {
         controller.dispose();
@@ -160,6 +167,23 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
       advanceAmount = 0.0;
       isLoadingPaymentData = false;
     });
+  }
+
+  IconData _getPaymentIcon(String mode) {
+    switch (mode.toLowerCase()) {
+      case 'cash':
+        return Icons.money;
+      case 'card':
+        return Icons.credit_card;
+      case 'upi':
+        return Icons.qr_code;
+      case 'bank transfer':
+        return Icons.account_balance;
+      case 'cheque':
+        return Icons.receipt_long;
+      default:
+        return Icons.payment;
+    }
   }
 
   String _formatCurrency(double amount) {
@@ -173,6 +197,172 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
 
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy').format(date);
+  }
+
+  Widget _buildPaymentMethodSelection() {
+    return Card(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.payment, color: Colors.purple),
+                SizedBox(width: 8),
+                Text(
+                  'Payment Method',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            SizedBox(height: 16),
+            Consumer<ModeOfPayController>(
+              builder: (context, modeController, _) {
+                if (modeController.isLoading) {
+                  return SizedBox(
+                    height: 120,
+                    child: Center(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          SizedBox(width: 8),
+                          Text('Loading payment methods...'),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                if (modeController.error != null) {
+                  return SizedBox(
+                    height: 80,
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.error, color: Colors.red, size: 24),
+                          SizedBox(height: 8),
+                          Text(
+                            'Error loading payment methods',
+                            style: TextStyle(color: Colors.red),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                if (modeController.modeofpay?.message == null) {
+                  return SizedBox(
+                    height: 80,
+                    child: Center(
+                      child: Text(
+                        'No payment methods available',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                  );
+                }
+
+                final availableMethods = modeController.modeofpay!.message
+                    .where((e) => e.execute)
+                    .map((e) => e.name)
+                    .toList();
+
+                if (availableMethods.isEmpty) {
+                  return SizedBox(
+                    height: 80,
+                    child: Center(
+                      child: Text(
+                        'No active payment methods available',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ),
+                  );
+                }
+
+                // Set default if current selection is not available
+                if (!availableMethods.contains(selectedPaymentMethod)) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    setState(() {
+                      selectedPaymentMethod = availableMethods.first;
+                    });
+                  });
+                }
+
+                return Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: availableMethods.map((method) {
+                    final isSelected = selectedPaymentMethod == method;
+                    return GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          selectedPaymentMethod = method;
+                        });
+                      },
+                      child: Container(
+                        width: (MediaQuery.of(context).size.width / 3) - 20,
+                        padding: EdgeInsets.symmetric(
+                          vertical: 12,
+                          horizontal: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: isSelected
+                              ? Colors.purple.withOpacity(0.1)
+                              : Colors.grey[50],
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: isSelected
+                                ? Colors.purple
+                                : Colors.grey[300]!,
+                            width: isSelected ? 2 : 1,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              _getPaymentIcon(method),
+                              color: isSelected
+                                  ? Colors.purple
+                                  : Colors.grey[600],
+                              size: 24,
+                            ),
+                            SizedBox(height: 6),
+                            Text(
+                              method,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.purple
+                                    : Colors.grey[600],
+                                fontWeight: isSelected
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                                fontSize: 11,
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildInvoiceCard(Invoice invoice) {
@@ -717,6 +907,11 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
 
               SizedBox(height: 16),
 
+              // Payment Method Selection
+              _buildPaymentMethodSelection(),
+
+              SizedBox(height: 16),
+
               // Invoice List
               if (paymentEntryData != null && !isLoadingPaymentData) ...[
                 Card(
@@ -779,6 +974,42 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                                               fontWeight: FontWeight.bold,
                                               color: Colors.blue,
                                             ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            'Payment Method',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                _getPaymentIcon(
+                                                  selectedPaymentMethod,
+                                                ),
+                                                size: 16,
+                                                color: Colors.purple,
+                                              ),
+                                              SizedBox(width: 4),
+                                              Text(
+                                                selectedPaymentMethod,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.purple,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -861,22 +1092,87 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                                       0.0) <=
                                   0 ||
                               isLoadingPaymentData ||
-                              paymentEntryData == null
+                              paymentEntryData == null ||
+                              selectedCustomer == null
                           ? null
-                          : () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(
-                                    'Payment processed successfully!',
+                          : () async {
+                              final controller = context
+                                  .read<CraetePaymentEntryController>();
+
+                              // Prepare invoice allocations from the current state
+                              List<Map<String, dynamic>> allocations = [];
+                              invoiceAllocations.forEach((invoiceId, amount) {
+                                if (amount > 0) {
+                                  allocations.add({
+                                    "invoice": invoiceId,
+                                    "amount": amount,
+                                  });
+                                }
+                              });
+
+                              try {
+                                // Start API call
+                                await controller.createPayment(
+                                  customer: selectedCustomer!.name,
+                                  totalAllocatedAmount: double.parse(
+                                    paymentController.text,
                                   ),
-                                ),
-                              );
+                                  modeOfPayment:
+                                      selectedPaymentMethod, // Use selected payment method
+                                  invoiceAllocations: allocations,
+                                );
+
+                                // Show snackbar based on result
+                                if (controller.responseData != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Payment processed successfully!',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+
+                                  // Clear the form after successful payment
+                                  _clearAll();
+                                } else if (controller.errorMessage != null) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Error: ${controller.errorMessage}',
+                                      ),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                // Handle any unexpected errors
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Unexpected error: $e'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
                             },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
                       ),
-                      child: Text('Process Payment'),
+                      child: Consumer<CraetePaymentEntryController>(
+                        builder: (context, controller, child) {
+                          return controller.isLoading
+                              ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : Text('Process Payment');
+                        },
+                      ),
                     ),
                   ),
                 ],

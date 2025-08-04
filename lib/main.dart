@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:location_tracker_app/api/fiebase_api.dart';
+import 'package:location_tracker_app/controller/create_payment_entry_controller.dart';
 import 'package:location_tracker_app/controller/create_sales_order_controller.dart';
 import 'package:location_tracker_app/controller/customer_list_controller.dart';
 import 'package:location_tracker_app/controller/invoice_list_controller.dart';
@@ -38,6 +39,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PaySalesInvoiceController()),
         ChangeNotifierProvider(create: (_) => PaymentEntryController()),
         ChangeNotifierProvider(create: (_) => ModeOfPayController()),
+        ChangeNotifierProvider(create: (_) => CraetePaymentEntryController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
