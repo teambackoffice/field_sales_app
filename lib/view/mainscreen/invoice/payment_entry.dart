@@ -908,168 +908,178 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
               SizedBox(height: 16),
 
               // Payment Method Selection
-              _buildPaymentMethodSelection(),
+              paymentEntryData?.message.totalOutstandingAmount == 0
+                  ? SizedBox()
+                  : _buildPaymentMethodSelection(),
 
               SizedBox(height: 16),
 
               // Invoice List
               if (paymentEntryData != null && !isLoadingPaymentData) ...[
-                Card(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Icon(Icons.receipt, color: Colors.orange),
-                            SizedBox(width: 8),
-                            Text(
-                              'Outstanding Invoices',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                        SizedBox(height: 16),
-                        ...paymentEntryData!.message.invoices.map(
-                          (invoice) => _buildInvoiceCard(invoice),
-                        ),
-
-                        // Payment Summary
-                        Card(
-                          color: Colors.grey[50],
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Payment Summary',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                SizedBox(height: 12),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            'Total Allocated',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            _formatCurrency(totalAllocated),
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.blue,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                paymentEntryData?.message.totalOutstandingAmount == 0
+                    ? SizedBox()
+                    : Card(
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.receipt, color: Colors.orange),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Outstanding Invoices',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    Expanded(
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            'Payment Method',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Row(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                _getPaymentIcon(
-                                                  selectedPaymentMethod,
-                                                ),
-                                                size: 16,
-                                                color: Colors.purple,
-                                              ),
-                                              SizedBox(width: 4),
-                                              Text(
-                                                selectedPaymentMethod,
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.purple,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            'Advance Amount',
-                                            style: TextStyle(
-                                              fontSize: 12,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                          SizedBox(height: 4),
-                                          Text(
-                                            _formatCurrency(advanceAmount),
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.bold,
-                                              color: advanceAmount > 0
-                                                  ? Colors.green
-                                                  : Colors.grey,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (advanceAmount > 0) ...[
-                                  SizedBox(height: 8),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.info,
-                                        size: 16,
-                                        color: Colors.green,
-                                      ),
-                                      SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          'Extra payment of ${_formatCurrency(advanceAmount)} will be treated as advance.',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.green[800],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
                                   ),
                                 ],
-                              ],
-                            ),
+                              ),
+                              SizedBox(height: 16),
+                              ...paymentEntryData!.message.invoices.map(
+                                (invoice) => _buildInvoiceCard(invoice),
+                              ),
+
+                              // Payment Summary
+                              Card(
+                                color: Colors.grey[50],
+                                child: Padding(
+                                  padding: EdgeInsets.all(16),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Payment Summary',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  'Total Allocated',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                                SizedBox(height: 4),
+                                                Text(
+                                                  _formatCurrency(
+                                                    totalAllocated,
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: Colors.blue,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  'Payment Method',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                                SizedBox(height: 4),
+                                                Row(
+                                                  mainAxisAlignment:
+                                                      MainAxisAlignment.center,
+                                                  children: [
+                                                    Icon(
+                                                      _getPaymentIcon(
+                                                        selectedPaymentMethod,
+                                                      ),
+                                                      size: 16,
+                                                      color: Colors.purple,
+                                                    ),
+                                                    SizedBox(width: 4),
+                                                    Text(
+                                                      selectedPaymentMethod,
+                                                      style: TextStyle(
+                                                        fontSize: 14,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color: Colors.purple,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Expanded(
+                                            child: Column(
+                                              children: [
+                                                Text(
+                                                  'Advance Amount',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.grey[600],
+                                                  ),
+                                                ),
+                                                SizedBox(height: 4),
+                                                Text(
+                                                  _formatCurrency(
+                                                    advanceAmount,
+                                                  ),
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: advanceAmount > 0
+                                                        ? Colors.green
+                                                        : Colors.grey,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      if (advanceAmount > 0) ...[
+                                        SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              Icons.info,
+                                              size: 16,
+                                              color: Colors.green,
+                                            ),
+                                            SizedBox(width: 6),
+                                            Expanded(
+                                              child: Text(
+                                                'Extra payment of ${_formatCurrency(advanceAmount)} will be treated as advance.',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.green[800],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                ),
+                      ),
               ],
 
               SizedBox(height: 16),
