@@ -104,12 +104,6 @@ class InvoiceDetails extends StatelessWidget {
               'Posting Date',
               _formatDate(invoice.postingDate),
             ),
-            const SizedBox(height: 12),
-            _buildInfoRow(
-              Icons.schedule_outlined,
-              'Due Date',
-              _formatDate(invoice.dueDate),
-            ),
           ],
         ),
       ),

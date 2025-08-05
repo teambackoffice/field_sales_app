@@ -446,163 +446,309 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  // Bottom Sheet approach - shows existing items and option to create new
   void _showAddItemBottomSheet() {
+    final TextEditingController searchController = TextEditingController();
+    String searchText = "";
+    final FocusNode searchFocusNode = FocusNode();
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.8,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Consumer<ItemListController>(
-          builder: (context, controller, child) {
-            if (controller.isLoading) {
-              return SizedBox();
-            }
-            final itemlist = controller.itemlist!.message ?? [];
-            return Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Colors.grey.shade200),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.8,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Consumer<ItemListController>(
+                builder: (context, controller, child) {
+                  if (controller.isLoading) {
+                    return Center(child: CircularProgressIndicator());
+                  }
+
+                  final itemlist = controller.itemlist?.message ?? [];
+                  final filteredList = itemlist.where((item) {
+                    return item.itemName.toLowerCase().contains(
+                          searchText.toLowerCase(),
+                        ) ||
+                        item.itemCode.toLowerCase().contains(
+                          searchText.toLowerCase(),
+                        );
+                  }).toList();
+
+                  return Column(
                     children: [
-                      Text(
-                        'Add Item to Order',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
+                      // Header
+                      Container(
+                        padding: EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Colors.grey.shade200),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Add Item to Order',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: Icon(Icons.close),
+                            ),
+                          ],
                         ),
                       ),
-                      Row(
-                        children: [
-                          // TextButton.icon(
-                          //   onPressed: () {
-                          //     Navigator.pop(context);
-                          //     _showCreateNewItemPage();
-                          //   },
-                          //   icon: Icon(Icons.add_circle_outline, size: 20),
-                          //   label: Text('Create New'),
-                          //   style: TextButton.styleFrom(
-                          //     foregroundColor: Color(0xFF667EEA),
-                          //   ),
-                          // ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Icon(Icons.close),
+
+                      // Enhanced Search Field
+                      Container(
+                        margin: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: searchFocusNode.hasFocus
+                                ? Color(0xFF764BA2).withOpacity(0.3)
+                                : Colors.grey.shade200,
+                            width: 1.5,
                           ),
-                        ],
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.03),
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
+                          controller: searchController,
+                          focusNode: searchFocusNode,
+                          decoration: InputDecoration(
+                            hintText: "Search by name or code...",
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade500,
+                              fontSize: 15,
+                            ),
+                            prefixIcon: Container(
+                              padding: EdgeInsets.all(12),
+                              child: Icon(
+                                Icons.search_rounded,
+                                color: searchFocusNode.hasFocus
+                                    ? Color(0xFF764BA2)
+                                    : Colors.grey.shade400,
+                                size: 20,
+                              ),
+                            ),
+                            suffixIcon: searchText.isNotEmpty
+                                ? IconButton(
+                                    icon: Icon(
+                                      Icons.clear_rounded,
+                                      color: Colors.grey.shade400,
+                                      size: 20,
+                                    ),
+                                    onPressed: () {
+                                      searchController.clear();
+                                      setState(() {
+                                        searchText = "";
+                                      });
+                                    },
+                                  )
+                                : null,
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                          ),
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              searchText = value;
+                            });
+                          },
+                          onTap: () {
+                            setState(() {}); // Refresh to update focus state
+                          },
+                        ),
                       ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child:
-                      itemlist
-                          .isEmpty // ✅ Correct - checking products list
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+
+                      // Search Results Counter (optional)
+                      if (searchText.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
                             children: [
                               Icon(
-                                Icons.inventory_outlined,
-                                size: 64,
-                                color: Colors.grey.shade400,
+                                Icons.filter_list_rounded,
+                                size: 16,
+                                color: Colors.grey.shade600,
                               ),
-                              SizedBox(height: 16),
+                              SizedBox(width: 4),
                               Text(
-                                'No items available',
+                                '${filteredList.length} item${filteredList.length != 1 ? 's' : ''} found',
                                 style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
+                                  fontSize: 13,
                                   color: Colors.grey.shade600,
-                                ),
-                              ),
-                              SizedBox(height: 8),
-                              Text(
-                                'Create your first item to get started',
-                                style: TextStyle(color: Colors.grey.shade500),
-                              ),
-                              SizedBox(height: 24),
-                              ElevatedButton.icon(
-                                onPressed: () {
-                                  Navigator.pop(context);
-                                  // _showCreateNewItemPage();
-                                },
-                                icon: Icon(Icons.add),
-                                label: Text('Create Item'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Color(0xFF764BA2),
-                                  foregroundColor: Colors.white,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             ],
                           ),
-                        )
-                      : ListView.builder(
-                          padding: EdgeInsets.all(16),
-                          itemCount: itemlist.length,
-                          itemBuilder: (context, index) {
-                            final product = itemlist[index];
-                            final inventoryItem = InventoryItem(
-                              name: product.itemCode,
-                              price: product.price,
-                              unit: product.uom,
-                            );
-                            return Card(
-                              margin: EdgeInsets.only(bottom: 8),
-                              child: ListTile(
-                                leading: Container(
-                                  width: 40,
-                                  height: 40,
-                                  decoration: BoxDecoration(
-                                    color: Color(0xFF764BA2).withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                  child: Icon(
-                                    Icons.inventory_2,
-                                    color: Color(0xFF764BA2),
-                                    size: 20,
-                                  ),
-                                ),
-                                title: Text(
-                                  product.itemCode,
-                                  style: TextStyle(fontWeight: FontWeight.w500),
-                                ),
-                                subtitle: Text(
-                                  '₹${product.price.toStringAsFixed(2)}',
-                                  style: TextStyle(color: Colors.grey.shade600),
-                                ),
-                                trailing: ElevatedButton(
-                                  onPressed: () {
-                                    _showQuantityDialog(inventoryItem);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Color(0xFF764BA2),
-                                    foregroundColor: Colors.white,
-                                    minimumSize: Size(60, 36),
-                                  ),
-                                  child: Text('Add'),
-                                ),
-                              ),
-                            );
-                          },
                         ),
-                ),
-              ],
+
+                      SizedBox(height: 8),
+
+                      // Item List
+                      Expanded(
+                        child: filteredList.isEmpty
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade100,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        searchText.isNotEmpty
+                                            ? Icons.search_off_rounded
+                                            : Icons.inventory_outlined,
+                                        size: 48,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      searchText.isNotEmpty
+                                          ? 'No items match your search'
+                                          : 'No items found',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                    if (searchText.isNotEmpty)
+                                      Padding(
+                                        padding: const EdgeInsets.only(top: 8),
+                                        child: Text(
+                                          'Try searching with different keywords',
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: Colors.grey.shade500,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                              )
+                            : ListView.builder(
+                                padding: EdgeInsets.all(16),
+                                itemCount: filteredList.length,
+                                itemBuilder: (context, index) {
+                                  final product = filteredList[index];
+                                  final inventoryItem = InventoryItem(
+                                    name: product.itemCode,
+                                    price: product.price,
+                                    unit: product.uom,
+                                  );
+                                  return Card(
+                                    margin: EdgeInsets.only(bottom: 8),
+                                    elevation: 1,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: ListTile(
+                                      contentPadding: EdgeInsets.all(12),
+                                      leading: Container(
+                                        width: 40,
+                                        height: 40,
+                                        decoration: BoxDecoration(
+                                          color: Color(
+                                            0xFF764BA2,
+                                          ).withOpacity(0.1),
+                                          borderRadius: BorderRadius.circular(
+                                            8,
+                                          ),
+                                        ),
+                                        child: Icon(
+                                          Icons.inventory_2,
+                                          color: Color(0xFF764BA2),
+                                          size: 20,
+                                        ),
+                                      ),
+                                      title: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            product.itemName,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          Text(
+                                            product.itemCode,
+                                            style: TextStyle(
+                                              color: Colors.grey.shade700,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      subtitle: Padding(
+                                        padding: const EdgeInsets.only(top: 4),
+                                        child: Text(
+                                          '₹${product.price.toStringAsFixed(2)}',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade700,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                      trailing: ElevatedButton(
+                                        onPressed: () {
+                                          _showQuantityDialog(inventoryItem);
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Color(0xFF764BA2),
+                                          foregroundColor: Colors.white,
+                                          minimumSize: Size(60, 36),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          elevation: 0,
+                                        ),
+                                        child: Text('Add'),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             );
           },
-        ),
-      ),
+        );
+      },
     );
   }
 
