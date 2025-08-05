@@ -1196,19 +1196,3 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
 }
 
 // Simple app to run the payment entry
-class PaymentApp extends StatelessWidget {
-  const PaymentApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Payment Entry',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: PaymentEntryPage(),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
