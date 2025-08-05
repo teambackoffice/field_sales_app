@@ -227,7 +227,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                             ),
-                                            child: Center(
+                                            child: const Center(
                                               child: Icon(
                                                 Icons.assignment_return,
                                                 color: Colors.white,
@@ -238,45 +238,104 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                         ),
                                         const SizedBox(width: 16),
                                         Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
+                                          child: Row(
                                             children: [
-                                              Text(
-                                                item.name,
-                                                style: const TextStyle(
-                                                  fontSize: 17,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Color(0xFF2C3E50),
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              if (item.salesInvoiceId != null)
-                                                Container(
-                                                  padding:
-                                                      const EdgeInsets.symmetric(
-                                                        horizontal: 8,
-                                                        vertical: 4,
-                                                      ),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
-                                                      0xFF667EEA,
-                                                    ).withOpacity(0.1),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          8,
-                                                        ),
-                                                  ),
-                                                  child: Text(
-                                                    'Invoice: ${item.salesInvoiceId}',
+                                              Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    item.name,
                                                     style: const TextStyle(
-                                                      fontSize: 12,
-                                                      color: Color(0xFF667EEA),
+                                                      fontSize: 17,
                                                       fontWeight:
-                                                          FontWeight.w500,
+                                                          FontWeight.w600,
+                                                      color: Color(0xFF2C3E50),
                                                     ),
                                                   ),
+                                                  const SizedBox(height: 4),
+                                                  if (item.salesInvoiceId !=
+                                                      null)
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 4,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color: const Color(
+                                                          0xFF667EEA,
+                                                        ).withOpacity(0.1),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              8,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        'Invoice: ${item.salesInvoiceId}',
+                                                        style: const TextStyle(
+                                                          fontSize: 12,
+                                                          color: Color(
+                                                            0xFF667EEA,
+                                                          ),
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                ],
+                                              ),
+                                              const Spacer(),
+                                              // Status as container
+                                              Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 12,
+                                                      vertical: 6,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color:
+                                                      item.status == "Approved"
+                                                      ? Colors.green
+                                                            .withOpacity(0.15)
+                                                      : item.status ==
+                                                            "Rejected"
+                                                      ? Colors.red.withOpacity(
+                                                          0.15,
+                                                        )
+                                                      : statusColor.withOpacity(
+                                                          0.15,
+                                                        ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color:
+                                                        item.status ==
+                                                            "Approved"
+                                                        ? Colors.green
+                                                        : item.status ==
+                                                              "Rejected"
+                                                        ? Colors.red
+                                                        : statusColor,
+                                                    width: 1,
+                                                  ),
                                                 ),
+                                                child: Text(
+                                                  item.status,
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        item.status ==
+                                                            "Approved"
+                                                        ? Colors.green
+                                                        : item.status ==
+                                                              "Rejected"
+                                                        ? Colors.red
+                                                        : statusColor,
+                                                  ),
+                                                ),
+                                              ),
                                             ],
                                           ),
                                         ),
