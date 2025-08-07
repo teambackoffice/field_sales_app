@@ -20,6 +20,7 @@ class LoginService {
       final response = await http.post(url);
 
       if (response.statusCode == 200) {
+        print("📱 Login response: ${response.body}");
         final responseData = jsonDecode(response.body);
         final fullName = responseData['full_name'];
         final message = responseData['message'];
@@ -28,6 +29,9 @@ class LoginService {
         final branch = message['branch'];
         final roles = message['roles'];
         final email = message['email'];
+        final empId = message['emp_id'];
+        final empName = message['emp_name'];
+        final salesPersonId = message['sales_person_id'];
 
         // Store values in secure storage
         await _secureStorage.write(key: 'full_name', value: fullName);
@@ -35,6 +39,12 @@ class LoginService {
         await _secureStorage.write(key: 'sid', value: sid);
         await _secureStorage.write(key: "branch", value: branch);
         await _secureStorage.write(key: 'email', value: email);
+        await _secureStorage.write(key: 'employee_id', value: empId);
+        await _secureStorage.write(key: 'employee_name', value: empName);
+        await _secureStorage.write(
+          key: 'sales_person_id',
+          value: salesPersonId,
+        );
 
         // Convert roles to JSON string and store
         await _secureStorage.write(key: 'roles', value: jsonEncode(roles));

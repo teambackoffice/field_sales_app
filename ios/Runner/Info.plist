@@ -5,6 +5,11 @@
     <!-- Firebase: Disable automatic delegate proxying -->
     <key>FirebaseAppDelegateProxyEnabled</key>
     <false/>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>This app needs access to your location to track attendance.</string>
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>This app needs background location access to track attendance continuously.</string>
+
 
     <!-- Local network debugging for Flutter DevTools -->
     <key>NSBonjourServices</key>
@@ -17,6 +22,7 @@
     <!-- Enable background modes for notifications -->
     <key>UIBackgroundModes</key>
     <array>
+        <string>location</string>
         <string>remote-notification</string>
         <string>fetch</string>
     </array>

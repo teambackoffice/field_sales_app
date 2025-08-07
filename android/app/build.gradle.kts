@@ -10,7 +10,7 @@ plugins {
 
 android {
     namespace = "com.example.location_tracker_app"
-    compileSdk = 34
+    compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -43,6 +43,8 @@ flutter {
 }
 
 dependencies {
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
     // Kotlin stdlib
     implementation("org.jetbrains.kotlin:kotlin-stdlib")
 
