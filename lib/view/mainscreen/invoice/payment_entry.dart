@@ -5,6 +5,7 @@ import 'package:location_tracker_app/controller/create_payment_entry_controller.
 import 'package:location_tracker_app/controller/customer_list_controller.dart';
 import 'package:location_tracker_app/controller/mode_of_pay_controller.dart'; // Add this import
 import 'package:location_tracker_app/controller/payment_entry_controller.dart';
+import 'package:location_tracker_app/controller/payment_entry_draft_controller.dart';
 import 'package:location_tracker_app/modal/customer_list_modal.dart';
 import 'package:location_tracker_app/modal/payment_entry_modal.dart';
 import 'package:provider/provider.dart';
@@ -79,6 +80,13 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
         context,
         listen: false,
       );
+      final paymentdraftcontroller = Provider.of<PaymentEntryDraftController>(
+        context,
+        listen: false,
+      );
+      await paymentdraftcontroller.getPaymentEntryStatus(
+        customerName: customer.name,
+      );
 
       await paymentController.fetchPaymentEntry(customer: customer.name);
 
@@ -109,6 +117,36 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
         ),
       );
     }
+  }
+
+  bool _shouldEnableProcessButton() {
+    final draftController = Provider.of<PaymentEntryDraftController>(
+      context,
+      listen: false,
+    );
+
+    // Disable if loading or error
+    if (draftController.isLoading || draftController.errorMessage != null) {
+      return false;
+    }
+
+    // Check if there's draft data
+    if (draftController.paymentEntryStatus?.message != null) {
+      final message = draftController.paymentEntryStatus!.message;
+
+      // Disable if total_allocated_amount > 0 (waiting for approval)
+      if (message.totalAllocatedAmount > 0) {
+        return false;
+      }
+
+      // Disable if there are any draft entries
+      if (message.data.any((entry) => entry.status.toLowerCase() == 'draft')) {
+        return false;
+      }
+    }
+
+    // Enable if no drafts found
+    return true;
   }
 
   void _onInvoiceAllocationChanged(String invoiceId) {
@@ -508,160 +546,204 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
   Widget _buildCustomerDetailsCard() {
     if (selectedCustomer == null) return SizedBox.shrink();
 
-    return Card(
-      color: Colors.blue[50],
-      child: Padding(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              selectedCustomer!.customerName,
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue[800],
-              ),
-            ),
-            SizedBox(height: 8),
-
-            // Customer basic info
-            Row(
+    return Column(
+      children: [
+        Card(
+          color: Colors.blue[50],
+          child: Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Customer Type:',
-                        style: TextStyle(color: Colors.blue[600], fontSize: 12),
+                Text(
+                  selectedCustomer!.customerName,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue[800],
+                  ),
+                ),
+                SizedBox(height: 8),
+
+                // Customer basic info
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Customer Type:',
+                            style: TextStyle(
+                              color: Colors.blue[600],
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            selectedCustomer!.customerType,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.blue[800],
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    if (selectedCustomer!.mobileNo != null &&
+                        selectedCustomer!.mobileNo!.isNotEmpty)
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Mobile:',
+                              style: TextStyle(
+                                color: Colors.blue[600],
+                                fontSize: 12,
+                              ),
+                            ),
+                            Text(
+                              selectedCustomer!.mobileNo!,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.blue[800],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+
+                SizedBox(height: 8),
+
+                // Additional customer info
+                if (selectedCustomer!.emailId != null &&
+                    selectedCustomer!.emailId!.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Icon(Icons.email, size: 16, color: Colors.blue[600]),
+                      SizedBox(width: 4),
                       Text(
-                        selectedCustomer!.customerType,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.blue[800],
+                        selectedCustomer!.emailId!,
+                        style: TextStyle(fontSize: 12, color: Colors.blue[700]),
+                      ),
+                    ],
+                  ),
+                ],
+
+                if (selectedCustomer!.gstin != null &&
+                    selectedCustomer!.gstin!.isNotEmpty) ...[
+                  SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.receipt_long,
+                        size: 16,
+                        color: Colors.blue[600],
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'GSTIN: ${selectedCustomer!.gstin!}',
+                        style: TextStyle(fontSize: 12, color: Colors.blue[700]),
+                      ),
+                    ],
+                  ),
+                ],
+
+                SizedBox(height: 12),
+
+                // Payment entry data summary
+                if (paymentEntryData != null) ...[
+                  Divider(),
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Total Outstanding:',
+                              style: TextStyle(color: Colors.blue[600]),
+                            ),
+                            Text(
+                              _formatCurrency(
+                                paymentEntryData!.message.totalOutstandingAmount
+                                    .toDouble(),
+                              ),
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[800],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Total Invoices:',
+                              style: TextStyle(color: Colors.blue[600]),
+                            ),
+                            Text(
+                              '${paymentEntryData!.message.invoices.where((invoice) => invoice.outstandingAmount != 0).length}',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[800],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                if (selectedCustomer!.mobileNo != null &&
-                    selectedCustomer!.mobileNo!.isNotEmpty)
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Mobile:',
-                          style: TextStyle(
-                            color: Colors.blue[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                        Text(
-                          selectedCustomer!.mobileNo!,
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.blue[800],
-                          ),
-                        ),
-                      ],
-                    ),
+                ],
+
+                if (isLoadingPaymentData) ...[
+                  SizedBox(height: 8),
+                  Row(
+                    children: [
+                      SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Loading customer invoices...',
+                        style: TextStyle(color: Colors.blue[600]),
+                      ),
+                    ],
                   ),
+                ],
               ],
             ),
+          ),
+        ),
 
-            SizedBox(height: 8),
+        // ADD THIS LINE - Draft Status Card
+        _buildDraftStatusCard(),
+      ],
+    );
+  }
 
-            // Additional customer info
-            if (selectedCustomer!.emailId != null &&
-                selectedCustomer!.emailId!.isNotEmpty) ...[
-              Row(
-                children: [
-                  Icon(Icons.email, size: 16, color: Colors.blue[600]),
-                  SizedBox(width: 4),
-                  Text(
-                    selectedCustomer!.emailId!,
-                    style: TextStyle(fontSize: 12, color: Colors.blue[700]),
-                  ),
-                ],
-              ),
-            ],
-
-            if (selectedCustomer!.gstin != null &&
-                selectedCustomer!.gstin!.isNotEmpty) ...[
-              SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(Icons.receipt_long, size: 16, color: Colors.blue[600]),
-                  SizedBox(width: 4),
-                  Text(
-                    'GSTIN: ${selectedCustomer!.gstin!}',
-                    style: TextStyle(fontSize: 12, color: Colors.blue[700]),
-                  ),
-                ],
-              ),
-            ],
-
-            SizedBox(height: 12),
-
-            // Payment entry data summary
-            if (paymentEntryData != null) ...[
-              Divider(),
-              SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Outstanding:',
-                          style: TextStyle(color: Colors.blue[600]),
-                        ),
-                        Text(
-                          _formatCurrency(
-                            paymentEntryData!.message.totalOutstandingAmount
-                                .toDouble(),
-                          ),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[800],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Total Invoices:',
-                          style: TextStyle(color: Colors.blue[600]),
-                        ),
-                        Text(
-                          '${paymentEntryData!.message.invoiceCount}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[800],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-
-            if (isLoadingPaymentData) ...[
-              SizedBox(height: 8),
-              Row(
+  Widget _buildDraftStatusCard() {
+    return Consumer<PaymentEntryDraftController>(
+      builder: (context, draftController, child) {
+        // Handle loading state
+        if (draftController.isLoading) {
+          return Card(
+            color: Colors.orange[50],
+            child: Padding(
+              padding: EdgeInsets.all(12),
+              child: Row(
                 children: [
                   SizedBox(
                     width: 16,
@@ -670,15 +752,200 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                   ),
                   SizedBox(width: 8),
                   Text(
-                    'Loading customer invoices...',
-                    style: TextStyle(color: Colors.blue[600]),
+                    'Checking draft status...',
+                    style: TextStyle(color: Colors.orange[700]),
                   ),
                 ],
               ),
-            ],
-          ],
-        ),
-      ),
+            ),
+          );
+        }
+
+        // Handle error state
+        if (draftController.errorMessage != null) {
+          return SizedBox.shrink(); // Hide on error
+        }
+
+        // Check if there's draft data
+        if (draftController.paymentEntryStatus?.message != null) {
+          final message = draftController.paymentEntryStatus!.message;
+          final allEntries = message.data;
+
+          for (var entry in allEntries) {}
+
+          // Separate draft and non-draft entries
+          final draftEntries = allEntries
+              .where((entry) => entry.status.toLowerCase() == 'draft')
+              .toList();
+
+          final nonDraftEntries = allEntries
+              .where((entry) => entry.status.toLowerCase() != 'draft')
+              .toList();
+
+          // CASE 1: If any entry is Draft → Show "Waiting for Approval"
+          if (draftEntries.isNotEmpty) {
+            // Calculate allocated amount from all draft references
+            double totalDraftAllocated = 0;
+            for (var entry in draftEntries) {
+              if (entry.references.isNotEmpty) {
+                for (var ref in entry.references) {
+                  totalDraftAllocated += ref.allocatedAmount ?? 0;
+                }
+              }
+            }
+
+            return Card(
+              color: Color(0xFF764BA2).withOpacity(1),
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.hourglass_empty,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Waiting for Approval',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Total Allocated Amount: ${_formatCurrency(totalDraftAllocated)} pending approval',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.amber[100],
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Text(
+                            'PENDING',
+                            style: TextStyle(
+                              color: Colors.amber[900],
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    // List each draft entry
+                    ...draftEntries.map(
+                      (entry) => Padding(
+                        padding: EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            SizedBox(width: 28),
+                            Icon(
+                              Icons.circle,
+                              size: 4,
+                              color: Colors.amber[600],
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${entry.paymentEntry}: ${_formatCurrency(entry.references.fold<double>(0, (sum, ref) => sum + (ref.allocatedAmount ?? 0)))} - ${_formatDate(entry.postingDate)}',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          // CASE 2: If no drafts but entries exist → Show non-draft entries
+          if (nonDraftEntries.isNotEmpty) {
+            return Card(
+              color: Colors.grey[50],
+              child: Padding(
+                padding: EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.history, color: Colors.grey[700], size: 20),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Previous Payment Entries',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[800],
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    ...nonDraftEntries.map(
+                      (entry) => Padding(
+                        padding: EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          children: [
+                            SizedBox(width: 28),
+                            Icon(
+                              Icons.circle,
+                              size: 4,
+                              color: Colors.grey[600],
+                            ),
+                            SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                '${entry.paymentEntry}: ${_formatCurrency(entry.paidAmount.toDouble())} - ${entry.status.toUpperCase()}',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+        } else {}
+
+        // Return empty widget if no relevant data
+        return SizedBox.shrink();
+      },
     );
   }
 
@@ -938,9 +1205,11 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                                 ],
                               ),
                               SizedBox(height: 16),
-                              ...paymentEntryData!.message.invoices.map(
-                                (invoice) => _buildInvoiceCard(invoice),
-                              ),
+                              ...paymentEntryData!.message.invoices
+                                  .where(
+                                    (invoice) => invoice.outstandingAmount != 0,
+                                  )
+                                  .map((invoice) => _buildInvoiceCard(invoice)),
 
                               // Payment Summary
                               Card(
@@ -1103,7 +1372,8 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                                   0 ||
                               isLoadingPaymentData ||
                               paymentEntryData == null ||
-                              selectedCustomer == null
+                              selectedCustomer ==
+                                  null // <- ADD THIS LINE
                           ? null
                           : () async {
                               final controller = context
@@ -1137,7 +1407,7 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        'Payment processed successfully!',
+                                        'Payment Entry Created Successfully!',
                                       ),
                                       backgroundColor: Colors.green,
                                     ),

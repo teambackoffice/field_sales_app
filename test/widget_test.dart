@@ -8,6 +8,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:location_tracker_app/main.dart';
+// Ensure that main.dart defines a class named MyApp
 
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {

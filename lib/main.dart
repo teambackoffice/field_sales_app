@@ -1,6 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:location_tracker_app/api/fiebase_api.dart'; // This now has navigatorKey
+import 'package:location_tracker_app/api/fiebase_api.dart';
 import 'package:location_tracker_app/controller/create_payment_entry_controller.dart';
 import 'package:location_tracker_app/controller/create_sales_order_controller.dart';
 import 'package:location_tracker_app/controller/create_sales_return_contoller.dart';
@@ -11,6 +11,7 @@ import 'package:location_tracker_app/controller/login_controller.dart';
 import 'package:location_tracker_app/controller/mode_of_pay_controller.dart';
 import 'package:location_tracker_app/controller/pay_sales_invoice_controller.dart';
 import 'package:location_tracker_app/controller/payment_entry_controller.dart';
+import 'package:location_tracker_app/controller/payment_entry_draft_controller.dart';
 import 'package:location_tracker_app/controller/sales_order_controller.dart';
 import 'package:location_tracker_app/controller/sales_return_controller.dart';
 import 'package:location_tracker_app/firebase_options.dart';
@@ -23,7 +24,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Start notifications
+  // Start notifications but don’t wait indefinitely
   FirebaseApi().initNotification();
 
   final authService = LoginService();
@@ -44,9 +45,9 @@ void main() async {
         ChangeNotifierProvider(create: (_) => CraetePaymentEntryController()),
         ChangeNotifierProvider(create: (_) => CreateSalesReturnController()),
         ChangeNotifierProvider(create: (_) => SalesReturnController()),
+        ChangeNotifierProvider(create: (_) => PaymentEntryDraftController()),
       ],
       child: MaterialApp(
-        navigatorKey: navigatorKey, // <<--- ADD THIS
         debugShowCheckedModeBanner: false,
         title: 'Location Tracker',
         theme: ThemeData(primarySwatch: Colors.deepPurple),
@@ -54,4 +55,33 @@ void main() async {
       ),
     ),
   );
+}
+
+class MyApp extends StatelessWidget {
+  final LoginService _authService = LoginService();
+
+  MyApp({super.key});
+
+  Future<bool> checkLogin() async {
+    return await _authService.isLoggedIn();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      navigatorKey: navigatorKey,
+      debugShowCheckedModeBanner: false,
+      title: 'Location Tracker',
+      theme: ThemeData(primarySwatch: Colors.deepPurple),
+      home: FutureBuilder<bool>(
+        future: checkLogin(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Scaffold(body: Center(child: CircularProgressIndicator()));
+          }
+          return snapshot.data! ? MainScreen() : LoginPage();
+        },
+      ),
+    );
+  }
 }
