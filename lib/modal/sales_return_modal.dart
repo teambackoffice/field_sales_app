@@ -45,7 +45,7 @@ class Datum {
   double qty;
   String reason;
   dynamic date;
-  String notes;
+  String? notes;
   String status;
 
   Datum({
@@ -55,7 +55,7 @@ class Datum {
     required this.qty,
     required this.reason,
     required this.date,
-    required this.notes,
+    this.notes,
     required this.status,
   });
 

@@ -9,25 +9,31 @@ class SalesReturnService {
   final String url = '${ApiConstants.baseUrl}get_sales_returns';
   final FlutterSecureStorage storage = const FlutterSecureStorage();
 
-  /// Fetch SID from secure storage
+  /// Fetch SID and Sales Person ID from secure storage
   Future<SalesReturnModal?> getSalesReturn() async {
     try {
       final String? sid = await storage.read(key: 'sid');
+      final String? salesPersonId = await storage.read(key: 'sales_person_id');
 
-      if (sid == null) {
+      if (sid == null || salesPersonId == null) {
         throw Exception('Authentication required. Please login again.');
       }
 
+      // Build request URL with sales person parameter
+      final uri = Uri.parse(
+        url,
+      ).replace(queryParameters: {'sales_person': salesPersonId});
+
       final response = await http.get(
-        Uri.parse(url),
+        uri,
         headers: {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'},
       );
 
       if (response.statusCode == 200) {
         try {
           final decoded = jsonDecode(response.body);
-          final modal = salesReturnModalFromJson(response.body);
-          return modal;
+
+          return salesReturnModalFromJson(response.body);
         } catch (e) {
           throw Exception('Failed to parse response: $e');
         }

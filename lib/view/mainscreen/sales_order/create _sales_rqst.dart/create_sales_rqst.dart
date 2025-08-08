@@ -503,7 +503,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                     _buildTextField(
                       controller: _invoiceNameController,
                       label: 'Invoice Name',
-                      hint: 'Enter invoice name (e.g., SINV-25-00001)',
+                      hint: 'Enter invoice name',
                       icon: Icons.receipt_long,
                       validator: (value) {
                         if (value == null || value.isEmpty) {

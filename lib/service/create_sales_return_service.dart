@@ -39,7 +39,7 @@ class CreateSalesReturnService {
     final headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
 
     final body = json.encode({
-      "sales_person": id, // ✅ Added ID
+      "sales_person": id,
       "invoice_name": invoiceName,
       "product_name": productName,
       "qty": qty,
@@ -48,11 +48,9 @@ class CreateSalesReturnService {
       "notes": notes ?? "",
     });
 
-    final response = await http.post(
-      Uri.parse(url),
-      headers: headers,
-      body: body,
-    );
+    final uri = Uri.parse(url);
+
+    final response = await http.post(uri, headers: headers, body: body);
 
     return response;
   }

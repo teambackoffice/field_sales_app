@@ -525,7 +525,8 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                           ),
 
                                           // Notes Section (only if notes exist)
-                                          if (item.notes.isNotEmpty) ...[
+                                          if (item.notes != null &&
+                                              item.notes!.isNotEmpty) ...[
                                             const SizedBox(height: 12),
                                             Row(
                                               crossAxisAlignment:
@@ -569,7 +570,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                                       ),
                                                       const SizedBox(height: 2),
                                                       Text(
-                                                        item.notes,
+                                                        item.notes!,
                                                         style: const TextStyle(
                                                           fontSize: 14,
                                                           color: Color(
