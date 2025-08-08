@@ -15,7 +15,7 @@ class InvoiceListController extends ChangeNotifier {
     setLoading(true);
     notifyListeners();
     try {
-      invoiceList = await _service.getinvoiceList();
+      invoiceList = await _service.getInvoiceList();
       _error = null;
     } catch (e) {
       _error = e.toString();

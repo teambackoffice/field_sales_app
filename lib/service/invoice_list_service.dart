@@ -9,14 +9,24 @@ class InvoiceListService {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
   final String url = '${ApiConstants.baseUrl}get_sales_invoice_list';
 
-  Future<InvoiceListModal?> getinvoiceList() async {
+  Future<InvoiceListModal?> getInvoiceList() async {
     try {
       final String? sid = await _secureStorage.read(key: 'sid');
-      if (sid == null)
+      final String? salesPersonId = await _secureStorage.read(
+        key: 'sales_person_id',
+      );
+
+      if (sid == null || salesPersonId == null) {
         throw Exception('Authentication required. Please login again.');
+      }
+
+      // Build request URL with sales person ID
+      final uri = Uri.parse(
+        url,
+      ).replace(queryParameters: {'sales_person': salesPersonId});
 
       final response = await http.get(
-        Uri.parse(url),
+        uri,
         headers: {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'},
       );
 
