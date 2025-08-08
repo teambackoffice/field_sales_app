@@ -14,6 +14,11 @@ class CreatePaymentEntryService {
     return await storage.read(key: "sid");
   }
 
+  /// Fetch sales person from secure storage
+  Future<String?> _getSalesPerson() async {
+    return await storage.read(key: "sales_person_id");
+  }
+
   Future<http.Response> createPayment({
     required String customer,
     required double totalAllocatedAmount,
@@ -21,8 +26,13 @@ class CreatePaymentEntryService {
     required List<Map<String, dynamic>> invoiceAllocations,
   }) async {
     final sid = await _getSid();
+    final salesPerson = await _getSalesPerson();
+
     if (sid == null || sid.isEmpty) {
       throw Exception("SID not found in storage");
+    }
+    if (salesPerson == null || salesPerson.isEmpty) {
+      throw Exception("Sales person not found in storage");
     }
 
     final headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
@@ -30,19 +40,16 @@ class CreatePaymentEntryService {
     final body = json.encode({
       "customer": customer,
       "total_allocated_amount": totalAllocatedAmount,
+      "sales_person": salesPerson, // From storage
       "mode_of_payment": modeOfPayment,
       "invoice_allocations": invoiceAllocations,
     });
-
-    // Debug prints
 
     final response = await http.post(
       Uri.parse(url),
       headers: headers,
       body: body,
     );
-
-    // Print the full response
 
     return response;
   }
