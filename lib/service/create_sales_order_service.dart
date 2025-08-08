@@ -13,10 +13,16 @@ class CreateSalesOrderService {
     required String deliveryDate,
     required List<Map<String, dynamic>> items,
   }) async {
-    final sid = await _secureStorage.read(key: 'sid'); // Get session id
-
+    // Get session id
+    final sid = await _secureStorage.read(key: 'sid');
     if (sid == null) {
       throw Exception('Session ID not found. Please log in again.');
+    }
+
+    // Get sales person
+    final salesPerson = await _secureStorage.read(key: 'sales_person_id');
+    if (salesPerson == null) {
+      throw Exception('Sales person not found in secure storage.');
     }
 
     var headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
@@ -24,6 +30,7 @@ class CreateSalesOrderService {
     var body = json.encode({
       "customer": customer,
       "delivery_date": deliveryDate,
+      "sales_person": salesPerson, // ✅ Added sales_person
       "items": items,
     });
 
