@@ -13,6 +13,11 @@ class CreateSalesReturnService {
     return await storage.read(key: "sid");
   }
 
+  /// Fetch ID from secure storage
+  Future<String?> _getId() async {
+    return await storage.read(key: "sales_person_id");
+  }
+
   Future<http.Response> createSalesReturn({
     required String invoiceName,
     required String productName,
@@ -26,9 +31,15 @@ class CreateSalesReturnService {
       throw Exception("SID not found in storage");
     }
 
+    final id = await _getId();
+    if (id == null || id.isEmpty) {
+      throw Exception("ID not found in storage");
+    }
+
     final headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
 
     final body = json.encode({
+      "sales_person": id, // ✅ Added ID
       "invoice_name": invoiceName,
       "product_name": productName,
       "qty": qty,
