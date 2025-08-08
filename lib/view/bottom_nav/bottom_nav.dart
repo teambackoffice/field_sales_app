@@ -23,7 +23,7 @@ class ModernBottomNavBar extends StatelessWidget {
         5,
         0,
         10,
-        20,
+        2,
       ), // Increased bottom margin to lift it up
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
