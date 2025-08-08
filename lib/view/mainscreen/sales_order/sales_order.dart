@@ -491,7 +491,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
         Text(
           value,
           style: TextStyle(
-            fontSize: 16,
+            fontSize: 15,
             fontWeight: FontWeight.w700,
             color: Color(0xFF2D3436),
           ),

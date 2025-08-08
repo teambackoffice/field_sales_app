@@ -11,25 +11,38 @@ class SalesOrderService {
 
   Future<SalesOrderModal?> getsalesorder() async {
     try {
+      // Read SID and Sales Person ID from secure storage
       final String? sid = await _secureStorage.read(key: 'sid');
-      if (sid == null)
-        throw Exception(' Authentication required. Please login again.');
+      final String? salesPersonId = await _secureStorage.read(
+        key: 'sales_person_id',
+      );
+
+      if (sid == null) {
+        throw Exception('Authentication required. Please login again.');
+      }
+      if (salesPersonId == null) {
+        throw Exception('Sales Person ID not found in storage.');
+      }
+
+      // Build request URL with sales person filter
+      final requestUrl = "$url?sales_person_id=$salesPersonId";
 
       final response = await http.get(
-        Uri.parse(url),
+        Uri.parse(requestUrl),
         headers: {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'},
       );
 
       if (response.statusCode == 200) {
         try {
           final decoded = jsonDecode(response.body);
+
           return salesOrderModalFromJson(response.body);
         } catch (e) {
           throw Exception('Failed to parse response: $e');
         }
       } else {
         throw Exception(
-          'Failed to load customers. Code: ${response.statusCode}',
+          'Failed to load sales orders. Code: ${response.statusCode}',
         );
       }
     } catch (e) {
