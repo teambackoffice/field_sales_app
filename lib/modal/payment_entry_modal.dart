@@ -11,6 +11,7 @@ class PaymentEntryModal {
 
 class Message {
   String status;
+  String salesPerson;
   String customer;
   double invoiceCount;
   double totalOutstandingAmount;
@@ -18,6 +19,7 @@ class Message {
 
   Message({
     required this.status,
+    required this.salesPerson,
     required this.customer,
     required this.invoiceCount,
     required this.totalOutstandingAmount,
@@ -26,6 +28,7 @@ class Message {
 
   factory Message.fromJson(Map<String, dynamic> json) => Message(
     status: json["status"],
+    salesPerson: json["sales_person"],
     customer: json["customer"],
     invoiceCount: (json["invoice_count"] as num).toDouble(),
     totalOutstandingAmount: (json["total_outstanding_amount"] as num)
@@ -37,6 +40,7 @@ class Message {
 
   Map<String, dynamic> toJson() => {
     "status": status,
+    "sales_person": salesPerson,
     "customer": customer,
     "invoice_count": invoiceCount,
     "total_outstanding_amount": totalOutstandingAmount,
@@ -46,38 +50,46 @@ class Message {
 
 class Invoice {
   String invoiceName;
+  String customer;
   DateTime postingDate;
   DateTime dueDate;
   double grandTotal;
   double outstandingAmount;
+  String status;
   List<Item> items;
 
   Invoice({
     required this.invoiceName,
+    required this.customer,
     required this.postingDate,
     required this.dueDate,
     required this.grandTotal,
     required this.outstandingAmount,
+    required this.status,
     required this.items,
   });
 
   factory Invoice.fromJson(Map<String, dynamic> json) => Invoice(
     invoiceName: json["invoice_name"],
+    customer: json["customer"],
     postingDate: DateTime.parse(json["posting_date"]),
     dueDate: DateTime.parse(json["due_date"]),
     grandTotal: (json["grand_total"] as num).toDouble(),
     outstandingAmount: (json["outstanding_amount"] as num).toDouble(),
+    status: json["status"],
     items: List<Item>.from(json["items"].map((x) => Item.fromJson(x))),
   );
 
   Map<String, dynamic> toJson() => {
     "invoice_name": invoiceName,
+    "customer": customer,
     "posting_date":
         "${postingDate.year.toString().padLeft(4, '0')}-${postingDate.month.toString().padLeft(2, '0')}-${postingDate.day.toString().padLeft(2, '0')}",
     "due_date":
         "${dueDate.year.toString().padLeft(4, '0')}-${dueDate.month.toString().padLeft(2, '0')}-${dueDate.day.toString().padLeft(2, '0')}",
     "grand_total": grandTotal,
     "outstanding_amount": outstandingAmount,
+    "status": status,
     "items": List<dynamic>.from(items.map((x) => x.toJson())),
   };
 }
