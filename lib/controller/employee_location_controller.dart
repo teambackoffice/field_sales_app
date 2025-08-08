@@ -7,6 +7,7 @@ import 'package:location_tracker_app/service/employee_location_service.dart';
 class LocationController extends ChangeNotifier {
   static const MethodChannel _channel = MethodChannel('location_tracking');
   final EmployeeLocationService _service = EmployeeLocationService();
+  static const _storage = FlutterSecureStorage();
 
   bool isLoading = false;
   bool isTracking = false;
@@ -15,13 +16,68 @@ class LocationController extends ChangeNotifier {
   int trackingInterval = 60; // seconds (1 minute)
 
   // Batch sending configuration
-  bool enableBatchSending = false; // START WITH FALSE FOR IMMEDIATE SENDING
-  int batchSize = 10; // Send in batches of 10 entries
+  bool enableBatchSending = false;
+  int batchSize = 10;
   final List<LocationEntry> _pendingEntries = [];
 
   LocationController() {
     _setupMethodCallHandler();
+    _loadTrackingState(); // Load saved state when app starts
     print("🚀 LocationController initialized");
+  }
+
+  // Save tracking state to persistent storage
+  Future<void> _saveTrackingState() async {
+    try {
+      await _storage.write(key: 'is_tracking', value: isTracking.toString());
+      print("💾 Tracking state saved: $isTracking");
+    } catch (e) {
+      print("❌ Failed to save tracking state: $e");
+    }
+  }
+
+  // Load tracking state from persistent storage
+  Future<void> _loadTrackingState() async {
+    try {
+      String? savedState = await _storage.read(key: 'is_tracking');
+      if (savedState != null) {
+        isTracking = savedState == 'true';
+        print("📱 Loaded tracking state: $isTracking");
+
+        // If the app was tracking when closed, resume tracking
+        if (isTracking) {
+          print("🔄 Resuming background tracking...");
+          await _resumeTracking();
+        }
+
+        notifyListeners();
+      }
+    } catch (e) {
+      print("❌ Failed to load tracking state: $e");
+    }
+  }
+
+  // Resume tracking without user interaction
+  Future<void> _resumeTracking() async {
+    try {
+      final bool started = await _channel.invokeMethod(
+        'startLocationTracking',
+        {'intervalSeconds': trackingInterval},
+      );
+
+      if (started) {
+        lastResult = '🔄 Tracking resumed from background';
+        print("✅ Background tracking resumed successfully");
+      } else {
+        print("❌ Failed to resume background tracking");
+        isTracking = false;
+        await _saveTrackingState();
+      }
+    } catch (e) {
+      print("❌ Error resuming tracking: $e");
+      isTracking = false;
+      await _saveTrackingState();
+    }
   }
 
   void _setupMethodCallHandler() {
@@ -69,13 +125,15 @@ class LocationController extends ChangeNotifier {
       final time = DateFormat('HH:mm:ss').format(now);
 
       print("📅 Date: $date, Time: $time");
-      print("🚀 SENDING TO API AUTOMATICALLY...");
+      print("🚀 SENDING TO API AUTOMATICALLY with Track entry type...");
 
+      // Send with "Track" entry type for automatic updates
       await _service.sendLocation(
         latitude: latitude,
         longitude: longitude,
         date: date,
         time: time,
+        entryType: "Track", // Automatic tracking entry type
       );
 
       lastResult = '✅ AUTO-SENT: $latitude, $longitude at $time';
@@ -83,16 +141,15 @@ class LocationController extends ChangeNotifier {
       print("✅ SUCCESS: $lastResult");
       notifyListeners();
     } catch (e, stackTrace) {
-      // More detailed error information
       String errorMessage = e.toString();
       error = '❌ Auto-send failed: $errorMessage';
       print("❌ DETAILED ERROR: $e");
       print("📍 Stack trace: $stackTrace");
       notifyListeners();
 
-      // Also try to identify the specific error type
+      // Detailed error handling
       if (errorMessage.contains('credentials')) {
-        error = '❌ Missing login credentials (sid/employee_id)';
+        error = '❌ Missing login credentials (sid/sales_person_id)';
       } else if (errorMessage.contains('Failed to send location: 401')) {
         error = '❌ Authentication failed - please login again';
       } else if (errorMessage.contains('Failed to send location: 403')) {
@@ -113,7 +170,6 @@ class LocationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Use native implementation for permissions
   Future<bool> requestPermissions() async {
     try {
       print("🔐 Requesting permissions...");
@@ -144,7 +200,7 @@ class LocationController extends ChangeNotifier {
       return;
     }
 
-    print("🚀 Starting automatic tracking...");
+    print("🚀 Starting tracking with Check In...");
     isLoading = true;
     error = null;
     notifyListeners();
@@ -157,7 +213,34 @@ class LocationController extends ChangeNotifier {
         return;
       }
 
-      print("📡 Calling native startLocationTracking...");
+      // First send Check In entry
+      print("📍 Sending Check In entry...");
+      final Map<dynamic, dynamic>? locationData = await _channel.invokeMethod(
+        'getCurrentLocation',
+      );
+
+      if (locationData != null) {
+        double latitude = locationData['latitude'];
+        double longitude = locationData['longitude'];
+
+        final now = DateTime.now();
+        final date = DateFormat('yyyy-MM-dd').format(now);
+        final time = DateFormat('HH:mm:ss').format(now);
+
+        // Send Check In entry first
+        await _service.sendLocation(
+          latitude: latitude,
+          longitude: longitude,
+          date: date,
+          time: time,
+          entryType: "Check In",
+        );
+
+        print("✅ Check In entry sent successfully");
+      }
+
+      // Then start continuous tracking
+      print("📡 Starting continuous tracking...");
       final bool started = await _channel.invokeMethod(
         'startLocationTracking',
         {'intervalSeconds': trackingInterval},
@@ -165,13 +248,14 @@ class LocationController extends ChangeNotifier {
 
       if (started) {
         isTracking = true;
+        await _saveTrackingState(); // Save state persistently
         lastResult =
             '🟢 Auto-tracking started - will send every ${trackingInterval}s';
         _pendingEntries.clear();
-        print("✅ Native tracking started successfully");
+        print("✅ Tracking started successfully");
       } else {
         error = '❌ Failed to start native tracking';
-        print("❌ Native tracking failed to start");
+        print("❌ Failed to start tracking");
       }
     } catch (e) {
       error = '❌ Start tracking error: $e';
@@ -185,15 +269,43 @@ class LocationController extends ChangeNotifier {
   Future<void> stopTracking() async {
     if (!isTracking) return;
 
-    print("🛑 Stopping automatic tracking...");
+    print("🛑 Stopping tracking with Check Out...");
     isLoading = true;
     notifyListeners();
 
     try {
+      // First send Check Out entry
+      print("📍 Sending Check Out entry...");
+      final Map<dynamic, dynamic>? locationData = await _channel.invokeMethod(
+        'getCurrentLocation',
+      );
+
+      if (locationData != null) {
+        double latitude = locationData['latitude'];
+        double longitude = locationData['longitude'];
+
+        final now = DateTime.now();
+        final date = DateFormat('yyyy-MM-dd').format(now);
+        final time = DateFormat('HH:mm:ss').format(now);
+
+        // Send Check Out entry
+        await _service.sendLocation(
+          latitude: latitude,
+          longitude: longitude,
+          date: date,
+          time: time,
+          entryType: "Check Out",
+        );
+
+        print("✅ Check Out entry sent successfully");
+      }
+
+      // Then stop continuous tracking
       final bool stopped = await _channel.invokeMethod('stopLocationTracking');
 
       if (stopped) {
         isTracking = false;
+        await _saveTrackingState(); // Save state persistently
         lastResult = '🔴 Auto-tracking stopped';
         print("✅ Tracking stopped successfully");
       } else {
@@ -227,7 +339,7 @@ class LocationController extends ChangeNotifier {
     }
   }
 
-  // Manual location post using native implementation
+  // Manual location post (Send Now button) - KEPT FOR YOUR UI
   Future<void> postLocation() async {
     print("📍 Manual location request...");
     isLoading = true;
@@ -248,11 +360,13 @@ class LocationController extends ChangeNotifier {
         final date = DateFormat('yyyy-MM-dd').format(now);
         final time = DateFormat('HH:mm:ss').format(now);
 
+        // Send with "Track" entry type for manual sends
         await _service.sendLocation(
           latitude: latitude,
           longitude: longitude,
           date: date,
           time: time,
+          entryType: "Track", // Manual sends are also "Track" type
         );
 
         lastResult = '✅ MANUAL: Location sent successfully';
@@ -270,7 +384,7 @@ class LocationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Batch methods (currently disabled for debugging)
+  // Batch methods (KEPT FOR YOUR UI COMPATIBILITY)
   Future<void> sendPendingEntries() async {
     print("📦 Send pending entries (currently disabled)");
     lastResult = 'Batch sending disabled for debugging';
@@ -278,7 +392,7 @@ class LocationController extends ChangeNotifier {
   }
 
   void toggleBatchSending(bool enabled) {
-    enableBatchSending = false; // Keep disabled for now
+    enableBatchSending = false;
     print("📦 Batch sending toggle attempted - keeping disabled for debugging");
     notifyListeners();
   }
@@ -289,23 +403,24 @@ class LocationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Getters for UI
+  // Getters for UI (KEPT FOR YOUR UI)
   int get pendingEntriesCount => _pendingEntries.length;
   bool get hasPendingEntries => _pendingEntries.isNotEmpty;
 
+  // KEPT FOR YOUR UI COMPATIBILITY
   Future<void> checkStoredCredentials() async {
     try {
       const storage = FlutterSecureStorage();
       String? sid = await storage.read(key: 'sid');
-      String? employeeId = await storage.read(key: 'employee_id');
+      String? salesPersonId = await storage.read(key: 'sales_person_id');
 
       print("🔐 CREDENTIAL CHECK:");
       print(
         "   SID: ${sid != null ? 'EXISTS (${sid.length} chars)' : 'MISSING'}",
       );
-      print("   Employee ID: ${employeeId ?? 'MISSING'}");
+      print("   Sales Person ID: ${salesPersonId ?? 'MISSING'}");
 
-      if (sid == null || employeeId == null) {
+      if (sid == null || salesPersonId == null) {
         throw Exception('Missing stored credentials - please login again');
       }
     } catch (e) {

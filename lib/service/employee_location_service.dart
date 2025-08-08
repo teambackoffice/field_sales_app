@@ -12,10 +12,12 @@ class EmployeeLocationService {
     required double longitude,
     required String date,
     required String time,
+    required String entryType, // NEW: Added entry type
   }) async {
     print("🌐 EmployeeLocationService.sendLocation called");
     print("📍 Lat: $latitude, Lng: $longitude");
     print("📅 Date: $date, Time: $time");
+    print("🏷️ Entry Type: $entryType");
 
     try {
       // Get stored values
@@ -31,12 +33,17 @@ class EmployeeLocationService {
 
       var headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
 
-      // Create the request body according to the new structure
+      // Create the request body with entry_type
       var body = json.encode({
         "sales_person_id": salesPersonId,
         "date": date,
         "entries": [
-          {"time": time, "latitude": latitude, "longitude": longitude},
+          {
+            "entry_type": entryType,
+            "time": time,
+            "latitude": latitude,
+            "longitude": longitude,
+          },
         ],
       });
 
@@ -58,7 +65,7 @@ class EmployeeLocationService {
 
       if (response.statusCode == 200) {
         final responseBody = await response.stream.bytesToString();
-        print("✅ SUCCESS: Location sent to API");
+        print("✅ SUCCESS: Location sent to API with entry type: $entryType");
         print("📝 Response: $responseBody");
       } else {
         final responseBody = await response.stream.bytesToString();
@@ -92,6 +99,7 @@ class EmployeeLocationService {
       List<Map<String, dynamic>> entriesList = entries
           .map(
             (entry) => {
+              "entry_type": entry.entryType,
               "time": entry.time,
               "latitude": entry.latitude,
               "longitude": entry.longitude,
@@ -105,7 +113,7 @@ class EmployeeLocationService {
         "entries": entriesList,
       });
 
-      print("Sending batch location data: $body"); // Debug log
+      print("Sending batch location data: $body");
 
       var request = http.Request(
         'POST',
@@ -139,22 +147,30 @@ class EmployeeLocationService {
 
 // Helper class for location entries
 class LocationEntry {
+  final String entryType; // NEW: Added entry type
   final String time;
   final double latitude;
   final double longitude;
 
   LocationEntry({
+    required this.entryType,
     required this.time,
     required this.latitude,
     required this.longitude,
   });
 
   Map<String, dynamic> toJson() {
-    return {'time': time, 'latitude': latitude, 'longitude': longitude};
+    return {
+      'entry_type': entryType,
+      'time': time,
+      'latitude': latitude,
+      'longitude': longitude,
+    };
   }
 
   factory LocationEntry.fromJson(Map<String, dynamic> json) {
     return LocationEntry(
+      entryType: json['entry_type'],
       time: json['time'],
       latitude: json['latitude'].toDouble(),
       longitude: json['longitude'].toDouble(),
