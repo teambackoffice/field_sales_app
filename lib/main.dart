@@ -5,6 +5,7 @@ import 'package:location_tracker_app/controller/create_payment_entry_controller.
 import 'package:location_tracker_app/controller/create_sales_order_controller.dart';
 import 'package:location_tracker_app/controller/create_sales_return_contoller.dart';
 import 'package:location_tracker_app/controller/customer_list_controller.dart';
+import 'package:location_tracker_app/controller/customer_log_visit_controller.dart';
 import 'package:location_tracker_app/controller/employee_location_controller.dart';
 import 'package:location_tracker_app/controller/invoice_list_controller.dart';
 import 'package:location_tracker_app/controller/item_list_controller.dart';
@@ -48,6 +49,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SalesReturnController()),
         ChangeNotifierProvider(create: (_) => PaymentEntryDraftController()),
         ChangeNotifierProvider(create: (_) => LocationController()),
+        ChangeNotifierProvider(create: (_) => LogCustomerVisitController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

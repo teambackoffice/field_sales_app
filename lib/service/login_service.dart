@@ -20,7 +20,6 @@ class LoginService {
       final response = await http.post(url);
 
       if (response.statusCode == 200) {
-        print("📱 Login response: ${response.body}");
         final responseData = jsonDecode(response.body);
         final fullName = responseData['full_name'];
         final message = responseData['message'];
