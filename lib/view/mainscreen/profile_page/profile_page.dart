@@ -137,7 +137,7 @@ class _ProfilePageState extends State<ProfilePage> {
                             _buildDetailItem(
                               Icons.business,
                               'Company',
-                              'Tech Solutions Inc',
+                              'Chundakadan Agencies',
                             ),
                           ],
                         ),
