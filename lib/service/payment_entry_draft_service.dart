@@ -11,18 +11,24 @@ class PaymentEntryDraftService {
     required String customerName,
   }) async {
     try {
-      // Retrieve SID from secure storage
+      // Retrieve SID and Sales Person ID from secure storage
       String? sid = await _storage.read(key: 'sid');
+      String? salesPersonId = await _storage.read(key: 'sales_person_id');
 
-      if (sid == null) {
-        throw Exception("SID not found. Please login again.");
+      if (sid == null || salesPersonId == null) {
+        throw Exception("Authentication required. Please login again.");
       }
 
       // Setup headers
       var headers = {'Cookie': 'sid=$sid; system_user=yes;'};
 
-      // Build URI
-      final uri = Uri.parse("$url?customer_name=$customerName");
+      // Build URI with both customer and sales_person
+      final uri = Uri.parse(url).replace(
+        queryParameters: {
+          'customer_name': customerName,
+          'sales_person': salesPersonId,
+        },
+      );
 
       // Make request
       final response = await http.get(uri, headers: headers);
@@ -31,12 +37,11 @@ class PaymentEntryDraftService {
         return paymentEntryDraftStatusModalFromJson(response.body);
       } else {
         throw Exception(
-          "Failed to load payment entry status: ${response.statusCode} - ${response.reasonPhrase} - ${response.body}",
+          "Failed to load payment entry status: "
+          "${response.statusCode} - ${response.reasonPhrase} - ${response.body}",
         );
       }
     } catch (e, stackTrace) {
-      // Catch any error (network, JSON parsing, etc.)
-
       throw Exception(
         "An error occurred while fetching payment entry status: $e",
       );

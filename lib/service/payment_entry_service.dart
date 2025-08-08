@@ -16,7 +16,7 @@ class PaymentEntryService {
     try {
       final String? sid = await _secureStorage.read(key: 'sid');
       final String? salesPersonId = await _secureStorage.read(
-        key: 'sales_person',
+        key: 'sales_person_id',
       );
 
       if (sid == null || salesPersonId == null) {
@@ -35,7 +35,6 @@ class PaymentEntryService {
 
       if (response.statusCode == 200) {
         try {
-          print(uri);
           final decoded = jsonDecode(response.body);
           return PaymentEntryModal.fromJson(decoded);
         } catch (e) {
