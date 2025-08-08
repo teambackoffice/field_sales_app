@@ -7,6 +7,35 @@ import 'package:location_tracker_app/controller/sales_order_controller.dart';
 import 'package:location_tracker_app/modal/customer_list_modal.dart';
 import 'package:provider/provider.dart';
 
+// Model classes
+class OrderItem {
+  final String item_code;
+  final double rate;
+  final int qty;
+
+  OrderItem({required this.item_code, required this.rate, required this.qty});
+
+  double get totalPrice => rate * qty;
+
+  Map<String, dynamic> toJson() {
+    return {'item_code': item_code, 'rate': rate, 'qty': qty};
+  }
+}
+
+class InventoryItem {
+  final String name;
+  final double price;
+  final String unit;
+  final String description;
+
+  InventoryItem({
+    required this.name,
+    required this.price,
+    required this.unit,
+    this.description = '',
+  });
+}
+
 class CreateSalesOrder extends StatefulWidget {
   const CreateSalesOrder({super.key});
 
@@ -49,6 +78,59 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
         .substring(0, 10)
         .replaceAll('-', '');
     _orderNumberController.text = 'SO-$dateStr-001';
+  }
+
+  Future<void> _saveSalesOrder() async {
+    final controller = Provider.of<CreateSalesOrderController>(
+      context,
+      listen: false,
+    );
+
+    if (_formKey.currentState!.validate()) {
+      if (_orderItems.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Please add at least one item to the order'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Call API
+      await controller.createSalesOrder(
+        customer: _selectedCustomer ?? "anupam",
+        deliveryDate: DateFormat('yyyy-MM-dd').format(delvery_date),
+        items: _orderItems.map((item) => item.toJson()).toList(),
+      );
+
+      if (controller.error != null) {
+        // Show error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${controller.error}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // On success
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Sales Order created successfully!'),
+          backgroundColor: Color(0xFF764BA2),
+        ),
+      );
+
+      // Optional: Print or use response
+
+      Navigator.pop(context);
+      Provider.of<SalesOrderController>(
+        context,
+        listen: false,
+      ).fetchsalesorder();
+    }
   }
 
   void _calculateTotal() {
@@ -116,6 +198,80 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
+  Widget _buildTotalCard() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Total Amount',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            Text(
+              '₹${_totalAmount.toStringAsFixed(2)}',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSaveButton() {
+    final controller = Provider.of<CreateSalesOrderController>(context);
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: controller.isLoading ? null : _saveSalesOrder,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Color(0xFF764BA2),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 2,
+        ),
+        child: controller.isLoading
+            ? CircularProgressIndicator(color: Colors.white)
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.save, color: Colors.white),
+                  SizedBox(width: 8),
+                  Text(
+                    'Create Sales Order',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+  }
+
   Widget _buildHeaderCard() {
     return Card(
       elevation: 2,
@@ -175,6 +331,29 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
+  void _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: delvery_date,
+      firstDate: DateTime.now(),
+      lastDate: DateTime(2030),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(primary: Color(0xFF764BA2)),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null && picked != delvery_date) {
+      setState(() {
+        delvery_date = picked;
+      });
+    }
+  }
+
   Widget _buildCustomerCard({required List<MessageElement> customers}) {
     return Card(
       elevation: 2,
@@ -209,7 +388,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
               isExpanded: true,
               items: customers.map((customer) {
                 return DropdownMenuItem<String>(
-                  value: customer.name, // assuming `id` is unique
+                  value: customer.name,
                   child: Row(
                     children: [
                       Expanded(
@@ -753,8 +932,10 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   }
 
   // Dialog to enter quantity when adding existing item
-  void _showQuantityDialog(InventoryItem item) {
-    final quantityController = TextEditingController(text: '1');
+  void _showQuantityDialog(InventoryItem item, {int? editIndex}) {
+    final quantityController = TextEditingController(
+      text: editIndex != null ? _orderItems[editIndex].qty.toString() : '1',
+    );
 
     showDialog(
       context: context,
@@ -777,7 +958,9 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                 ),
                 child: Center(
                   child: Text(
-                    "Add ${item.name}",
+                    editIndex != null
+                        ? "Edit ${item.name}"
+                        : "Add ${item.name}",
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -862,12 +1045,22 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                           );
 
                           setState(() {
-                            _orderItems.add(orderItem);
+                            if (editIndex != null) {
+                              // Update existing item
+                              _orderItems[editIndex] = orderItem;
+                            } else {
+                              // Add new item
+                              _orderItems.add(orderItem);
+                            }
                             _calculateTotal();
                           });
 
                           Navigator.pop(context); // Close dialog
-                          Navigator.pop(context); // Close bottom sheet
+                          if (editIndex == null) {
+                            Navigator.pop(
+                              context,
+                            ); // Close bottom sheet for add
+                          }
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -879,7 +1072,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                         ),
                       ),
                       child: Text(
-                        'Add',
+                        editIndex != null ? 'Update' : 'Add',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -898,96 +1091,187 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
 
   Widget _buildOrderItemTile(OrderItem item, int index) {
     return Container(
-      margin: EdgeInsets.only(bottom: 8),
-      padding: EdgeInsets.all(12),
+      margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.item_code,
-                  style: TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-                ),
-                Text(
-                  '₹${item.rate.toStringAsFixed(2)}',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            flex: 1,
-            child: Text(
-              '${item.qty}',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontWeight: FontWeight.w500),
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              '₹${item.totalPrice.toStringAsFixed(2)}',
-              textAlign: TextAlign.right,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF764BA2),
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: () {
-              setState(() {
-                _orderItems.removeAt(index);
-                _calculateTotal();
-              });
-            },
-            icon: Icon(Icons.delete_outline, color: Colors.red.shade400),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: Offset(0, 2),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildTotalCard() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
+      child: Padding(
         padding: EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
           children: [
-            Text(
-              'Total Amount',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+            // Main item row
+            Row(
+              children: [
+                // Item icon
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Color(0xFF764BA2).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    Icons.inventory_2,
+                    color: Color(0xFF764BA2),
+                    size: 20,
+                  ),
+                ),
+                SizedBox(width: 12),
+
+                // Item details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.item_code,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 16,
+                          color: Color(0xFF2D3436),
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        '₹${item.rate.toStringAsFixed(2)} × ${item.qty}',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Total price
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '₹${item.totalPrice.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        color: Color(0xFF764BA2),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-            Text(
-              '₹${_totalAmount.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+
+            SizedBox(height: 12),
+
+            // Action buttons row
+            Row(
+              children: [
+                // Quantity badge
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.inventory,
+                        size: 14,
+                        color: Colors.grey.shade600,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Qty: ${item.qty}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey.shade700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Spacer(),
+
+                // Edit button
+                InkWell(
+                  onTap: () => _editOrderItem(index),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.shade200, width: 1),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.edit_rounded,
+                          size: 16,
+                          color: Colors.blue.shade600,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Edit',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.blue.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                SizedBox(width: 8),
+
+                // Delete button
+                InkWell(
+                  onTap: () => _showDeleteConfirmation(index),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade200, width: 1),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.delete_rounded,
+                          size: 16,
+                          color: Colors.red.shade600,
+                        ),
+                        SizedBox(width: 4),
+                        Text(
+                          'Remove',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.red.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -995,142 +1279,121 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  Widget _buildSaveButton() {
-    final controller = Provider.of<CreateSalesOrderController>(context);
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: ElevatedButton(
-        onPressed: controller.isLoading ? null : _saveSalesOrder,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Color(0xFF764BA2),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          elevation: 2,
-        ),
-        child: controller.isLoading
-            ? CircularProgressIndicator(color: Colors.white)
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+  // Method to edit an order item
+  void _editOrderItem(int index) {
+    final item = _orderItems[index];
+    final inventoryItem = InventoryItem(
+      name: item.item_code,
+      price: item.rate,
+      unit: 'unit', // You might want to store this in OrderItem
+    );
+
+    _showQuantityDialog(inventoryItem, editIndex: index);
+  }
+
+  // Method to show delete confirmation
+  void _showDeleteConfirmation(int index) {
+    final item = _orderItems[index];
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          padding: EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Warning icon
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.warning_rounded,
+                  color: Colors.red.shade600,
+                  size: 30,
+                ),
+              ),
+
+              SizedBox(height: 16),
+
+              // Title
+              Text(
+                'Remove Item',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2D3436),
+                ),
+              ),
+
+              SizedBox(height: 8),
+
+              // Message
+              Text(
+                'Are you sure you want to remove "${item.item_code}" from your order?',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+              ),
+
+              SizedBox(height: 24),
+
+              // Buttons
+              Row(
                 children: [
-                  Icon(Icons.save, color: Colors.white),
-                  SizedBox(width: 8),
-                  Text(
-                    'Create Sales Order',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: OutlinedButton.styleFrom(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        side: BorderSide(color: Colors.grey.shade400),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () {
+                        setState(() {
+                          _orderItems.removeAt(index);
+                          _calculateTotal();
+                        });
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red.shade600,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text(
+                        'Remove',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                 ],
               ),
+            ],
+          ),
+        ),
       ),
     );
   }
-
-  void _selectDate() async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: delvery_date,
-      firstDate: DateTime.now(),
-      lastDate: DateTime(2030),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(primary: Color(0xFF764BA2)),
-          ),
-          child: child!,
-        );
-      },
-    );
-
-    if (picked != null && picked != delvery_date) {
-      setState(() {
-        delvery_date = picked;
-      });
-    }
-  }
-
-  Future<void> _saveSalesOrder() async {
-    final controller = Provider.of<CreateSalesOrderController>(
-      context,
-      listen: false,
-    );
-
-    if (_formKey.currentState!.validate()) {
-      if (_orderItems.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Please add at least one item to the order'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      // Call API
-      await controller.createSalesOrder(
-        customer: _selectedCustomer ?? "anupam",
-        deliveryDate: DateFormat('yyyy-MM-dd').format(delvery_date),
-        items: _orderItems.map((item) => item.toJson()).toList(),
-      );
-
-      if (controller.error != null) {
-        // Show error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${controller.error}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-        return;
-      }
-
-      // On success
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Sales Order created successfully!'),
-          backgroundColor: Color(0xFF764BA2),
-        ),
-      );
-
-      // Optional: Print or use response
-
-      Navigator.pop(context);
-      Provider.of<SalesOrderController>(
-        context,
-        listen: false,
-      ).fetchsalesorder();
-    }
-  }
-}
-
-class OrderItem {
-  final String item_code;
-  final double rate;
-  final int qty;
-
-  OrderItem({required this.item_code, required this.rate, required this.qty});
-
-  double get totalPrice => rate * qty;
-
-  Map<String, dynamic> toJson() {
-    return {'item_code': item_code, 'rate': rate, 'qty': qty};
-  }
-}
-
-class InventoryItem {
-  final String name;
-  final double price;
-  final String unit;
-  final String description;
-
-  InventoryItem({
-    required this.name,
-    required this.price,
-    required this.unit,
-    this.description = '',
-  });
 }
