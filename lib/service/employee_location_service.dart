@@ -14,18 +14,10 @@ class EmployeeLocationService {
     required String time,
     required String entryType, // NEW: Added entry type
   }) async {
-    print("🌐 EmployeeLocationService.sendLocation called");
-    print("📍 Lat: $latitude, Lng: $longitude");
-    print("📅 Date: $date, Time: $time");
-    print("🏷️ Entry Type: $entryType");
-
     try {
       // Get stored values
       String? sid = await _storage.read(key: 'sid');
       String? salesPersonId = await _storage.read(key: 'sales_person_id');
-
-      print("🔐 SID: ${sid != null ? 'Found' : 'Missing'}");
-      print("👤 Sales Person ID: ${salesPersonId ?? 'Missing'}");
 
       if (sid == null || salesPersonId == null) {
         throw Exception('Missing credentials in secure storage');
@@ -47,10 +39,6 @@ class EmployeeLocationService {
         ],
       });
 
-      print("📡 Sending to API...");
-      print("🔗 URL: ${ApiConstants.baseUrl}save_salesperson_location_log");
-      print("📦 Body: $body");
-
       var request = http.Request(
         'POST',
         Uri.parse('${ApiConstants.baseUrl}save_salesperson_location_log'),
@@ -61,20 +49,14 @@ class EmployeeLocationService {
 
       http.StreamedResponse response = await request.send();
 
-      print("📡 Response status: ${response.statusCode}");
-
       if (response.statusCode == 200) {
         final responseBody = await response.stream.bytesToString();
-        print("✅ SUCCESS: Location sent to API with entry type: $entryType");
-        print("📝 Response: $responseBody");
       } else {
         final responseBody = await response.stream.bytesToString();
-        print("❌ FAILED: ${response.statusCode} - ${response.reasonPhrase}");
-        print("📝 Response: $responseBody");
+
         throw Exception('Failed to send location: ${response.statusCode}');
       }
     } catch (e) {
-      print("💥 ERROR in sendLocation: $e");
       rethrow;
     }
   }
@@ -113,8 +95,6 @@ class EmployeeLocationService {
         "entries": entriesList,
       });
 
-      print("Sending batch location data: $body");
-
       var request = http.Request(
         'POST',
         Uri.parse('${ApiConstants.baseUrl}save_salesperson_location_log'),
@@ -127,19 +107,14 @@ class EmployeeLocationService {
 
       if (response.statusCode == 200) {
         final responseBody = await response.stream.bytesToString();
-        print("Batch location sent successfully: $responseBody");
       } else {
         final responseBody = await response.stream.bytesToString();
-        print(
-          "Failed to send batch location: ${response.statusCode} - ${response.reasonPhrase}",
-        );
-        print("Response body: $responseBody");
+
         throw Exception(
           'Failed to send batch location: ${response.statusCode}',
         );
       }
     } catch (e) {
-      print("Error in sendLocationBatch: $e");
       rethrow;
     }
   }

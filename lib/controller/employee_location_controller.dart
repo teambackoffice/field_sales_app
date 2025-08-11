@@ -3,17 +3,20 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:location_tracker_app/service/employee_location_service.dart';
+import 'package:location_tracker_app/service/location_interval_service.dart';
 
 class LocationController extends ChangeNotifier {
   static const MethodChannel _channel = MethodChannel('location_tracking');
   final EmployeeLocationService _service = EmployeeLocationService();
+  final LocationIntervalService _intervalService = LocationIntervalService();
   static const _storage = FlutterSecureStorage();
 
   bool isLoading = false;
   bool isTracking = false;
   String? error;
   String? lastResult;
-  int trackingInterval = 60; // seconds (1 minute)
+  int trackingInterval = 60; // Default fallback value (1 minute)
+  bool _intervalLoaded = false;
 
   // Batch sending configuration
   bool enableBatchSending = false;
@@ -22,8 +25,145 @@ class LocationController extends ChangeNotifier {
 
   LocationController() {
     _setupMethodCallHandler();
-    _loadTrackingState(); // Load saved state when app starts
+    _initialize();
     print("🚀 LocationController initialized");
+  }
+
+  // Initialize controller with API interval fetch and state loading
+  Future<void> _initialize() async {
+    await _loadTrackingIntervalFromAPI();
+    await _loadTrackingState();
+  }
+
+  // Fetch tracking interval from API
+  Future<void> _loadTrackingIntervalFromAPI() async {
+    try {
+      print("📡 Fetching tracking interval from API...");
+      final intervalData = await _intervalService.getLocationUpdateInterval();
+
+      if (intervalData != null &&
+          intervalData.message.data.locationUpdateInterval.isNotEmpty) {
+        String intervalString =
+            intervalData.message.data.locationUpdateInterval;
+        print("📋 Raw interval from API: '$intervalString'");
+
+        // Parse the interval string (e.g., "2 min", "30 sec", "1 hour")
+        int apiInterval = _parseIntervalToSeconds(intervalString);
+        trackingInterval = apiInterval;
+        _intervalLoaded = true;
+        print(
+          "✅ Tracking interval loaded from API: ${trackingInterval}s (from '$intervalString')",
+        );
+
+        // Save the interval for offline use
+        await _storage.write(
+          key: 'tracking_interval',
+          value: trackingInterval.toString(),
+        );
+      } else {
+        print("⚠️ Failed to get interval from API, using default");
+        await _loadSavedInterval();
+      }
+    } catch (e) {
+      print("❌ Error loading interval from API: $e");
+      await _loadSavedInterval();
+    }
+    notifyListeners();
+  }
+
+  // Parse interval string to seconds
+  int _parseIntervalToSeconds(String intervalString) {
+    try {
+      // Clean the string and make it lowercase
+      String cleaned = intervalString.trim().toLowerCase();
+      print("🔧 Parsing interval: '$cleaned'");
+
+      // Extract number and unit
+      RegExp regExp = RegExp(
+        r'(\d+)\s*(min|mins|minute|minutes|sec|secs|second|seconds|hour|hours|hr|hrs)',
+      );
+      RegExpMatch? match = regExp.firstMatch(cleaned);
+
+      if (match != null) {
+        int number = int.parse(match.group(1)!);
+        String unit = match.group(2)!;
+
+        print("🔧 Parsed: $number $unit");
+
+        switch (unit) {
+          case 'sec':
+          case 'secs':
+          case 'second':
+          case 'seconds':
+            return number;
+          case 'min':
+          case 'mins':
+          case 'minute':
+          case 'minutes':
+            return number * 60;
+          case 'hour':
+          case 'hours':
+          case 'hr':
+          case 'hrs':
+            return number * 3600;
+          default:
+            print("⚠️ Unknown unit '$unit', defaulting to seconds");
+            return number;
+        }
+      } else {
+        // Try to parse as just a number (assume seconds)
+        int? directNumber = int.tryParse(cleaned);
+        if (directNumber != null) {
+          print("🔧 Parsed as direct number: $directNumber seconds");
+          return directNumber;
+        } else {
+          print(
+            "❌ Could not parse interval '$intervalString', using default 60s",
+          );
+          return 60;
+        }
+      }
+    } catch (e) {
+      print(
+        "❌ Error parsing interval '$intervalString': $e, using default 60s",
+      );
+      return 60;
+    }
+  }
+
+  // Load previously saved interval as fallback
+  Future<void> _loadSavedInterval() async {
+    try {
+      String? savedInterval = await _storage.read(key: 'tracking_interval');
+      if (savedInterval != null) {
+        trackingInterval = int.tryParse(savedInterval) ?? 60;
+        print("📱 Loaded saved interval: ${trackingInterval}s");
+      }
+    } catch (e) {
+      print("❌ Failed to load saved interval: $e");
+    }
+  }
+
+  // Public method to refresh interval from API
+  Future<void> refreshTrackingInterval() async {
+    print("🔄 Refreshing tracking interval from API...");
+    await _loadTrackingIntervalFromAPI();
+
+    // If tracking is active, update the native tracking with new interval
+    if (isTracking && _intervalLoaded) {
+      try {
+        await _channel.invokeMethod('updateInterval', {
+          'intervalSeconds': trackingInterval,
+        });
+        lastResult = 'Interval updated to ${trackingInterval}s from API';
+        print(
+          "✅ Updated active tracking with new interval: ${trackingInterval}s",
+        );
+        notifyListeners();
+      } catch (e) {
+        print("❌ Failed to update active tracking interval: $e");
+      }
+    }
   }
 
   // Save tracking state to persistent storage
@@ -66,8 +206,11 @@ class LocationController extends ChangeNotifier {
       );
 
       if (started) {
-        lastResult = '🔄 Tracking resumed from background';
-        print("✅ Background tracking resumed successfully");
+        lastResult =
+            '🔄 Tracking resumed from background (${trackingInterval}s interval)';
+        print(
+          "✅ Background tracking resumed successfully with ${trackingInterval}s interval",
+        );
       } else {
         print("❌ Failed to resume background tracking");
         isTracking = false;
@@ -136,7 +279,8 @@ class LocationController extends ChangeNotifier {
         entryType: "Track", // Automatic tracking entry type
       );
 
-      lastResult = '✅ AUTO-SENT: $latitude, $longitude at $time';
+      lastResult =
+          '✅ AUTO-SENT: $latitude, $longitude at $time (${trackingInterval}s interval)';
       error = null;
       print("✅ SUCCESS: $lastResult");
       notifyListeners();
@@ -196,7 +340,7 @@ class LocationController extends ChangeNotifier {
 
   Future<void> startTracking() async {
     if (isTracking) {
-      print("⚠️ Already tracking");
+      print("⚠️ Already tracking, cannot start again");
       return;
     }
 
@@ -206,15 +350,22 @@ class LocationController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Ensure we have the latest interval from API before starting
+      if (!_intervalLoaded) {
+        print("📡 Loading tracking interval before starting...");
+        await _loadTrackingIntervalFromAPI();
+      }
+
       final bool hasPermissions = await requestPermissions();
       if (!hasPermissions) {
+        print("❌ Permissions not granted, cannot start tracking");
         isLoading = false;
         notifyListeners();
         return;
       }
 
       // First send Check In entry
-      print("📍 Sending Check In entry...");
+      print("📍 Getting current location for Check In...");
       final Map<dynamic, dynamic>? locationData = await _channel.invokeMethod(
         'getCurrentLocation',
       );
@@ -222,12 +373,15 @@ class LocationController extends ChangeNotifier {
       if (locationData != null) {
         double latitude = locationData['latitude'];
         double longitude = locationData['longitude'];
+        print("📍 Got location for Check In: $latitude, $longitude");
 
         final now = DateTime.now();
         final date = DateFormat('yyyy-MM-dd').format(now);
         final time = DateFormat('HH:mm:ss').format(now);
+        print("⏰ Check In time: $date $time");
 
         // Send Check In entry first
+        print("🚀 Sending Check In entry to API...");
         await _service.sendLocation(
           latitude: latitude,
           longitude: longitude,
@@ -237,10 +391,15 @@ class LocationController extends ChangeNotifier {
         );
 
         print("✅ Check In entry sent successfully");
+        lastResult = '✅ Check In sent: $latitude, $longitude at $time';
+      } else {
+        throw Exception('Failed to get current location for Check In');
       }
 
-      // Then start continuous tracking
-      print("📡 Starting continuous tracking...");
+      // Then start continuous tracking with API interval
+      print(
+        "📡 Starting continuous tracking with ${trackingInterval}s interval...",
+      );
       final bool started = await _channel.invokeMethod(
         'startLocationTracking',
         {'intervalSeconds': trackingInterval},
@@ -250,16 +409,34 @@ class LocationController extends ChangeNotifier {
         isTracking = true;
         await _saveTrackingState(); // Save state persistently
         lastResult =
-            '🟢 Auto-tracking started - will send every ${trackingInterval}s';
+            '🟢 Auto-tracking started - will send every ${trackingInterval}s (from API)';
         _pendingEntries.clear();
-        print("✅ Tracking started successfully");
+        print(
+          "✅ Tracking started successfully with ${trackingInterval}s interval",
+        );
       } else {
         error = '❌ Failed to start native tracking';
-        print("❌ Failed to start tracking");
+        print("❌ Failed to start native tracking");
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       error = '❌ Start tracking error: $e';
-      print("❌ Start tracking error: $e");
+      print("❌ DETAILED Start tracking error: $e");
+      print("📍 Stack trace: $stackTrace");
+
+      // Detailed error handling for Check In
+      String errorMessage = e.toString();
+      if (errorMessage.contains('credentials')) {
+        error = '❌ Missing login credentials for Check In';
+      } else if (errorMessage.contains('Failed to send location: 401')) {
+        error = '❌ Authentication failed during Check In';
+      } else if (errorMessage.contains('Failed to send location: 403')) {
+        error = '❌ Access denied during Check In';
+      } else if (errorMessage.contains('Failed to send location: 500')) {
+        error = '❌ Server error during Check In';
+      } else if (errorMessage.contains('SocketException') ||
+          errorMessage.contains('NetworkException')) {
+        error = '❌ Network error during Check In';
+      }
     }
 
     isLoading = false;
@@ -267,15 +444,19 @@ class LocationController extends ChangeNotifier {
   }
 
   Future<void> stopTracking() async {
-    if (!isTracking) return;
+    if (!isTracking) {
+      print("⚠️ Not currently tracking, cannot stop");
+      return;
+    }
 
     print("🛑 Stopping tracking with Check Out...");
     isLoading = true;
+    error = null; // Clear any previous errors
     notifyListeners();
 
     try {
       // First send Check Out entry
-      print("📍 Sending Check Out entry...");
+      print("📍 Getting current location for Check Out...");
       final Map<dynamic, dynamic>? locationData = await _channel.invokeMethod(
         'getCurrentLocation',
       );
@@ -283,12 +464,15 @@ class LocationController extends ChangeNotifier {
       if (locationData != null) {
         double latitude = locationData['latitude'];
         double longitude = locationData['longitude'];
+        print("📍 Got location for Check Out: $latitude, $longitude");
 
         final now = DateTime.now();
         final date = DateFormat('yyyy-MM-dd').format(now);
         final time = DateFormat('HH:mm:ss').format(now);
+        print("⏰ Check Out time: $date $time");
 
         // Send Check Out entry
+        print("🚀 Sending Check Out entry to API...");
         await _service.sendLocation(
           latitude: latitude,
           longitude: longitude,
@@ -298,32 +482,71 @@ class LocationController extends ChangeNotifier {
         );
 
         print("✅ Check Out entry sent successfully");
+        lastResult = '✅ Check Out sent: $latitude, $longitude at $time';
+      } else {
+        print("❌ Failed to get location for Check Out");
+        error = '❌ Failed to get location for Check Out';
+        // Continue with stopping tracking even if location fails
       }
 
       // Then stop continuous tracking
+      print("🛑 Stopping native location tracking...");
       final bool stopped = await _channel.invokeMethod('stopLocationTracking');
 
       if (stopped) {
         isTracking = false;
         await _saveTrackingState(); // Save state persistently
-        lastResult = '🔴 Auto-tracking stopped';
-        print("✅ Tracking stopped successfully");
+        if (error == null) {
+          // Only update if no previous error
+          lastResult = '🔴 Auto-tracking stopped with Check Out';
+        }
+        print("✅ Native tracking stopped successfully");
       } else {
-        error = '❌ Failed to stop tracking';
-        print("❌ Failed to stop tracking");
+        error = '❌ Failed to stop native tracking';
+        print("❌ Failed to stop native tracking");
+        // Force state change anyway
+        isTracking = false;
+        await _saveTrackingState();
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       error = '❌ Stop tracking error: $e';
-      print("❌ Stop tracking error: $e");
+      print("❌ DETAILED Stop tracking error: $e");
+      print("📍 Stack trace: $stackTrace");
+
+      // Force stop tracking state even if there's an error
+      isTracking = false;
+      await _saveTrackingState();
+
+      // Detailed error handling for Check Out
+      String errorMessage = e.toString();
+      if (errorMessage.contains('credentials')) {
+        error = '❌ Missing login credentials for Check Out';
+      } else if (errorMessage.contains('Failed to send location: 401')) {
+        error = '❌ Authentication failed during Check Out';
+      } else if (errorMessage.contains('Failed to send location: 403')) {
+        error = '❌ Access denied during Check Out';
+      } else if (errorMessage.contains('Failed to send location: 500')) {
+        error = '❌ Server error during Check Out';
+      } else if (errorMessage.contains('SocketException') ||
+          errorMessage.contains('NetworkException')) {
+        error = '❌ Network error during Check Out';
+      }
     }
 
     isLoading = false;
     notifyListeners();
   }
 
+  // Updated method to use API interval and refresh from API
   Future<void> updateTrackingInterval(int intervalSeconds) async {
     trackingInterval = intervalSeconds;
     print("⏱️ Updating interval to $intervalSeconds seconds");
+
+    // Save the manually set interval
+    await _storage.write(
+      key: 'tracking_interval',
+      value: intervalSeconds.toString(),
+    );
 
     if (isTracking) {
       try {
@@ -406,6 +629,7 @@ class LocationController extends ChangeNotifier {
   // Getters for UI (KEPT FOR YOUR UI)
   int get pendingEntriesCount => _pendingEntries.length;
   bool get hasPendingEntries => _pendingEntries.isNotEmpty;
+  bool get intervalLoaded => _intervalLoaded;
 
   // KEPT FOR YOUR UI COMPATIBILITY
   Future<void> checkStoredCredentials() async {
