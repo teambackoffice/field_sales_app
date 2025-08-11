@@ -14,6 +14,7 @@ import 'package:location_tracker_app/controller/mode_of_pay_controller.dart';
 import 'package:location_tracker_app/controller/pay_sales_invoice_controller.dart';
 import 'package:location_tracker_app/controller/payment_entry_controller.dart';
 import 'package:location_tracker_app/controller/payment_entry_draft_controller.dart';
+import 'package:location_tracker_app/controller/sales_invoice_details_controller.dart';
 import 'package:location_tracker_app/controller/sales_invoice_id_controller.dart';
 import 'package:location_tracker_app/controller/sales_order_controller.dart';
 import 'package:location_tracker_app/controller/sales_return_controller.dart';
@@ -52,6 +53,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => LocationController()),
         ChangeNotifierProvider(create: (_) => LogCustomerVisitController()),
         ChangeNotifierProvider(create: (_) => SalesInvoiceIdsController()),
+        ChangeNotifierProvider(create: (_) => SalesInvoiceDetailController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
