@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:location_tracker_app/controller/create_sales_return_contoller.dart';
+import 'package:location_tracker_app/controller/customer_list_controller.dart';
+import 'package:location_tracker_app/controller/item_list_controller.dart';
 import 'package:location_tracker_app/controller/sales_invoice_details_controller.dart';
 import 'package:location_tracker_app/controller/sales_invoice_id_controller.dart';
 import 'package:location_tracker_app/controller/sales_return_controller.dart';
@@ -19,12 +21,21 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
   final _qtyController = TextEditingController();
   final _buyingDateController = TextEditingController();
   final _notesController = TextEditingController();
+  final _customerController = TextEditingController();
 
   String? _selectedReason;
   DateTime? _selectedBuyingDate;
   String? _selectedInvoiceId;
   final Map<String, int> _selectedItems = {}; // item_code -> return_quantity
-  String _invoiceSearchQuery = ""; // Add search query state
+  final Map<String, double> _selectedItemRates = {}; // item_code -> rate
+  String _invoiceSearchQuery = "";
+  String _itemSearchQuery = "";
+  String? _selectedCustomerId;
+  String? _selectedCustomerName;
+  String? _customerSearchQuery;
+
+  // New: Creation mode toggle
+  bool _isInvoiceMode = true; // true = with invoice, false = without invoice
 
   final List<String> _returnReasons = [
     'Damaged Product',
@@ -37,14 +48,17 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
   @override
   void initState() {
     super.initState();
-    // Don't set default date - will be set when invoice is selected
-
-    // Load invoice IDs when page loads
+    // Load invoice IDs, items, and customers when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<SalesInvoiceIdsController>(
         context,
         listen: false,
       ).getSalesInvoiceIds();
+      Provider.of<ItemListController>(context, listen: false).fetchItemList();
+      Provider.of<GetCustomerListController>(
+        context,
+        listen: false,
+      ).fetchCustomerList();
     });
   }
 
@@ -55,6 +69,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     _qtyController.dispose();
     _buyingDateController.dispose();
     _notesController.dispose();
+    _customerController.dispose();
     super.dispose();
   }
 
@@ -91,27 +106,41 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     }
   }
 
+  // Toggle between creation modes
+  void _toggleCreationMode(bool isInvoiceMode) {
+    setState(() {
+      _isInvoiceMode = isInvoiceMode;
+      _selectedItems.clear();
+      _selectedItemRates.clear();
+      _selectedInvoiceId = null;
+      _selectedCustomerId = null;
+      _selectedCustomerName = null;
+      _invoiceNameController.clear();
+      _customerController.clear();
+      _buyingDateController.clear();
+      _selectedBuyingDate = null;
+    });
+  }
+
   // Method to handle invoice selection and fetch details
   void _onInvoiceSelected(String invoiceId) async {
     setState(() {
       _selectedInvoiceId = invoiceId;
       _invoiceNameController.text = invoiceId;
       _selectedItems.clear();
+      _selectedItemRates.clear();
       _productNameController.clear();
       _qtyController.clear();
-      // Clear purchase date until we get it from backend
       _buyingDateController.clear();
       _selectedBuyingDate = null;
     });
 
-    // Fetch invoice details
     final detailController = Provider.of<SalesInvoiceDetailController>(
       context,
       listen: false,
     );
     await detailController.getSalesInvoiceDetail(invoiceId: invoiceId);
 
-    // Update purchase date from backend data
     if (detailController.salesInvoiceDetail != null) {
       final postingDate =
           detailController.salesInvoiceDetail!.message.data.postingDate;
@@ -121,10 +150,39 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
       });
     }
 
-    Navigator.pop(context); // Close the selection sheet
+    Navigator.pop(context);
   }
 
-  // Helper method to highlight search text
+  // Method to handle direct item selection
+  void _onDirectItemSelected(dynamic item) {
+    final itemCode = item.itemCode;
+    final rate = item.price;
+
+    setState(() {
+      if (_selectedItems.containsKey(itemCode)) {
+        _selectedItems.remove(itemCode);
+        _selectedItemRates.remove(itemCode);
+      } else {
+        _selectedItems[itemCode] = 1;
+        _selectedItemRates[itemCode] = rate;
+      }
+    });
+
+    Navigator.pop(context);
+  }
+
+  // Method to handle customer selection
+  void _onCustomerSelected(dynamic customer) {
+    setState(() {
+      _selectedCustomerId = customer.name;
+      _selectedCustomerName = customer.customerName;
+      _customerController.text = customer.customerName;
+    });
+
+    Navigator.pop(context);
+  }
+
+  // Helper method to highlight search text (reused from original)
   List<TextSpan> _highlightSearchText(
     String text,
     String query,
@@ -152,7 +210,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     int index = lowerText.indexOf(lowerQuery, start);
 
     while (index >= 0) {
-      // Add text before match
       if (index > start) {
         spans.add(
           TextSpan(
@@ -167,7 +224,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
         );
       }
 
-      // Add highlighted match
       spans.add(
         TextSpan(
           text: text.substring(index, index + query.length),
@@ -185,7 +241,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
       index = lowerText.indexOf(lowerQuery, start);
     }
 
-    // Add remaining text
     if (start < text.length) {
       spans.add(
         TextSpan(
@@ -203,11 +258,9 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     return spans;
   }
 
-  // Method to show invoice selection bottom sheet
+  // Method to show invoice selection bottom sheet (original method)
   void _showInvoiceSelectionSheet() {
-    // Reset search when opening
     _invoiceSearchQuery = "";
-
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -215,7 +268,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Consumer<SalesInvoiceIdsController>(
           builder: (context, invoiceController, child) {
-            // Filter invoices based on search query
             List<String> filteredInvoices = [];
             if (invoiceController.salesInvoiceIds?.invoiceIds != null) {
               filteredInvoices = invoiceController.salesInvoiceIds!.invoiceIds
@@ -238,7 +290,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
               ),
               child: Column(
                 children: [
-                  // Handle bar
                   Container(
                     margin: const EdgeInsets.only(top: 12),
                     height: 4,
@@ -248,8 +299,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-
-                  // Header
                   Container(
                     padding: const EdgeInsets.all(20),
                     child: Row(
@@ -296,8 +345,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                       ],
                     ),
                   ),
-
-                  // Search Bar
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: TextField(
@@ -346,11 +393,8 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                       ),
                     ),
                   ),
-
                   const SizedBox(height: 16),
                   const Divider(height: 1),
-
-                  // Content
                   Expanded(
                     child: invoiceController.isLoading
                         ? const Center(
@@ -365,83 +409,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                                   'Loading invoices...',
                                   style: TextStyle(
                                     fontSize: 16,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : invoiceController.error != null
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.error_outline,
-                                  size: 48,
-                                  color: Colors.red[400],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'Error loading invoices',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.red[600],
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  invoiceController.error!,
-                                  textAlign: TextAlign.center,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    invoiceController.getSalesInvoiceIds();
-                                  },
-                                  icon: const Icon(Icons.refresh),
-                                  label: const Text('Retry'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF764BA2),
-                                    foregroundColor: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : invoiceController
-                                  .salesInvoiceIds
-                                  ?.invoiceIds
-                                  .isEmpty ??
-                              true
-                        ? const Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.inbox_outlined,
-                                  size: 48,
-                                  color: Colors.grey,
-                                ),
-                                SizedBox(height: 16),
-                                Text(
-                                  'No invoices found',
-                                  style: TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.grey,
-                                  ),
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'There are no invoices available at the moment.',
-                                  style: TextStyle(
-                                    fontSize: 14,
                                     color: Colors.grey,
                                   ),
                                 ),
@@ -474,19 +441,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.grey[500],
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                TextButton.icon(
-                                  onPressed: () {
-                                    setModalState(() {
-                                      _invoiceSearchQuery = "";
-                                    });
-                                  },
-                                  icon: const Icon(Icons.clear_all),
-                                  label: const Text('Clear Search'),
-                                  style: TextButton.styleFrom(
-                                    foregroundColor: const Color(0xFF764BA2),
                                   ),
                                 ),
                               ],
@@ -578,9 +532,776 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     );
   }
 
-  // Helper method to highlight search text
+  // New method to show customer selection sheet
+  void _showCustomerSelectionSheet() {
+    _customerSearchQuery = "";
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Consumer<GetCustomerListController>(
+          builder: (context, customerController, child) {
+            List<dynamic> filteredCustomers = [];
+            if (customerController.customerlist?.message.message != null) {
+              filteredCustomers = customerController
+                  .customerlist!
+                  .message
+                  .message
+                  .where(
+                    (customer) =>
+                        customer.customerName.toLowerCase().contains(
+                          _customerSearchQuery!.toLowerCase(),
+                        ) ||
+                        customer.name.toLowerCase().contains(
+                          _customerSearchQuery!.toLowerCase(),
+                        ) ||
+                        (customer.mobileNo?.toLowerCase().contains(
+                              _customerSearchQuery!.toLowerCase(),
+                            ) ??
+                            false),
+                  )
+                  .toList();
+            }
 
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.8,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    height: 4,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.person,
+                          color: Color(0xFF764BA2),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Select Customer',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2C3E50),
+                                ),
+                              ),
+                              if (customerController
+                                      .customerlist
+                                      ?.message
+                                      .message !=
+                                  null)
+                                Text(
+                                  '${filteredCustomers.length} of ${customerController.customerlist!.message.message.length} customers',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.grey[100],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: TextField(
+                      onChanged: (value) {
+                        setModalState(() {
+                          _customerSearchQuery = value;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search customers...',
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Color(0xFF764BA2),
+                        ),
+                        suffixIcon: _customerSearchQuery!.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  setModalState(() {
+                                    _customerSearchQuery = "";
+                                  });
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF764BA2),
+                            width: 2,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: customerController.isLoading
+                        ? const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(
+                                  color: Color(0xFF764BA2),
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Loading customers...',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : customerController.error != null
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.error_outline,
+                                  size: 48,
+                                  color: Colors.red[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Error loading customers',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.red[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  customerController.error!,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: () {
+                                    customerController.fetchCustomerList();
+                                  },
+                                  icon: const Icon(Icons.refresh),
+                                  label: const Text('Retry'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF764BA2),
+                                    foregroundColor: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : filteredCustomers.isEmpty &&
+                              _customerSearchQuery!.isNotEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No customers found',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Try adjusting your search terms',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filteredCustomers.length,
+                            itemBuilder: (context, index) {
+                              final customer = filteredCustomers[index];
+                              final isSelected =
+                                  _selectedCustomerId == customer.name;
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF764BA2)
+                                        : Colors.grey[300]!,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: isSelected
+                                      ? const Color(0xFF764BA2).withOpacity(0.1)
+                                      : Colors.white,
+                                ),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  leading: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFF764BA2)
+                                          : Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.person,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.grey[600],
+                                      size: 20,
+                                    ),
+                                  ),
+                                  title: RichText(
+                                    text: TextSpan(
+                                      children: _highlightSearchText(
+                                        customer.customerName,
+                                        _customerSearchQuery!,
+                                        isSelected,
+                                      ),
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'ID: ${customer.name}',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      if (customer.mobileNo?.isNotEmpty == true)
+                                        Text(
+                                          'Mobile: ${customer.mobileNo}',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      if (customer.customerType.isNotEmpty)
+                                        Text(
+                                          'Type: ${customer.customerType}',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  trailing: isSelected
+                                      ? const Icon(
+                                          Icons.check_circle,
+                                          color: Color(0xFF764BA2),
+                                          size: 24,
+                                        )
+                                      : null,
+                                  onTap: () => _onCustomerSelected(customer),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _showDirectItemSelectionSheet() {
+    _itemSearchQuery = "";
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Consumer<ItemListController>(
+          builder: (context, itemController, child) {
+            List<dynamic> filteredItems = [];
+            if (itemController.itemlist?.message != null) {
+              filteredItems = itemController.itemlist!.message
+                  .where(
+                    (item) =>
+                        item.itemName.toLowerCase().contains(
+                          _itemSearchQuery.toLowerCase(),
+                        ) ||
+                        item.itemCode.toLowerCase().contains(
+                          _itemSearchQuery.toLowerCase(),
+                        ),
+                  )
+                  .toList();
+            }
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.8,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  topRight: Radius.circular(20),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    height: 4,
+                    width: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.inventory_2,
+                          color: Color(0xFF764BA2),
+                          size: 24,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Select Items',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF2C3E50),
+                                ),
+                              ),
+                              if (itemController.itemlist?.message != null)
+                                Text(
+                                  '${filteredItems.length} of ${itemController.itemlist!.message.length} items',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.close),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.grey[100],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: TextField(
+                      onChanged: (value) {
+                        setModalState(() {
+                          _itemSearchQuery = value;
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search items...',
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Color(0xFF764BA2),
+                        ),
+                        suffixIcon: _itemSearchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () {
+                                  setModalState(() {
+                                    _itemSearchQuery = "";
+                                  });
+                                },
+                              )
+                            : null,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: Colors.grey[300]!),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF764BA2),
+                            width: 2,
+                          ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Divider(height: 1),
+                  Expanded(
+                    child: itemController.isLoading
+                        ? const Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(
+                                  color: Color(0xFF764BA2),
+                                ),
+                                SizedBox(height: 16),
+                                Text(
+                                  'Loading items...',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : filteredItems.isEmpty && _itemSearchQuery.isNotEmpty
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.search_off,
+                                  size: 48,
+                                  color: Colors.grey[400],
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'No items found',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Try adjusting your search terms',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filteredItems.length,
+                            itemBuilder: (context, index) {
+                              final item = filteredItems[index];
+                              final isSelected = _selectedItems.containsKey(
+                                item.itemCode,
+                              );
+
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 8),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? const Color(0xFF764BA2)
+                                        : Colors.grey[300]!,
+                                    width: isSelected ? 2 : 1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                  color: isSelected
+                                      ? const Color(0xFF764BA2).withOpacity(0.1)
+                                      : Colors.white,
+                                ),
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  leading: Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? const Color(0xFF764BA2)
+                                          : Colors.grey[100],
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.inventory,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : Colors.grey[600],
+                                      size: 20,
+                                    ),
+                                  ),
+                                  title: RichText(
+                                    text: TextSpan(
+                                      children: _highlightSearchText(
+                                        item.itemName,
+                                        _itemSearchQuery,
+                                        isSelected,
+                                      ),
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Code: ${item.itemCode}',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Rate: ₹${item.price} | UOM: ${item.uom}',
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: isSelected
+                                      ? const Icon(
+                                          Icons.check_circle,
+                                          color: Color(0xFF764BA2),
+                                          size: 24,
+                                        )
+                                      : const Icon(
+                                          Icons.add_circle_outline,
+                                          color: Colors.grey,
+                                          size: 24,
+                                        ),
+                                  onTap: () => _onDirectItemSelected(item),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  // Updated method to build creation mode toggle
+  Widget _buildCreationModeToggle() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Creation Mode',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2C3E50),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _toggleCreationMode(true),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _isInvoiceMode
+                          ? const Color(0xFF764BA2)
+                          : Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _isInvoiceMode
+                            ? const Color(0xFF764BA2)
+                            : Colors.grey[300]!,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.receipt_long,
+                          color: _isInvoiceMode
+                              ? Colors.white
+                              : Colors.grey[600],
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'With Invoice',
+                          style: TextStyle(
+                            color: _isInvoiceMode
+                                ? Colors.white
+                                : Colors.grey[600],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => _toggleCreationMode(false),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12,
+                      horizontal: 16,
+                    ),
+                    decoration: BoxDecoration(
+                      color: !_isInvoiceMode
+                          ? const Color(0xFF764BA2)
+                          : Colors.grey[100],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: !_isInvoiceMode
+                            ? const Color(0xFF764BA2)
+                            : Colors.grey[300]!,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.inventory_2,
+                          color: !_isInvoiceMode
+                              ? Colors.white
+                              : Colors.grey[600],
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Direct Items',
+                          style: TextStyle(
+                            color: !_isInvoiceMode
+                                ? Colors.white
+                                : Colors.grey[600],
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            _isInvoiceMode
+                ? 'Create return based on an existing invoice'
+                : 'Create return by selecting items directly',
+            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget to build invoice items section (original method)
   Widget _buildInvoiceItemsSection() {
+    if (!_isInvoiceMode) return const SizedBox.shrink();
+
     return Consumer<SalesInvoiceDetailController>(
       builder: (context, controller, child) {
         if (_selectedInvoiceId == null) {
@@ -721,7 +1442,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                 style: TextStyle(fontSize: 14, color: Colors.grey),
               ),
               const SizedBox(height: 16),
-              ...items.map((item) => _buildItemTile(item)),
+              ...items.map((item) => _buildInvoiceItemTile(item)),
             ],
           ),
         );
@@ -729,8 +1450,92 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     );
   }
 
-  // Widget to build individual item tile
-  Widget _buildItemTile(dynamic item) {
+  // Widget to build direct items selection section
+  Widget _buildDirectItemsSection() {
+    if (_isInvoiceMode || _selectedItems.isEmpty)
+      return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.1),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF764BA2),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Icon(
+                  Icons.inventory_2,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Selected Items',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E50),
+                ),
+              ),
+              const Spacer(),
+              TextButton.icon(
+                onPressed: _showDirectItemSelectionSheet,
+                icon: const Icon(Icons.add, size: 16),
+                label: const Text('Add More'),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF764BA2),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Adjust quantities for selected items:',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 16),
+          Consumer<ItemListController>(
+            builder: (context, itemController, child) {
+              if (itemController.itemlist?.message == null) {
+                return const SizedBox.shrink();
+              }
+
+              final selectedItemsList = itemController.itemlist!.message
+                  .where((item) => _selectedItems.containsKey(item.itemCode))
+                  .toList();
+
+              return Column(
+                children: selectedItemsList
+                    .map((item) => _buildDirectItemTile(item))
+                    .toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget to build individual invoice item tile (original method with slight modifications)
+  Widget _buildInvoiceItemTile(dynamic item) {
     final itemCode = item.itemCode;
     final itemName = item.itemName;
     final maxQty = item.qty;
@@ -790,8 +1595,10 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                     setState(() {
                       if (value == true) {
                         _selectedItems[itemCode] = 1;
+                        _selectedItemRates[itemCode] = rate;
                       } else {
                         _selectedItems.remove(itemCode);
+                        _selectedItemRates.remove(itemCode);
                       }
                     });
                   },
@@ -876,6 +1683,141 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     );
   }
 
+  // Widget to build individual direct item tile
+  Widget _buildDirectItemTile(dynamic item) {
+    final itemCode = item.itemCode;
+    final itemName = item.itemName;
+    final rate = item.price;
+    final returnQty = _selectedItems[itemCode] ?? 0;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        border: Border.all(color: const Color(0xFF764BA2), width: 2),
+        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFF764BA2).withOpacity(0.05),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        itemName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF764BA2),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Code: $itemCode',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Rate: ₹$rate | UOM: ${item.uom}',
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _selectedItems.remove(itemCode);
+                      _selectedItemRates.remove(itemCode);
+                    });
+                  },
+                  icon: const Icon(Icons.close),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.red[100],
+                    foregroundColor: Colors.red[600],
+                    minimumSize: const Size(32, 32),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                const Text(
+                  'Return Quantity:',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Color(0xFF2C3E50),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: returnQty > 1
+                            ? () {
+                                setState(() {
+                                  _selectedItems[itemCode] = returnQty - 1;
+                                });
+                              }
+                            : null,
+                        icon: const Icon(Icons.remove),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey[200],
+                          foregroundColor: const Color(0xFF764BA2),
+                          minimumSize: const Size(32, 32),
+                        ),
+                      ),
+                      Container(
+                        width: 60,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.grey[300]!),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          returnQty.toString(),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _selectedItems[itemCode] = returnQty + 1;
+                          });
+                        },
+                        icon: const Icon(Icons.add),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.grey[200],
+                          foregroundColor: const Color(0xFF764BA2),
+                          minimumSize: const Size(32, 32),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _submitForm() async {
     if (_formKey.currentState!.validate()) {
       if (_selectedItems.isEmpty) {
@@ -893,27 +1835,54 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
         listen: false,
       );
 
-      final detailController = Provider.of<SalesInvoiceDetailController>(
-        context,
-        listen: false,
-      );
+      String customer = '';
+      List<Map<String, dynamic>> items = [];
 
-      // ✅ Build items list
-      final items = _selectedItems.entries.map((entry) {
-        final item = detailController.salesInvoiceDetail!.message.data.items
-            .firstWhere((i) => i.itemCode == entry.key);
+      if (_isInvoiceMode) {
+        // Invoice mode - get customer from invoice details
+        final detailController = Provider.of<SalesInvoiceDetailController>(
+          context,
+          listen: false,
+        );
 
-        return {
-          "item_code": item.itemCode,
-          "qty": entry.value,
-          "rate": item.rate, // assuming your detail has rate
-        };
-      }).toList();
+        customer = detailController.salesInvoiceDetail!.message.data.customer;
+
+        items = _selectedItems.entries.map((entry) {
+          final item = detailController.salesInvoiceDetail!.message.data.items
+              .firstWhere((i) => i.itemCode == entry.key);
+
+          return {
+            "item_code": item.itemCode,
+            "qty": entry.value,
+            "rate": item.rate,
+          };
+        }).toList();
+      } else {
+        // Direct mode - use selected customer and item rates
+        customer = _selectedCustomerId ?? _customerController.text;
+
+        final itemController = Provider.of<ItemListController>(
+          context,
+          listen: false,
+        );
+
+        items = _selectedItems.entries.map((entry) {
+          final item = itemController.itemlist!.message.firstWhere(
+            (i) => i.itemCode == entry.key,
+          );
+
+          return {
+            "item_code": item.itemCode,
+            "qty": entry.value,
+            "rate": item.price,
+          };
+        }).toList();
+      }
 
       await controller.createSalesReturn(
-        returnAgainst: _invoiceNameController.text,
+        returnAgainst: _isInvoiceMode ? _invoiceNameController.text : "",
         returnDate: _buyingDateController.text,
-        customer: detailController.salesInvoiceDetail!.message.data.customer,
+        customer: customer,
         reason: _selectedReason!,
         buyingDate: _buyingDateController.text,
         notes: _notesController.text,
@@ -925,7 +1894,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
         return;
       }
 
-      // ✅ Show success dialog
       if (mounted) {
         _showSuccessDialog();
       }
@@ -979,12 +1947,12 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
-                      Navigator.of(context).pop(); // Close dialog
+                      Navigator.of(context).pop();
                       Navigator.of(context).pop();
                       Provider.of<SalesReturnController>(
                         context,
                         listen: false,
-                      ).fetchsalesreturn(); // Go back to previous screen
+                      ).fetchsalesreturn();
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF764BA2),
@@ -1059,7 +2027,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
-                          Navigator.of(context).pop(); // Close dialog
+                          Navigator.of(context).pop();
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF764BA2),
@@ -1082,10 +2050,8 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          Navigator.of(context).pop(); // Close dialog
-                          Navigator.of(
-                            context,
-                          ).pop(); // Go back to previous screen
+                          Navigator.of(context).pop();
+                          Navigator.of(context).pop();
                         },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red.shade600,
@@ -1301,7 +2267,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                           ),
                           SizedBox(height: 4),
                           Text(
-                            'Fill in the details below',
+                            'Choose your preferred creation method',
                             style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                         ],
@@ -1313,52 +2279,112 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
 
               const SizedBox(height: 24),
 
-              // Invoice Selection
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withOpacity(0.1),
-                      blurRadius: 5,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: _buildTextField(
-                  controller: _invoiceNameController,
-                  label: 'Invoice Name',
-                  hint: 'Select an invoice',
-                  icon: Icons.receipt_long,
-                  readOnly: true,
-                  onTap: _showInvoiceSelectionSheet,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please select an invoice';
-                    }
-                    return null;
-                  },
-                ),
-              ),
+              // Creation Mode Toggle
+              _buildCreationModeToggle(),
 
               const SizedBox(height: 24),
 
-              // Invoice Items Section (shows after invoice selection)
+              // Invoice Selection or Direct Item Selection
+              if (_isInvoiceMode) ...[
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: _buildTextField(
+                    controller: _invoiceNameController,
+                    label: 'Invoice Name',
+                    hint: 'Select an invoice',
+                    icon: Icons.receipt_long,
+                    readOnly: true,
+                    onTap: _showInvoiceSelectionSheet,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please select an invoice';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+              ] else ...[
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.1),
+                        blurRadius: 5,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      _buildTextField(
+                        controller: _customerController,
+                        label: 'Customer',
+                        hint: 'Select a customer',
+                        icon: Icons.person,
+                        readOnly: true,
+                        onTap: _showCustomerSelectionSheet,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please select a customer';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: _showDirectItemSelectionSheet,
+                              icon: const Icon(Icons.add),
+                              label: Text(
+                                _selectedItems.isEmpty
+                                    ? 'Select Items'
+                                    : 'Add Items (${_selectedItems.length} selected)',
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF764BA2),
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+
+              const SizedBox(height: 24),
+
+              // Items Section (shows different content based on mode)
               _buildInvoiceItemsSection(),
+              _buildDirectItemsSection(),
 
               // Add spacing if items are shown
-              Consumer<SalesInvoiceDetailController>(
-                builder: (context, controller, child) {
-                  if (_selectedInvoiceId != null &&
-                      controller.salesInvoiceDetail != null &&
-                      !controller.isLoading) {
-                    return const SizedBox(height: 24);
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
+              if ((_isInvoiceMode && _selectedInvoiceId != null) ||
+                  (!_isInvoiceMode && _selectedItems.isNotEmpty))
+                const SizedBox(height: 24),
 
               // Form Fields
               Container(
@@ -1382,13 +2408,18 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
 
                     _buildTextField(
                       controller: _buyingDateController,
-                      label: 'Purchase Date',
-                      hint: 'Will be auto-filled from selected invoice',
+                      label: _isInvoiceMode ? 'Purchase Date' : 'Return Date',
+                      hint: _isInvoiceMode
+                          ? 'Will be auto-filled from selected invoice'
+                          : 'Select return date',
                       icon: Icons.calendar_today,
                       readOnly: true,
+                      onTap: _isInvoiceMode ? null : _selectBuyingDate,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Purchase date will be set when you select an invoice';
+                          return _isInvoiceMode
+                              ? 'Purchase date will be set when you select an invoice'
+                              : 'Please select a return date';
                         }
                         return null;
                       },

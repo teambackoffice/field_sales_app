@@ -68,12 +68,6 @@ class CreateSalesReturnService {
 
     final uri = Uri.parse(url);
 
-    // 🟢 Debug prints
-    print("➡️ Creating sales return...");
-    print("📌 URL: $uri");
-    print("📌 Headers: $headers");
-    print("📌 Body: ${json.encode(body)}");
-
     final response = await http.post(
       uri,
       headers: headers,
@@ -81,8 +75,6 @@ class CreateSalesReturnService {
     );
 
     // 🟢 Response logs
-    print("✅ Response Status: ${response.statusCode}");
-    print("✅ Response Body: ${response.body}");
 
     return response;
   }
