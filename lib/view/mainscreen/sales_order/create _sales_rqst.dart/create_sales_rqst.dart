@@ -23,7 +23,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
   final _notesController = TextEditingController();
   final _customerController = TextEditingController();
 
-  String? _selectedReason;
   DateTime? _selectedBuyingDate;
   String? _selectedInvoiceId;
   final Map<String, int> _selectedItems = {}; // item_code -> return_quantity
@@ -1883,7 +1882,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
         returnAgainst: _isInvoiceMode ? _invoiceNameController.text : "",
         returnDate: _buyingDateController.text,
         customer: customer,
-        reason: _selectedReason!,
+
         buyingDate: _buyingDateController.text,
         notes: _notesController.text,
         items: items,
@@ -2147,65 +2146,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     );
   }
 
-  Widget _buildDropdown() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Return Reason',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2C3E50),
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: _selectedReason,
-          hint: const Text('Select return reason'),
-          decoration: InputDecoration(
-            prefixIcon: const Icon(
-              Icons.info_outline,
-              color: Color(0xFF764BA2),
-            ),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF764BA2), width: 2),
-            ),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 16,
-              vertical: 16,
-            ),
-          ),
-          items: _returnReasons.map((String reason) {
-            return DropdownMenuItem<String>(value: reason, child: Text(reason));
-          }).toList(),
-          onChanged: (String? newValue) {
-            setState(() {
-              _selectedReason = newValue;
-            });
-          },
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please select a return reason';
-            }
-            return null;
-          },
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -2402,10 +2342,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                 ),
                 child: Column(
                   children: [
-                    _buildDropdown(),
-
-                    const SizedBox(height: 20),
-
                     _buildTextField(
                       controller: _buyingDateController,
                       label: _isInvoiceMode ? 'Purchase Date' : 'Return Date',

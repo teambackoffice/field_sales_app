@@ -40,44 +40,76 @@ class Message {
 
 class Datum {
   String name;
-  dynamic salesInvoiceId;
-  String productName;
-  double qty;
-  String reason;
-  dynamic date;
-  String? notes;
-  String status;
+  String? returnAgainst;
+  String customer;
+  String company;
+  String postingDate;
+  String? workflowState;
+  String customSalesPerson;
+  List<Item> items;
 
   Datum({
     required this.name,
-    required this.salesInvoiceId,
-    required this.productName,
-    required this.qty,
-    required this.reason,
-    required this.date,
-    this.notes,
-    required this.status,
+    this.returnAgainst,
+    required this.customer,
+    required this.company,
+    required this.postingDate,
+    this.workflowState,
+    required this.customSalesPerson,
+    required this.items,
   });
 
   factory Datum.fromJson(Map<String, dynamic> json) => Datum(
     name: json["name"],
-    salesInvoiceId: json["sales_invoice_id"],
-    productName: json["product_name"],
-    qty: json["qty"],
-    reason: json["reason"],
-    date: json["date"],
-    notes: json["notes"],
-    status: json["status"],
+    returnAgainst: json["return_against"],
+    customer: json["customer"],
+    company: json["company"],
+    postingDate: json["posting_date"],
+    workflowState: json["workflow_state"],
+    customSalesPerson: json["custom_sales_person"],
+    items: List<Item>.from(json["items"].map((x) => Item.fromJson(x))),
   );
 
   Map<String, dynamic> toJson() => {
     "name": name,
-    "sales_invoice_id": salesInvoiceId,
-    "product_name": productName,
+    "return_against": returnAgainst,
+    "customer": customer,
+    "company": company,
+    "posting_date": postingDate,
+    "workflow_state": workflowState,
+    "custom_sales_person": customSalesPerson,
+    "items": List<dynamic>.from(items.map((x) => x.toJson())),
+  };
+}
+
+class Item {
+  String itemCode;
+  String itemName;
+  double qty;
+  double rate;
+  double amount;
+
+  Item({
+    required this.itemCode,
+    required this.itemName,
+    required this.qty,
+    required this.rate,
+    required this.amount,
+  });
+
+  factory Item.fromJson(Map<String, dynamic> json) => Item(
+    itemCode: json["item_code"],
+    itemName: json["item_name"],
+    qty: (json["qty"] as num).toDouble(),
+    rate: (json["rate"] as num).toDouble(),
+    amount: (json["amount"] as num).toDouble(),
+  );
+
+  Map<String, dynamic> toJson() => {
+    "item_code": itemCode,
+    "item_name": itemName,
     "qty": qty,
-    "reason": reason,
-    "date": date,
-    "notes": notes,
-    "status": status,
+    "rate": rate,
+    "amount": amount,
   };
 }

@@ -40,16 +40,15 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
     super.dispose();
   }
 
-  Color _getStatusColor(String? reason) {
-    if (reason == null) return Color(0xFF764BA2);
-    final lowerReason = reason.toLowerCase();
-    if (lowerReason.contains('damaged') || lowerReason.contains('defective')) {
-      return const Color(0xFF764BA2);
-    } else if (lowerReason.contains('expired')) {
-      return const Color(0xFF764BA2);
-    } else if (lowerReason.contains('wrong') ||
-        lowerReason.contains('incorrect')) {
-      return const Color(0xFF764BA2);
+  Color _getStatusColor(String? workflowState) {
+    if (workflowState == null) return const Color(0xFF95A5A6);
+    final lowerState = workflowState.toLowerCase();
+    if (lowerState.contains('pending')) {
+      return const Color(0xFFF39C12);
+    } else if (lowerState.contains('approved')) {
+      return const Color(0xFF27AE60);
+    } else if (lowerState.contains('rejected')) {
+      return const Color(0xFFE74C3C);
     }
     return const Color(0xFF764BA2);
   }
@@ -168,15 +167,22 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Stats Card
-
                   // List Items
                   Expanded(
                     child: ListView.builder(
                       itemCount: salesReturns.length,
                       itemBuilder: (context, index) {
-                        final item = salesReturns[index];
-                        final statusColor = _getStatusColor(item.reason);
+                        final data = salesReturns[index];
+                        final statusColor = _getStatusColor(data.workflowState);
+
+                        // Calculate total quantity from items
+                        double totalQty = 0;
+                        if (data.items.isNotEmpty) {
+                          totalQty = data.items.fold(
+                            0,
+                            (sum, item) => sum + (item.qty.abs() ?? 0),
+                          );
+                        }
 
                         return Container(
                           margin: const EdgeInsets.only(bottom: 16),
@@ -211,7 +217,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                     Row(
                                       children: [
                                         Hero(
-                                          tag: 'return_${item.name}_$index',
+                                          tag: 'return_${data.name}_$index',
                                           child: Container(
                                             width: 50,
                                             height: 50,
@@ -238,105 +244,53 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                         ),
                                         const SizedBox(width: 16),
                                         Expanded(
-                                          child: Row(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    item.name,
-                                                    style: const TextStyle(
-                                                      fontSize: 17,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                      color: Color(0xFF2C3E50),
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  if (item.salesInvoiceId !=
-                                                      null)
-                                                    Container(
-                                                      padding:
-                                                          const EdgeInsets.symmetric(
-                                                            horizontal: 8,
-                                                            vertical: 4,
-                                                          ),
-                                                      decoration: BoxDecoration(
-                                                        color: const Color(
-                                                          0xFF667EEA,
-                                                        ).withOpacity(0.1),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                              8,
-                                                            ),
-                                                      ),
-                                                      child: Text(
-                                                        'Invoice: ${item.salesInvoiceId}',
-                                                        style: const TextStyle(
-                                                          fontSize: 12,
-                                                          color: Color(
-                                                            0xFF667EEA,
-                                                          ),
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                    ),
-                                                ],
-                                              ),
-                                              const Spacer(),
-                                              // Status as container
-                                              Container(
-                                                padding:
-                                                    const EdgeInsets.symmetric(
-                                                      horizontal: 12,
-                                                      vertical: 6,
-                                                    ),
-                                                decoration: BoxDecoration(
-                                                  color:
-                                                      item.status == "Approved"
-                                                      ? Colors.green
-                                                            .withOpacity(0.15)
-                                                      : item.status ==
-                                                            "Rejected"
-                                                      ? Colors.red.withOpacity(
-                                                          0.15,
-                                                        )
-                                                      : statusColor.withOpacity(
-                                                          0.15,
-                                                        ),
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color:
-                                                        item.status ==
-                                                            "Approved"
-                                                        ? Colors.green
-                                                        : item.status ==
-                                                              "Rejected"
-                                                        ? Colors.red
-                                                        : statusColor,
-                                                    width: 1,
-                                                  ),
+                                              Text(
+                                                data.name ?? 'Unknown',
+                                                style: const TextStyle(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Color(0xFF2C3E50),
                                                 ),
-                                                child: Text(
-                                                  item.status,
-                                                  style: TextStyle(
-                                                    fontSize: 14,
-                                                    fontWeight: FontWeight.w600,
-                                                    color:
-                                                        item.status ==
-                                                            "Approved"
-                                                        ? Colors.green
-                                                        : item.status ==
-                                                              "Rejected"
-                                                        ? Colors.red
-                                                        : statusColor,
-                                                  ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Customer: ${data.customer ?? 'Unknown'}',
+                                                style: TextStyle(
+                                                  fontSize: 13,
+                                                  color: Colors.grey[600],
+                                                  fontWeight: FontWeight.w500,
                                                 ),
                                               ),
                                             ],
+                                          ),
+                                        ),
+                                        // Status as container
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: statusColor.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                            border: Border.all(
+                                              color: statusColor,
+                                              width: 1,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            data.workflowState ?? 'No Status',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: statusColor,
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -353,7 +307,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                       ),
                                       child: Column(
                                         children: [
-                                          // Quantity Row (NEW - Added above date)
+                                          // Quantity Row
                                           Row(
                                             children: [
                                               Container(
@@ -380,7 +334,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                                       CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
-                                                      'Quantity',
+                                                      'Total Quantity',
                                                       style: TextStyle(
                                                         fontSize: 12,
                                                         color: Colors.grey[600],
@@ -390,7 +344,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                                     ),
                                                     const SizedBox(height: 2),
                                                     Text(
-                                                      item.qty.toString(),
+                                                      totalQty.toString(),
                                                       style: const TextStyle(
                                                         fontSize: 16,
                                                         color: Color(
@@ -409,86 +363,23 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                           const SizedBox(height: 12),
 
                                           // Date Row
-                                          if (item.date != null)
-                                            Row(
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.all(
-                                                    8,
-                                                  ),
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
-                                                      0xFF3498DB,
-                                                    ).withOpacity(0.1),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          8,
-                                                        ),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons
-                                                        .calendar_today_outlined,
-                                                    size: 16,
-                                                    color: Color(0xFF3498DB),
-                                                  ),
-                                                ),
-                                                const SizedBox(width: 12),
-                                                Expanded(
-                                                  child: Column(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .start,
-                                                    children: [
-                                                      Text(
-                                                        'Return Date',
-                                                        style: TextStyle(
-                                                          fontSize: 12,
-                                                          color:
-                                                              Colors.grey[600],
-                                                          fontWeight:
-                                                              FontWeight.w500,
-                                                        ),
-                                                      ),
-                                                      const SizedBox(height: 2),
-                                                      Text(
-                                                        item.date!,
-                                                        style: const TextStyle(
-                                                          fontSize: 14,
-                                                          color: Color(
-                                                            0xFF2C3E50,
-                                                          ),
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-
-                                          if (item.date != null)
-                                            const SizedBox(height: 12),
-
-                                          // Reason Row
                                           Row(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
                                             children: [
                                               Container(
                                                 padding: const EdgeInsets.all(
                                                   8,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: statusColor
-                                                      .withOpacity(0.1),
+                                                  color: const Color(
+                                                    0xFF3498DB,
+                                                  ).withOpacity(0.1),
                                                   borderRadius:
                                                       BorderRadius.circular(8),
                                                 ),
-                                                child: Icon(
-                                                  Icons.description_outlined,
+                                                child: const Icon(
+                                                  Icons.calendar_today_outlined,
                                                   size: 16,
-                                                  color: statusColor,
+                                                  color: Color(0xFF3498DB),
                                                 ),
                                               ),
                                               const SizedBox(width: 12),
@@ -498,7 +389,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                                       CrossAxisAlignment.start,
                                                   children: [
                                                     Text(
-                                                      'Return Reason',
+                                                      'Posting Date',
                                                       style: TextStyle(
                                                         fontSize: 12,
                                                         color: Colors.grey[600],
@@ -508,7 +399,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                                     ),
                                                     const SizedBox(height: 2),
                                                     Text(
-                                                      item.reason,
+                                                      data.postingDate,
                                                       style: const TextStyle(
                                                         fontSize: 14,
                                                         color: Color(
@@ -524,9 +415,67 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                             ],
                                           ),
 
-                                          // Notes Section (only if notes exist)
-                                          if (item.notes != null &&
-                                              item.notes!.isNotEmpty) ...[
+                                          const SizedBox(height: 12),
+
+                                          // Sales Person Row
+                                          Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(
+                                                  8,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: statusColor
+                                                      .withOpacity(0.1),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                ),
+                                                child: Icon(
+                                                  Icons.person_outlined,
+                                                  size: 16,
+                                                  color: statusColor,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      'Sales Person',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Colors.grey[600],
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(height: 2),
+                                                    Text(
+                                                      data.customSalesPerson,
+                                                      style: const TextStyle(
+                                                        fontSize: 14,
+                                                        color: Color(
+                                                          0xFF2C3E50,
+                                                        ),
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+
+                                          // Return Against Section (only if return_against exists)
+                                          if (data.returnAgainst != null &&
+                                              data
+                                                  .returnAgainst!
+                                                  .isNotEmpty) ...[
                                             const SizedBox(height: 12),
                                             Row(
                                               crossAxisAlignment:
@@ -546,7 +495,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                                         ),
                                                   ),
                                                   child: const Icon(
-                                                    Icons.note_outlined,
+                                                    Icons.link_outlined,
                                                     size: 16,
                                                     color: Color(0xFF9B59B6),
                                                   ),
@@ -559,7 +508,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                                             .start,
                                                     children: [
                                                       Text(
-                                                        'Notes',
+                                                        'Return Against',
                                                         style: TextStyle(
                                                           fontSize: 12,
                                                           color:
@@ -570,7 +519,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                                       ),
                                                       const SizedBox(height: 2),
                                                       Text(
-                                                        item.notes!,
+                                                        data.returnAgainst!,
                                                         style: const TextStyle(
                                                           fontSize: 14,
                                                           color: Color(
@@ -591,6 +540,73 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                         ],
                                       ),
                                     ),
+
+                                    // Items Section
+                                    if (data.items.isNotEmpty) ...[
+                                      const SizedBox(height: 16),
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blue.withOpacity(0.05),
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Items (${data.items.length})',
+                                              style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Color(0xFF2C3E50),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 12),
+                                            ...data.items
+                                                .map(
+                                                  (item) => Padding(
+                                                    padding:
+                                                        const EdgeInsets.only(
+                                                          bottom: 8,
+                                                        ),
+                                                    child: Row(
+                                                      children: [
+                                                        Expanded(
+                                                          child: Text(
+                                                            item.itemName ??
+                                                                item.itemCode ??
+                                                                'Unknown Item',
+                                                            style:
+                                                                const TextStyle(
+                                                                  fontSize: 13,
+                                                                  color: Color(
+                                                                    0xFF2C3E50,
+                                                                  ),
+                                                                ),
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          'Qty: ${item.qty.abs() ?? 0}',
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            color: Colors
+                                                                .grey[600],
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                )
+                                                .toList(),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -634,9 +650,7 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
-          // Stats Card Shimmer
           const SizedBox(height: 20),
-
           // List Items Shimmer
           Expanded(
             child: ListView.builder(
@@ -699,8 +713,8 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                             ),
                           ),
                           Container(
-                            width: 36,
-                            height: 36,
+                            width: 80,
+                            height: 32,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(8),
                               color: Colors.grey[200],
@@ -720,147 +734,59 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                         ),
                         child: Column(
                           children: [
-                            // Quantity row shimmer (NEW)
-                            Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: Colors.grey[200],
-                                  ),
-                                  child: _buildShimmerContainer(),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                            // Multiple shimmer rows
+                            ...List.generate(
+                              3,
+                              (index) => Column(
+                                children: [
+                                  Row(
                                     children: [
                                       Container(
-                                        width: 60,
-                                        height: 12,
+                                        width: 32,
+                                        height: 32,
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(
-                                            4,
+                                            8,
                                           ),
                                           color: Colors.grey[200],
                                         ),
                                         child: _buildShimmerContainer(),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        width: 40,
-                                        height: 16,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                          color: Colors.grey[200],
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Container(
+                                              width: 60 + index * 20.0,
+                                              height: 12,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                color: Colors.grey[200],
+                                              ),
+                                              child: _buildShimmerContainer(),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Container(
+                                              width: 100 + index * 30.0,
+                                              height: 16,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                color: Colors.grey[200],
+                                              ),
+                                              child: _buildShimmerContainer(),
+                                            ),
+                                          ],
                                         ),
-                                        child: _buildShimmerContainer(),
                                       ),
                                     ],
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Date row shimmer
-                            Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: Colors.grey[200],
-                                  ),
-                                  child: _buildShimmerContainer(),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        width: 80,
-                                        height: 12,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                          color: Colors.grey[200],
-                                        ),
-                                        child: _buildShimmerContainer(),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        width: 120,
-                                        height: 14,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                          color: Colors.grey[200],
-                                        ),
-                                        child: _buildShimmerContainer(),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-
-                            // Reason row shimmer
-                            Row(
-                              children: [
-                                Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(8),
-                                    color: Colors.grey[200],
-                                  ),
-                                  child: _buildShimmerContainer(),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        width: 100,
-                                        height: 12,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                          color: Colors.grey[200],
-                                        ),
-                                        child: _buildShimmerContainer(),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Container(
-                                        width: double.infinity,
-                                        height: 14,
-                                        decoration: BoxDecoration(
-                                          borderRadius: BorderRadius.circular(
-                                            4,
-                                          ),
-                                          color: Colors.grey[200],
-                                        ),
-                                        child: _buildShimmerContainer(),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                                  if (index < 2) const SizedBox(height: 12),
+                                ],
+                              ),
                             ),
                           ],
                         ),
