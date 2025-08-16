@@ -3,22 +3,40 @@ import 'package:intl/intl.dart';
 import 'package:location_tracker_app/controller/create_sales_order_controller.dart';
 import 'package:location_tracker_app/controller/customer_list_controller.dart';
 import 'package:location_tracker_app/controller/item_list_controller.dart';
+import 'package:location_tracker_app/controller/item_tax_controller.dart'; // Add this import
 import 'package:location_tracker_app/controller/sales_order_controller.dart';
 import 'package:location_tracker_app/modal/customer_list_modal.dart';
+import 'package:location_tracker_app/modal/item_tax_modal.dart'; // Add this import
 import 'package:provider/provider.dart';
 
-// Model classes
+// Enhanced OrderItem class with tax information
 class OrderItem {
   final String item_code;
   final double rate;
   final int qty;
+  final String taxTemplate;
+  final double taxRate;
 
-  OrderItem({required this.item_code, required this.rate, required this.qty});
+  OrderItem({
+    required this.item_code,
+    required this.rate,
+    required this.qty,
+    required this.taxTemplate,
+    required this.taxRate,
+  });
 
-  double get totalPrice => rate * qty;
+  double get subtotal => rate * qty;
+  double get taxAmount => subtotal * (taxRate / 100);
+  double get totalPrice => subtotal + taxAmount;
 
   Map<String, dynamic> toJson() {
-    return {'item_code': item_code, 'rate': rate, 'qty': qty};
+    return {
+      'item_code': item_code,
+      'rate': rate,
+      'qty': qty,
+      'tax_template': taxTemplate,
+      'tax_rate': taxRate,
+    };
   }
 }
 
@@ -27,11 +45,13 @@ class InventoryItem {
   final double price;
   final String unit;
   final String description;
+  final String taxTemplate; // Add tax template
 
   InventoryItem({
     required this.name,
     required this.price,
     required this.unit,
+    required this.taxTemplate, // Add this
     this.description = '',
   });
 }
@@ -54,6 +74,8 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   DateTime delvery_date = DateTime.now();
   String? _selectedCustomer;
   final List<OrderItem> _orderItems = [];
+  double _subtotalAmount = 0.0;
+  double _totalTaxAmount = 0.0;
   double _totalAmount = 0.0;
 
   @override
@@ -65,14 +87,15 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
         context,
         listen: false,
       ).fetchCustomerList();
-    });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<ItemListController>(context, listen: false).fetchItemList();
+      Provider.of<ItemTaxController>(
+        context,
+        listen: false,
+      ).getItemTaxes(); // Load tax data
     });
   }
 
   void _generateOrderNumber() {
-    // Generate order number based on current date
     String dateStr = DateTime.now()
         .toString()
         .substring(0, 10)
@@ -97,7 +120,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
         return;
       }
 
-      // Call API
       await controller.createSalesOrder(
         customer: _selectedCustomer ?? "anupam",
         deliveryDate: DateFormat('yyyy-MM-dd').format(delvery_date),
@@ -105,7 +127,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
       );
 
       if (controller.error != null) {
-        // Show error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${controller.error}'),
@@ -115,15 +136,12 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
         return;
       }
 
-      // On success
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Sales Order created successfully!'),
           backgroundColor: Color(0xFF764BA2),
         ),
       );
-
-      // Optional: Print or use response
 
       Navigator.pop(context);
       Provider.of<SalesOrderController>(
@@ -134,8 +152,26 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   }
 
   void _calculateTotal() {
-    _totalAmount = _orderItems.fold(0.0, (sum, item) => sum + item.totalPrice);
+    _subtotalAmount = _orderItems.fold(0.0, (sum, item) => sum + item.subtotal);
+    _totalTaxAmount = _orderItems.fold(
+      0.0,
+      (sum, item) => sum + item.taxAmount,
+    );
+    _totalAmount = _subtotalAmount + _totalTaxAmount;
     setState(() {});
+  }
+
+  // Helper method to get tax rate from tax template
+  double _getTaxRate(String taxTemplate, List<ItemTax> taxList) {
+    try {
+      final tax = taxList.firstWhere(
+        (tax) => tax.name.toLowerCase() == taxTemplate.toLowerCase(),
+        orElse: () => ItemTax(name: '', title: '', gstRate: 0.0),
+      );
+      return tax.gstRate;
+    } catch (e) {
+      return 0.0; // Default to 0 if tax template not found
+    }
   }
 
   @override
@@ -153,47 +189,55 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
       ),
       body: Form(
         key: _formKey,
-        child: Consumer<GetCustomerListController>(
-          builder: (context, controller, child) {
-            if (controller.isLoading)
-              return Center(child: CircularProgressIndicator());
-            if (controller.error != null)
-              return Text('Error: ${controller.error}');
-            final customers = controller.customerlist!.message.message;
-            return SingleChildScrollView(
-              padding: EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Order Header Card
-                  _buildHeaderCard(),
+        child:
+            Consumer3<
+              GetCustomerListController,
+              ItemTaxController,
+              ItemListController
+            >(
+              builder:
+                  (
+                    context,
+                    customerController,
+                    taxController,
+                    itemController,
+                    child,
+                  ) {
+                    if (customerController.isLoading ||
+                        taxController.isLoading) {
+                      return Center(child: CircularProgressIndicator());
+                    }
 
-                  SizedBox(height: 16),
+                    if (customerController.error != null) {
+                      return Center(
+                        child: Text('Error: ${customerController.error}'),
+                      );
+                    }
 
-                  // Customer Selection Card
-                  _buildCustomerCard(customers: customers),
+                    final customers =
+                        customerController.customerlist?.message.message ?? [];
+                    final taxList = taxController.itemTaxes;
 
-                  SizedBox(height: 16),
-
-                  // Items Section
-                  _buildItemsCard(),
-
-                  SizedBox(height: 16),
-
-                  // Total Amount Card
-                  _buildTotalCard(),
-
-                  SizedBox(height: 16),
-
-                  // Save Button
-                  _buildSaveButton(),
-
-                  SizedBox(height: 20),
-                ],
-              ),
-            );
-          },
-        ),
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeaderCard(),
+                          SizedBox(height: 16),
+                          _buildCustomerCard(customers: customers),
+                          SizedBox(height: 16),
+                          _buildItemsCard(taxList),
+                          SizedBox(height: 16),
+                          _buildTotalCard(),
+                          SizedBox(height: 16),
+                          _buildSaveButton(),
+                          SizedBox(height: 20),
+                        ],
+                      ),
+                    );
+                  },
+            ),
       ),
     );
   }
@@ -212,24 +256,79 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
           ),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: Column(
           children: [
-            Text(
-              'Total Amount',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+            // Subtotal row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Subtotal',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+                Text(
+                  '₹${_subtotalAmount.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
             ),
-            Text(
-              '₹${_totalAmount.toStringAsFixed(2)}',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-              ),
+
+            SizedBox(height: 8),
+
+            // Tax row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Total Tax',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+                Text(
+                  '₹${_totalTaxAmount.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                ),
+              ],
+            ),
+
+            Divider(color: Colors.white.withOpacity(0.5), thickness: 1),
+
+            // Total row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Total Amount',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  '₹${_totalAmount.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -414,17 +513,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                                 : [Color(0xFFF59E0B), Color(0xFFD97706)],
                           ),
                           borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color:
-                                  (customer.hasGstin == true
-                                          ? Colors.green
-                                          : Colors.orange)
-                                      .withOpacity(0.2),
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
-                            ),
-                          ],
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -458,14 +546,10 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                 });
               },
               validator: (value) {
-                if (value == null) {
-                  return 'Please select a customer';
-                }
+                if (value == null) return 'Please select a customer';
                 return null;
               },
             ),
-
-            // Display selected customer's GST info
             if (_selectedCustomer != null) ...[
               SizedBox(height: 12),
               _buildSelectedCustomerInfo(customers),
@@ -547,7 +631,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  Widget _buildItemsCard() {
+  Widget _buildItemsCard(List<ItemTax> taxList) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -568,7 +652,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: _showAddItemBottomSheet,
+                  onPressed: () => _showAddItemBottomSheet(taxList),
                   icon: Icon(Icons.add),
                   label: Text('Add Item'),
                   style: ElevatedButton.styleFrom(
@@ -588,10 +672,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                     decoration: BoxDecoration(
                       color: Colors.grey.shade50,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: Colors.grey.shade300,
-                        style: BorderStyle.solid,
-                      ),
+                      border: Border.all(color: Colors.grey.shade300),
                     ),
                     child: Center(
                       child: Column(
@@ -616,7 +697,11 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                     physics: NeverScrollableScrollPhysics(),
                     itemCount: _orderItems.length,
                     itemBuilder: (context, index) {
-                      return _buildOrderItemTile(_orderItems[index], index);
+                      return _buildOrderItemTile(
+                        _orderItems[index],
+                        index,
+                        taxList,
+                      );
                     },
                   ),
           ],
@@ -625,7 +710,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  void _showAddItemBottomSheet() {
+  void _showAddItemBottomSheet(List<ItemTax> taxList) {
     final TextEditingController searchController = TextEditingController();
     String searchText = "";
     final FocusNode searchFocusNode = FocusNode();
@@ -687,7 +772,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                         ),
                       ),
 
-                      // Enhanced Search Field
+                      // Search Field
                       Container(
                         margin: EdgeInsets.fromLTRB(16, 16, 16, 8),
                         decoration: BoxDecoration(
@@ -699,157 +784,52 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                                 : Colors.grey.shade200,
                             width: 1.5,
                           ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
                         ),
                         child: TextField(
                           controller: searchController,
                           focusNode: searchFocusNode,
                           decoration: InputDecoration(
                             hintText: "Search by name or code...",
-                            hintStyle: TextStyle(
-                              color: Colors.grey.shade500,
-                              fontSize: 15,
+                            prefixIcon: Icon(
+                              Icons.search_rounded,
+                              color: Color(0xFF764BA2),
                             ),
-                            prefixIcon: Container(
-                              padding: EdgeInsets.all(12),
-                              child: Icon(
-                                Icons.search_rounded,
-                                color: searchFocusNode.hasFocus
-                                    ? Color(0xFF764BA2)
-                                    : Colors.grey.shade400,
-                                size: 20,
-                              ),
-                            ),
-                            suffixIcon: searchText.isNotEmpty
-                                ? IconButton(
-                                    icon: Icon(
-                                      Icons.clear_rounded,
-                                      color: Colors.grey.shade400,
-                                      size: 20,
-                                    ),
-                                    onPressed: () {
-                                      searchController.clear();
-                                      setState(() {
-                                        searchText = "";
-                                      });
-                                    },
-                                  )
-                                : null,
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(
                               horizontal: 16,
                               vertical: 14,
                             ),
                           ),
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                          ),
                           onChanged: (value) {
                             setState(() {
                               searchText = value;
                             });
                           },
-                          onTap: () {
-                            setState(() {}); // Refresh to update focus state
-                          },
                         ),
                       ),
-
-                      // Search Results Counter (optional)
-                      if (searchText.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.filter_list_rounded,
-                                size: 16,
-                                color: Colors.grey.shade600,
-                              ),
-                              SizedBox(width: 4),
-                              Text(
-                                '${filteredList.length} item${filteredList.length != 1 ? 's' : ''} found',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey.shade600,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                      SizedBox(height: 8),
 
                       // Item List
                       Expanded(
                         child: filteredList.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      padding: EdgeInsets.all(20),
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey.shade100,
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        searchText.isNotEmpty
-                                            ? Icons.search_off_rounded
-                                            : Icons.inventory_outlined,
-                                        size: 48,
-                                        color: Colors.grey.shade400,
-                                      ),
-                                    ),
-                                    SizedBox(height: 16),
-                                    Text(
-                                      searchText.isNotEmpty
-                                          ? 'No items match your search'
-                                          : 'No items found',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.grey.shade600,
-                                      ),
-                                    ),
-                                    if (searchText.isNotEmpty)
-                                      Padding(
-                                        padding: const EdgeInsets.only(top: 8),
-                                        child: Text(
-                                          'Try searching with different keywords',
-                                          style: TextStyle(
-                                            fontSize: 14,
-                                            color: Colors.grey.shade500,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              )
+                            ? Center(child: Text('No items found'))
                             : ListView.builder(
                                 padding: EdgeInsets.all(16),
                                 itemCount: filteredList.length,
                                 itemBuilder: (context, index) {
                                   final product = filteredList[index];
+                                  final taxRate = _getTaxRate(
+                                    product.taxTemplate,
+                                    taxList,
+                                  );
                                   final inventoryItem = InventoryItem(
                                     name: product.itemCode,
                                     price: product.price,
                                     unit: product.uom,
+                                    taxTemplate: product.taxTemplate,
                                   );
+
                                   return Card(
                                     margin: EdgeInsets.only(bottom: 8),
-                                    elevation: 1,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
                                     child: ListTile(
                                       contentPadding: EdgeInsets.all(12),
                                       leading: Container(
@@ -886,6 +866,32 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                                               fontSize: 12,
                                             ),
                                           ),
+                                          // Show tax information
+                                          if (taxRate > 0) ...[
+                                            SizedBox(height: 4),
+                                            Container(
+                                              padding: EdgeInsets.symmetric(
+                                                horizontal: 6,
+                                                vertical: 2,
+                                              ),
+                                              decoration: BoxDecoration(
+                                                color: Colors.green.shade50,
+                                                borderRadius:
+                                                    BorderRadius.circular(4),
+                                                border: Border.all(
+                                                  color: Colors.green.shade200,
+                                                ),
+                                              ),
+                                              child: Text(
+                                                'GST: ${taxRate.toStringAsFixed(1)}%',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  color: Colors.green.shade700,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ],
                                       ),
                                       subtitle: Padding(
@@ -900,7 +906,10 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                                       ),
                                       trailing: ElevatedButton(
                                         onPressed: () {
-                                          _showQuantityDialog(inventoryItem);
+                                          _showQuantityDialog(
+                                            inventoryItem,
+                                            taxList,
+                                          );
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: Color(0xFF764BA2),
@@ -911,7 +920,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                                               8,
                                             ),
                                           ),
-                                          elevation: 0,
                                         ),
                                         child: Text('Add'),
                                       ),
@@ -931,20 +939,22 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  // Dialog to enter quantity when adding existing item
-  void _showQuantityDialog(InventoryItem item, {int? editIndex}) {
+  void _showQuantityDialog(
+    InventoryItem item,
+    List<ItemTax> taxList, {
+    int? editIndex,
+  }) {
     final quantityController = TextEditingController(
       text: editIndex != null ? _orderItems[editIndex].qty.toString() : '1',
     );
+    final taxRate = _getTaxRate(item.taxTemplate, taxList);
 
     showDialog(
       context: context,
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        insetPadding: EdgeInsets.symmetric(horizontal: 24, vertical: 24),
         child: Container(
           padding: EdgeInsets.all(20),
-          width: double.infinity,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -969,19 +979,52 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                   ),
                 ),
               ),
-
               SizedBox(height: 20),
 
-              // Price Info
-              Text(
-                'Price: ₹${item.price.toStringAsFixed(2)} per ${item.unit}',
-                style: TextStyle(
-                  color: Colors.grey.shade700,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
+              // Price and Tax Info
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Price per ${item.unit}:',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        Text(
+                          '₹${item.price.toStringAsFixed(2)}',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    if (taxRate > 0) ...[
+                      SizedBox(height: 4),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'GST Rate:',
+                            style: TextStyle(fontWeight: FontWeight.w500),
+                          ),
+                          Text(
+                            '${taxRate.toStringAsFixed(1)}%',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
               ),
-
               SizedBox(height: 20),
 
               // Quantity Input
@@ -1042,14 +1085,14 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                             item_code: item.name,
                             rate: item.price,
                             qty: quantity.toInt(),
+                            taxTemplate: item.taxTemplate,
+                            taxRate: taxRate,
                           );
 
                           setState(() {
                             if (editIndex != null) {
-                              // Update existing item
                               _orderItems[editIndex] = orderItem;
                             } else {
-                              // Add new item
                               _orderItems.add(orderItem);
                             }
                             _calculateTotal();
@@ -1089,7 +1132,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  Widget _buildOrderItemTile(OrderItem item, int index) {
+  Widget _buildOrderItemTile(OrderItem item, int index, List<ItemTax> taxList) {
     return Container(
       margin: EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
@@ -1141,27 +1184,81 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                         ),
                       ),
                       SizedBox(height: 4),
-                      Text(
-                        '₹${item.rate.toStringAsFixed(2)} × ${item.qty}',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 14,
-                        ),
+                      Row(
+                        children: [
+                          Text(
+                            '₹${item.rate.toStringAsFixed(2)} × ${item.qty}',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          if (item.taxRate > 0) ...[
+                            SizedBox(width: 8),
+                            Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                  color: Colors.green.shade200,
+                                ),
+                              ),
+                              child: Text(
+                                'GST: ${item.taxRate.toStringAsFixed(1)}%',
+                                style: TextStyle(
+                                  fontSize: 10,
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ],
                   ),
                 ),
 
-                // Total price
+                // Price breakdown
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      '₹${item.totalPrice.toStringAsFixed(2)}',
+                      '₹${item.subtotal.toStringAsFixed(2)}',
                       style: TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 16,
-                        color: Color(0xFF764BA2),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    if (item.taxAmount > 0) ...[
+                      Text(
+                        '+₹${item.taxAmount.toStringAsFixed(2)} tax',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green.shade600,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                    Container(
+                      margin: EdgeInsets.only(top: 4),
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF764BA2).withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '₹${item.totalPrice.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                          color: Color(0xFF764BA2),
+                        ),
                       ),
                     ),
                   ],
@@ -1206,7 +1303,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
 
                 // Edit button
                 InkWell(
-                  onTap: () => _editOrderItem(index),
+                  onTap: () => _editOrderItem(index, taxList),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -1280,15 +1377,16 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   }
 
   // Method to edit an order item
-  void _editOrderItem(int index) {
+  void _editOrderItem(int index, List<ItemTax> taxList) {
     final item = _orderItems[index];
     final inventoryItem = InventoryItem(
       name: item.item_code,
       price: item.rate,
       unit: 'unit', // You might want to store this in OrderItem
+      taxTemplate: item.taxTemplate,
     );
 
-    _showQuantityDialog(inventoryItem, editIndex: index);
+    _showQuantityDialog(inventoryItem, taxList, editIndex: index);
   }
 
   // Method to show delete confirmation

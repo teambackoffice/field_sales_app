@@ -32,6 +32,7 @@ class Message {
   String uom;
   double price;
   int maintainStock;
+  String taxTemplate;
 
   Message({
     required this.itemCode,
@@ -40,6 +41,7 @@ class Message {
     required this.uom,
     required this.price,
     required this.maintainStock,
+    required this.taxTemplate,
   });
 
   factory Message.fromJson(Map<String, dynamic> json) => Message(
@@ -47,8 +49,9 @@ class Message {
     itemName: json["item_name"],
     description: json["description"],
     uom: json["uom"],
-    price: json["price"],
+    price: (json["price"] as num).toDouble(),
     maintainStock: json["maintain_stock"],
+    taxTemplate: json["tax_template"] ?? "",
   );
 
   Map<String, dynamic> toJson() => {
@@ -58,5 +61,6 @@ class Message {
     "uom": uom,
     "price": price,
     "maintain_stock": maintainStock,
+    "tax_template": taxTemplate,
   };
 }
