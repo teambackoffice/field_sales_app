@@ -12,12 +12,13 @@ class CreateSalesReturnController with ChangeNotifier {
   Map<String, dynamic>? responseData;
 
   Future<void> createSalesReturn({
-    required String invoiceName,
-    required String productName,
-    required int qty,
-    required String reason,
-    required String buyingDate,
+    String? returnAgainst,
+    String? returnDate,
+    String? customer,
+    String? reason,
+    String? buyingDate,
     String? notes,
+    List<Map<String, dynamic>>? items,
   }) async {
     isLoading = true;
     errorMessage = null;
@@ -26,12 +27,13 @@ class CreateSalesReturnController with ChangeNotifier {
 
     try {
       final response = await _salesReturnService.createSalesReturn(
-        invoiceName: invoiceName,
-        productName: productName,
-        qty: qty,
+        returnAgainst: returnAgainst,
+        returnDate: returnDate,
+        customer: customer,
         reason: reason,
         buyingDate: buyingDate,
         notes: notes,
+        items: items,
       );
 
       if (response.statusCode == 200) {

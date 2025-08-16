@@ -893,31 +893,39 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
         listen: false,
       );
 
-      // For now, we'll submit each item separately. You might need to adjust this based on your API
-      for (final entry in _selectedItems.entries) {
-        final detailController = Provider.of<SalesInvoiceDetailController>(
-          context,
-          listen: false,
-        );
+      final detailController = Provider.of<SalesInvoiceDetailController>(
+        context,
+        listen: false,
+      );
+
+      // ✅ Build items list
+      final items = _selectedItems.entries.map((entry) {
         final item = detailController.salesInvoiceDetail!.message.data.items
-            .firstWhere((item) => item.itemCode == entry.key);
+            .firstWhere((i) => i.itemCode == entry.key);
 
-        await controller.createSalesReturn(
-          invoiceName: _invoiceNameController.text,
-          productName: item.itemName,
-          qty: entry.value,
-          reason: _selectedReason!,
-          buyingDate: _buyingDateController.text,
-          notes: _notesController.text,
-        );
+        return {
+          "item_code": item.itemCode,
+          "qty": entry.value,
+          "rate": item.rate, // assuming your detail has rate
+        };
+      }).toList();
 
-        if (controller.errorMessage != null) {
-          _showErrorDialog(controller.errorMessage!);
-          return;
-        }
+      await controller.createSalesReturn(
+        returnAgainst: _invoiceNameController.text,
+        returnDate: _buyingDateController.text,
+        customer: detailController.salesInvoiceDetail!.message.data.customer,
+        reason: _selectedReason!,
+        buyingDate: _buyingDateController.text,
+        notes: _notesController.text,
+        items: items,
+      );
+
+      if (controller.errorMessage != null) {
+        _showErrorDialog(controller.errorMessage!);
+        return;
       }
 
-      // Show success dialog
+      // ✅ Show success dialog
       if (mounted) {
         _showSuccessDialog();
       }

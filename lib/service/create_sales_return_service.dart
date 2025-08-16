@@ -5,7 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:location_tracker_app/config/api_constant.dart';
 
 class CreateSalesReturnService {
-  final String url = '${ApiConstants.baseUrl}create_sales_return';
+  final String url =
+      '${ApiConstants.baseUrl}create_sales_return_with_invoice_id';
   final FlutterSecureStorage storage = const FlutterSecureStorage();
 
   /// Fetch SID from secure storage
@@ -19,11 +20,13 @@ class CreateSalesReturnService {
   }
 
   Future<http.Response> createSalesReturn({
-    required String invoiceName,
-    required String productName,
-    required int qty,
-    required String reason,
-    required String buyingDate,
+    String? returnAgainst, // optional
+    String? returnDate, // optional
+    String? customer, // optional
+    String? salesPerson, // optional (default from storage)
+    List<Map<String, dynamic>>? items, // optional
+    String? reason,
+    String? buyingDate,
     String? notes,
   }) async {
     final sid = await _getSid();
@@ -38,19 +41,48 @@ class CreateSalesReturnService {
 
     final headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
 
-    final body = json.encode({
-      "sales_person": id,
-      "invoice_name": invoiceName,
-      "product_name": productName,
-      "qty": qty,
-      "reason": reason,
-      "buying_date": buyingDate,
-      "notes": notes ?? "",
-    });
+    // Build body dynamically
+    final Map<String, dynamic> body = {"sales_person": salesPerson ?? id};
+
+    if (returnAgainst != null && returnAgainst.isNotEmpty) {
+      body["return_against"] = returnAgainst;
+    }
+    if (returnDate != null && returnDate.isNotEmpty) {
+      body["return_date"] = returnDate;
+    }
+    if (customer != null && customer.isNotEmpty) {
+      body["customer"] = customer;
+    }
+    if (reason != null && reason.isNotEmpty) {
+      body["reason"] = reason;
+    }
+    if (buyingDate != null && buyingDate.isNotEmpty) {
+      body["buying_date"] = buyingDate;
+    }
+    if (notes != null && notes.isNotEmpty) {
+      body["notes"] = notes;
+    }
+    if (items != null && items.isNotEmpty) {
+      body["items"] = items;
+    }
 
     final uri = Uri.parse(url);
 
-    final response = await http.post(uri, headers: headers, body: body);
+    // 🟢 Debug prints
+    print("➡️ Creating sales return...");
+    print("📌 URL: $uri");
+    print("📌 Headers: $headers");
+    print("📌 Body: ${json.encode(body)}");
+
+    final response = await http.post(
+      uri,
+      headers: headers,
+      body: json.encode(body),
+    );
+
+    // 🟢 Response logs
+    print("✅ Response Status: ${response.statusCode}");
+    print("✅ Response Body: ${response.body}");
 
     return response;
   }
