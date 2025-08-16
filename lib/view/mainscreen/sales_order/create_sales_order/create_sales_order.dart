@@ -112,7 +112,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     if (_formKey.currentState!.validate()) {
       if (_orderItems.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Please add at least one item to the order'),
             backgroundColor: Colors.red,
           ),
@@ -121,6 +121,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
       }
 
       await controller.createSalesOrder(
+        context: context,
         customer: _selectedCustomer ?? "anupam",
         deliveryDate: DateFormat('yyyy-MM-dd').format(delvery_date),
         items: _orderItems.map((item) => item.toJson()).toList(),
@@ -129,7 +130,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
       if (controller.error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${controller.error}'),
+            content: Text(controller.error!), // Already user-friendly
             backgroundColor: Colors.red,
           ),
         );
@@ -137,8 +138,8 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Sales Order created successfully!'),
+        const SnackBar(
+          content: Text('✅ Sales Order created successfully!'),
           backgroundColor: Color(0xFF764BA2),
         ),
       );
