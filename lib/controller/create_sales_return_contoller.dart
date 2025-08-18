@@ -31,7 +31,6 @@ class CreateSalesReturnController with ChangeNotifier {
         returnDate: returnDate,
         customer: customer,
         reason: reason,
-        buyingDate: buyingDate,
         notes: notes,
         items: items,
       );
