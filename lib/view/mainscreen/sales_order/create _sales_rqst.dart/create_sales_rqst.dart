@@ -502,13 +502,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                                       ),
                                     ),
                                   ),
-                                  subtitle: Text(
-                                    'Invoice #${originalIndex + 1}',
-                                    style: TextStyle(
-                                      color: Colors.grey[600],
-                                      fontSize: 12,
-                                    ),
-                                  ),
+
                                   trailing: isSelected
                                       ? const Icon(
                                           Icons.check_circle,

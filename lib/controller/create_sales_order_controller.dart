@@ -25,18 +25,12 @@ class CreateSalesOrderController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print("✅ Creating sales order...");
-      print("   Customer: $customer");
-      print("   Delivery Date: $deliveryDate");
-      print("   Items: $items");
-
       _response = await _service.createSalesOrder(
         customer: customer,
         deliveryDate: deliveryDate,
         items: items,
       );
     } catch (e) {
-      print("❌ Error creating sales order: $e");
       _error = e.toString();
     } finally {
       _isLoading = false;

@@ -45,6 +45,9 @@ class SalesOrder {
   String customer;
   DateTime deliveryDate;
   double totalAmount;
+  double totalTaxAmount;
+  double grandTotal;
+
   List<Item> items;
 
   SalesOrder({
@@ -52,6 +55,8 @@ class SalesOrder {
     required this.customer,
     required this.deliveryDate,
     required this.totalAmount,
+    required this.totalTaxAmount,
+    required this.grandTotal,
     required this.items,
   });
 
@@ -59,7 +64,9 @@ class SalesOrder {
     name: json["name"],
     customer: json["customer"],
     deliveryDate: DateTime.parse(json["delivery_date"]),
-    totalAmount: json["Total"],
+    totalAmount: json["total"],
+    totalTaxAmount: json["total_taxes_and_charges"],
+    grandTotal: json["grand_total"],
     items: List<Item>.from(json["items"].map((x) => Item.fromJson(x))),
   );
 
@@ -68,6 +75,9 @@ class SalesOrder {
     "customer": customer,
     "delivery_date":
         "${deliveryDate.year.toString().padLeft(4, '0')}-${deliveryDate.month.toString().padLeft(2, '0')}-${deliveryDate.day.toString().padLeft(2, '0')}",
+    "Total": totalAmount,
+    "total_tax_amount": totalTaxAmount,
+    "grand_total": grandTotal,
     "items": List<dynamic>.from(items.map((x) => x.toJson())),
   };
 }

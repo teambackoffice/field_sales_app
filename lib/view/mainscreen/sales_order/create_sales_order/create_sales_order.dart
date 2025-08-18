@@ -837,9 +837,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                                         width: 40,
                                         height: 40,
                                         decoration: BoxDecoration(
-                                          color: Color(
-                                            0xFF764BA2,
-                                          ).withOpacity(0.1),
+                                          color: Colors.white,
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),

@@ -456,7 +456,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                       Expanded(
                         child: _buildOrderDetail(
                           'Amount',
-                          '₹${order.totalAmount.toStringAsFixed(2)}',
+                          '₹${order.grandTotal.toStringAsFixed(2)}',
                         ),
                       ),
                       Container(width: 1, height: 40, color: Color(0xFFE5E5E5)),
@@ -557,7 +557,6 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                 // Main button (moved to top for proper touch handling)
                 GestureDetector(
                   onTap: () {
-                    print("FAB pressed!"); // Debug line
                     Navigator.push(
                       context,
                       MaterialPageRoute(
