@@ -5,6 +5,7 @@ import 'package:location_tracker_app/controller/item_list_controller.dart';
 import 'package:location_tracker_app/controller/sales_invoice_details_controller.dart';
 import 'package:location_tracker_app/controller/sales_invoice_id_controller.dart';
 import 'package:location_tracker_app/controller/sales_return_controller.dart';
+import 'package:location_tracker_app/modal/sales_invoice_id_modal.dart';
 import 'package:provider/provider.dart';
 
 class CreateSalesReturnPage extends StatefulWidget {
@@ -257,7 +258,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
     return spans;
   }
 
-  // Method to show invoice selection bottom sheet (original method)
+  // Method to show invoice selection bottom sheet (updated to show customer names)
   void _showInvoiceSelectionSheet() {
     _invoiceSearchQuery = "";
     showModalBottomSheet(
@@ -267,16 +268,49 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Consumer<SalesInvoiceIdsController>(
           builder: (context, invoiceController, child) {
-            final customer = invoiceController.salesInvoiceIds?.message;
-            List<String> filteredInvoices = [];
-            if (invoiceController.salesInvoiceIds?.invoiceIds != null) {
-              filteredInvoices = invoiceController.salesInvoiceIds!.invoiceIds
-                  .where(
-                    (invoice) => invoice.toLowerCase().contains(
-                      _invoiceSearchQuery.toLowerCase(),
-                    ),
-                  )
+            List<SalesInvoiceData> filteredInvoices = [];
+            if (invoiceController.salesInvoiceIds?.invoices != null) {
+              final searchQuery = _invoiceSearchQuery.toLowerCase().trim();
+              filteredInvoices = invoiceController.salesInvoiceIds!.invoices
+                  .where((invoice) {
+                    if (searchQuery.isEmpty) return true;
+
+                    // Search in invoice name
+                    if (invoice.name.toLowerCase().contains(searchQuery)) {
+                      return true;
+                    }
+
+                    // Search in customer name
+                    if (invoice.customer.toLowerCase().contains(searchQuery)) {
+                      return true;
+                    }
+
+                    // Search in outstanding amount (if searching for numbers)
+                    if (invoice.outstandingAmount.toString().contains(
+                      searchQuery,
+                    )) {
+                      return true;
+                    }
+
+                    return false;
+                  })
                   .toList();
+
+              // Sort results: exact matches first, then partial matches
+              filteredInvoices.sort((a, b) {
+                final aInvoiceExact = a.name.toLowerCase() == searchQuery;
+                final bInvoiceExact = b.name.toLowerCase() == searchQuery;
+                final aCustomerExact = a.customer.toLowerCase() == searchQuery;
+                final bCustomerExact = b.customer.toLowerCase() == searchQuery;
+
+                if (aInvoiceExact && !bInvoiceExact) return -1;
+                if (!aInvoiceExact && bInvoiceExact) return 1;
+                if (aCustomerExact && !bCustomerExact) return -1;
+                if (!aCustomerExact && bCustomerExact) return 1;
+
+                // If both are partial matches, sort by invoice name
+                return a.name.compareTo(b.name);
+              });
             }
 
             return Container(
@@ -321,12 +355,10 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                                   color: Color(0xFF2C3E50),
                                 ),
                               ),
-                              if (invoiceController
-                                      .salesInvoiceIds
-                                      ?.invoiceIds !=
+                              if (invoiceController.salesInvoiceIds?.invoices !=
                                   null)
                                 Text(
-                                  '${filteredInvoices.length} of ${invoiceController.salesInvoiceIds!.invoiceIds.length} invoices',
+                                  '${filteredInvoices.length} of ${invoiceController.salesInvoiceIds!.invoices.length} invoices',
                                   style: TextStyle(
                                     fontSize: 12,
                                     color: Colors.grey[600],
@@ -354,7 +386,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                         });
                       },
                       decoration: InputDecoration(
-                        hintText: 'Search invoices...',
+                        hintText: 'Search by invoice name, customer',
                         prefixIcon: const Icon(
                           Icons.search,
                           color: Color(0xFF764BA2),
@@ -450,14 +482,9 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                             padding: const EdgeInsets.all(16),
                             itemCount: filteredInvoices.length,
                             itemBuilder: (context, index) {
-                              final invoiceId = filteredInvoices[index];
-
+                              final invoice = filteredInvoices[index];
                               final isSelected =
-                                  _selectedInvoiceId == invoiceId;
-                              final originalIndex = invoiceController
-                                  .salesInvoiceIds!
-                                  .invoiceIds
-                                  .indexOf(invoiceId);
+                                  _selectedInvoiceId == invoice.name;
 
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 8),
@@ -498,13 +525,52 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                                   title: RichText(
                                     text: TextSpan(
                                       children: _highlightSearchText(
-                                        invoiceId,
+                                        invoice.name,
                                         _invoiceSearchQuery,
                                         isSelected,
                                       ),
                                     ),
                                   ),
-
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      RichText(
+                                        text: TextSpan(
+                                          children: [
+                                            TextSpan(
+                                              text: 'Customer: ',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.grey[600],
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                            ...(_highlightSearchText(
+                                              invoice.customer,
+                                              _invoiceSearchQuery,
+                                              false,
+                                            ).map(
+                                              (span) => TextSpan(
+                                                text: span.text,
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Colors.grey[600],
+                                                  fontWeight:
+                                                      span.style?.fontWeight ??
+                                                      FontWeight.normal,
+                                                  backgroundColor: span
+                                                      .style
+                                                      ?.backgroundColor,
+                                                ),
+                                              ),
+                                            )),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                   trailing: isSelected
                                       ? const Icon(
                                           Icons.check_circle,
@@ -512,7 +578,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                                           size: 24,
                                         )
                                       : null,
-                                  onTap: () => _onInvoiceSelected(invoiceId),
+                                  onTap: () => _onInvoiceSelected(invoice.name),
                                 ),
                               );
                             },

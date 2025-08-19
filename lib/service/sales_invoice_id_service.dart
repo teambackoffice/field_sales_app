@@ -12,28 +12,55 @@ class SalesInvoiceIdsService {
   Future<SalesInvoiceIdsModel?> fetchSalesInvoiceIds() async {
     try {
       String? sid = await _storage.read(key: "sid");
+      String? salesPerson = await _storage.read(key: "sales_person_id");
 
       if (sid == null) {
         throw Exception("SID not found in secure storage");
       }
+      if (salesPerson == null) {
+        throw Exception("Sales Person not found in secure storage");
+      }
 
-      var headers = {'Cookie': 'sid=$sid '};
+      var headers = {'Cookie': 'sid=$sid'};
 
-      var request = http.Request('GET', Uri.parse(baseUrl));
+      // ✅ Add sales_person as query parameter
+      final url = Uri.parse("$baseUrl?sales_person=$salesPerson");
+
+      var request = http.Request('GET', url);
       request.headers.addAll(headers);
+
+      print("==== API REQUEST START ====");
+      print("URL: $url");
+      print("Method: ${request.method}");
+      print("Headers: ${request.headers}");
+      print("==== API REQUEST END ====");
 
       http.StreamedResponse response = await request.send();
 
+      print("==== API RESPONSE START ====");
+      print("Status Code: ${response.statusCode}");
+      print("Reason Phrase: ${response.reasonPhrase}");
+      print("Headers: ${response.headers}");
+
+      final body = await response.stream.bytesToString();
+      print("Raw Body: $body");
+
+      print("==== API RESPONSE END ====");
+
       if (response.statusCode == 200) {
-        final body = await response.stream.bytesToString();
-
         final data = json.decode(body);
+        print("Parsed JSON: $data");
 
-        return SalesInvoiceIdsModel.fromJson(data);
+        final model = SalesInvoiceIdsModel.fromJson(data);
+        print("Mapped Model: $model");
+        return model;
       } else {
         throw Exception("Failed to load invoice IDs: ${response.reasonPhrase}");
       }
-    } catch (e) {
+    } catch (e, stack) {
+      print("==== API ERROR ====");
+      print("Error: $e");
+      print("StackTrace: $stack");
       throw Exception("Error fetching invoice IDs: $e");
     }
   }
