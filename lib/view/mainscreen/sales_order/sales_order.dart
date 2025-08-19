@@ -429,6 +429,9 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
   }
 
   Widget _buildOrderCard(modal.SalesOrder order, int index) {
+    double roundedTotal = order.grandTotal.roundToDouble();
+    bool hasRounding = roundedTotal != order.grandTotal;
+
     return AnimatedContainer(
       duration: Duration(milliseconds: 300 + (index * 100)),
       curve: Curves.easeOutBack,
@@ -498,9 +501,10 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                   child: Row(
                     children: [
                       Expanded(
-                        child: _buildOrderDetail(
-                          'Amount',
-                          '₹${order.grandTotal.toStringAsFixed(2)}',
+                        child: _buildAmountDetail(
+                          order.grandTotal,
+                          roundedTotal,
+                          hasRounding,
                         ),
                       ),
                       Container(width: 1, height: 40, color: Color(0xFFE5E5E5)),
@@ -525,6 +529,77 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildAmountDetail(
+    double grandTotal,
+    double roundedTotal,
+    bool hasRounding,
+  ) {
+    return Column(
+      children: [
+        Text(
+          'Amount',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF636E72),
+          ),
+        ),
+        SizedBox(height: 4),
+        if (hasRounding) ...[
+          // Show exact amount with strikethrough
+          Text(
+            '₹${grandTotal.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF636E72),
+              decoration: TextDecoration.lineThrough,
+              decorationColor: Color(0xFF636E72),
+            ),
+          ),
+          SizedBox(height: 2),
+          // Show rounded amount prominently
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                '₹${roundedTotal.toStringAsFixed(0)}',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF2D3436),
+                ),
+              ),
+              SizedBox(width: 4),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Color(0xFF764BA2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  'Rounded',
+                  style: TextStyle(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ] else
+          Text(
+            '₹${grandTotal.toStringAsFixed(2)}',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFF2D3436),
+            ),
+          ),
+      ],
     );
   }
 
