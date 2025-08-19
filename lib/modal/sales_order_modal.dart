@@ -47,6 +47,7 @@ class SalesOrder {
   double totalAmount;
   double totalTaxAmount;
   double grandTotal;
+  double roundedTotal;
 
   List<Item> items;
 
@@ -57,6 +58,7 @@ class SalesOrder {
     required this.totalAmount,
     required this.totalTaxAmount,
     required this.grandTotal,
+    required this.roundedTotal,
     required this.items,
   });
 
@@ -67,6 +69,7 @@ class SalesOrder {
     totalAmount: json["total"],
     totalTaxAmount: json["total_taxes_and_charges"],
     grandTotal: json["grand_total"],
+    roundedTotal: json["rounded_total"],
     items: List<Item>.from(json["items"].map((x) => Item.fromJson(x))),
   );
 
@@ -78,6 +81,7 @@ class SalesOrder {
     "Total": totalAmount,
     "total_tax_amount": totalTaxAmount,
     "grand_total": grandTotal,
+    "rounded_total": roundedTotal,
     "items": List<dynamic>.from(items.map((x) => x.toJson())),
   };
 }

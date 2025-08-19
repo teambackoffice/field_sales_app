@@ -17,9 +17,11 @@ class InvoicePage extends StatefulWidget {
 }
 
 class _InvoicePageState extends State<InvoicePage> {
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<InvoiceListController>(
@@ -27,6 +29,30 @@ class _InvoicePageState extends State<InvoicePage> {
         listen: false,
       ).fetchInvoiceList();
     });
+  }
+
+  // Refresh function
+  Future<void> _onRefresh() async {
+    try {
+      await Provider.of<InvoiceListController>(
+        context,
+        listen: false,
+      ).fetchInvoiceList();
+    } catch (error) {
+      // Handle error if needed
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to refresh invoices'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // Manual refresh button handler
+  void _manualRefresh() {
+    _refreshIndicatorKey.currentState?.show();
   }
 
   void _makePayment(Invoice invoice) {
@@ -38,9 +64,10 @@ class _InvoicePageState extends State<InvoicePage> {
           onPaymentSuccess: (amount, method) {
             setState(() {
               invoice.status = "Paid";
-              // You can also store the amount/method if needed
               print("Paid Amount: $amount, Method: $method");
             });
+            // Refresh the list after successful payment
+            _onRefresh();
           },
         ),
       ),
@@ -63,241 +90,262 @@ class _InvoicePageState extends State<InvoicePage> {
           child: Column(
             children: [
               _buildHeader(),
-              Consumer<InvoiceListController>(
-                builder: (context, controller, child) {
-                  if (controller.isLoading) {
-                    return Expanded(
-                      child: Padding(
+              Expanded(
+                child: RefreshIndicator(
+                  key: _refreshIndicatorKey,
+                  onRefresh: _onRefresh,
+                  color: Color(0xFF667EEA),
+                  backgroundColor: Colors.white,
+                  strokeWidth: 2.5,
+                  child: Consumer<InvoiceListController>(
+                    builder: (context, controller, child) {
+                      if (controller.isLoading) {
+                        return _buildShimmerList();
+                      }
+
+                      if (controller.invoiceList == null ||
+                          controller.invoiceList!.message.invoices.isEmpty) {
+                        return _buildEmptyState();
+                      }
+
+                      final invoicesList =
+                          controller.invoiceList?.message.invoices ?? [];
+
+                      return Padding(
                         padding: EdgeInsets.all(20),
                         child: ListView.builder(
-                          itemCount: 6, // Number of shimmer items
+                          physics:
+                              AlwaysScrollableScrollPhysics(), // Ensures pull-to-refresh works
+                          itemCount: invoicesList.length,
                           itemBuilder: (context, index) {
-                            return Container(
-                              margin: EdgeInsets.only(bottom: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 2),
+                            final invoice = invoicesList[index];
+                            return InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        InvoiceDetails(invoice: invoice),
                                   ),
-                                ],
-                              ),
-                              child: Shimmer.fromColors(
-                                baseColor: Colors.grey[300]!,
-                                highlightColor: Colors.grey[100]!,
-                                child: Padding(
-                                  padding: EdgeInsets.all(20),
-                                  child: Row(
+                                );
+                              },
+                              child: Container(
+                                margin: EdgeInsets.only(bottom: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.05),
+                                      blurRadius: 10,
+                                      offset: Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: ListTile(
+                                  contentPadding: EdgeInsets.all(20),
+                                  leading: Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: invoice.status == "Paid"
+                                          ? Color(0xFF10B981).withOpacity(0.1)
+                                          : Color(0xFFF59E0B).withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      invoice.status == "Paid"
+                                          ? Icons.check_circle_rounded
+                                          : Icons.schedule_rounded,
+                                      color: invoice.status == "Paid"
+                                          ? Color(0xFF10B981)
+                                          : Color(0xFFF59E0B),
+                                      size: 28,
+                                    ),
+                                  ),
+                                  title: Text(
+                                    invoice.invoiceId,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 16,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      // Leading icon shimmer
-                                      Container(
-                                        width: 50,
-                                        height: 50,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
-                                          ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        invoice.customer,
+                                        style: TextStyle(
+                                          color: Colors.grey[600],
+                                          fontSize: 14,
                                         ),
                                       ),
-                                      SizedBox(width: 16),
-
-                                      // Content section shimmer
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            // Invoice ID shimmer
-                                            Container(
-                                              width: double.infinity * 0.6,
-                                              height: 16,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
+                                      const SizedBox(height: 8),
+                                      Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Total: ₹${invoice.grandTotal.toStringAsFixed(2)}',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFF059669),
                                             ),
-                                            SizedBox(height: 8),
-
-                                            // Customer name shimmer
-                                            Container(
-                                              width: double.infinity * 0.4,
-                                              height: 14,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                            ),
-                                            SizedBox(height: 12),
-
-                                            // Total amount shimmer
-                                            Container(
-                                              width: double.infinity * 0.5,
-                                              height: 16,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                            ),
-                                            SizedBox(height: 4),
-
-                                            // Due amount shimmer
-                                            Container(
-                                              width: double.infinity * 0.45,
-                                              height: 16,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-
-                                      SizedBox(width: 12),
-
-                                      // Trailing button/badge shimmer
-                                      Container(
-                                        width: 80,
-                                        height: 36,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            12,
                                           ),
-                                        ),
+                                          Text(
+                                            'Due: ₹${invoice.outstandingAmount.toStringAsFixed(2)}',
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color: Color(0xFFF59E0B),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
+                                  trailing: _buildTrailingWidget(invoice),
                                 ),
                               ),
                             );
                           },
                         ),
-                      ),
-                    );
-                  }
-                  if (controller.invoiceList == null ||
-                      controller.invoiceList!.message.invoices.isEmpty) {
-                    return const Center(child: Text("No Invoices found!"));
-                  }
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                  final invoicesList =
-                      controller.invoiceList?.message.invoices ?? [];
-
-                  return Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: ListView.builder(
-                        itemCount: invoicesList.length,
-                        itemBuilder: (context, index) {
-                          final invoice = invoicesList[index];
-                          return InkWell(
-                            borderRadius: BorderRadius.circular(
-                              16,
-                            ), // for ripple effect shape
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      InvoiceDetails(invoice: invoice),
-                                ),
-                              );
-                            },
-                            child: Container(
-                              margin: EdgeInsets.only(bottom: 12),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.05),
-                                    blurRadius: 10,
-                                    offset: Offset(0, 2),
-                                  ),
-                                ],
-                              ),
-                              child: ListTile(
-                                contentPadding: EdgeInsets.all(20),
-                                leading: Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: invoice.status == "Paid"
-                                        ? Color(0xFF10B981).withOpacity(0.1)
-                                        : Color(0xFFF59E0B).withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Icon(
-                                    invoice.status == "Paid"
-                                        ? Icons.check_circle_rounded
-                                        : Icons.schedule_rounded,
-                                    color: invoice.status == "Paid"
-                                        ? Color(0xFF10B981)
-                                        : Color(0xFFF59E0B),
-                                    size: 28,
-                                  ),
-                                ),
-                                title: Text(
-                                  invoice.invoiceId,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 16,
-                                  ),
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    SizedBox(height: 4),
-                                    Text(
-                                      invoice.customer,
-                                      style: TextStyle(
-                                        color: Colors.grey[600],
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Total: ₹${invoice.grandTotal.toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFF059669),
-                                          ),
-                                        ),
-                                        Text(
-                                          'Due: ₹${invoice.outstandingAmount.toStringAsFixed(2)}',
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w600,
-                                            color: Color(0xFFF59E0B),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                trailing: _buildTrailingWidget(invoice),
-                              ),
-                            ),
-                          );
-                        },
+  Widget _buildShimmerList() {
+    return Padding(
+      padding: EdgeInsets.all(20),
+      child: ListView.builder(
+        physics: AlwaysScrollableScrollPhysics(),
+        itemCount: 6,
+        itemBuilder: (context, index) {
+          return Container(
+            margin: EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Shimmer.fromColors(
+              baseColor: Colors.grey[300]!,
+              highlightColor: Colors.grey[100]!,
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                  );
-                },
+                    SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: double.infinity * 0.6,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Container(
+                            width: double.infinity * 0.4,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+                          Container(
+                            width: double.infinity * 0.5,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Container(
+                            width: double.infinity * 0.45,
+                            height: 16,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(width: 12),
+                    Container(
+                      width: 80,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return SingleChildScrollView(
+      physics: AlwaysScrollableScrollPhysics(),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.6,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.receipt_long, size: 64, color: Colors.grey[400]),
+              SizedBox(height: 16),
+              Text(
+                "No Invoices Found",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[600],
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                "Pull down to refresh",
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
               ),
             ],
           ),
@@ -307,13 +355,11 @@ class _InvoicePageState extends State<InvoicePage> {
   }
 
   Widget _buildTrailingWidget(Invoice invoice) {
-    // Check if outstanding amount is 0 and all payments are submitted
     bool isFullyPaid =
         invoice.outstandingAmount == 0 &&
         invoice.payments.isNotEmpty &&
         invoice.payments.every((payment) => payment.status == "Submitted");
 
-    // Check if any payment is drafted
     bool hasDraftedPayment = invoice.payments.any(
       (payment) => payment.status == "Draft",
     );
@@ -336,10 +382,7 @@ class _InvoicePageState extends State<InvoicePage> {
       );
     } else if (hasDraftedPayment == true) {
       return ElevatedButton(
-        onPressed: () {
-          // Handle submission to supervisor action here if needed
-          // For now, it's disabled since it's already submitted
-        },
+        onPressed: () {},
         style: ElevatedButton.styleFrom(
           backgroundColor: Color(0xFFF59E0B),
           foregroundColor: Colors.white,
@@ -349,7 +392,7 @@ class _InvoicePageState extends State<InvoicePage> {
           padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         ),
         child: Text(
-          'Submitted ',
+          'Submitted',
           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 11),
         ),
       );
@@ -374,7 +417,6 @@ class _InvoicePageState extends State<InvoicePage> {
       padding: EdgeInsets.all(20),
       child: Column(
         children: [
-          // Title Row
           Row(
             children: [
               Container(
@@ -405,6 +447,8 @@ class _InvoicePageState extends State<InvoicePage> {
                   ),
                 ),
               ),
+
+              // Manual refresh button
               PopupMenuButton(
                 icon: Icon(Icons.filter_list, color: Colors.black),
                 shape: RoundedRectangleBorder(
@@ -431,8 +475,6 @@ class _InvoicePageState extends State<InvoicePage> {
               ),
             ],
           ),
-
-          // Summary Cards
         ],
       ),
     );

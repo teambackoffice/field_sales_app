@@ -74,15 +74,6 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
   Future<void> _onRefresh() async {
     await _loadSalesOrders();
     // Optional: Show a success message
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Orders refreshed successfully'),
-        duration: Duration(seconds: 2),
-        backgroundColor: Colors.green,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      ),
-    );
   }
 
   @override
@@ -167,25 +158,8 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
               ],
             ),
           ),
+
           // Manual refresh button
-          Container(
-            margin: EdgeInsets.only(right: 8),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: _onRefresh,
-                child: Container(
-                  padding: EdgeInsets.all(8),
-                  child: Icon(
-                    Icons.refresh,
-                    color: Color(0xFF2D3436),
-                    size: 24,
-                  ),
-                ),
-              ),
-            ),
-          ),
           PopupMenuButton<String>(
             key: Key('filterPopupMenu'),
             icon: Icon(Icons.filter_list, color: Color(0xFF2D3436)),
