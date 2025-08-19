@@ -120,6 +120,49 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
     }
   }
 
+  bool _hasTotalAllocationError() {
+    final paymentAmount = double.tryParse(paymentController.text) ?? 0.0;
+    return totalAllocated > paymentAmount;
+  }
+
+  void _showAllocationErrorSnackBar() {
+    final paymentAmount = double.tryParse(paymentController.text) ?? 0.0;
+    final excess = totalAllocated - paymentAmount;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error, color: Colors.white, size: 20),
+            SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Total Allocation Exceeds Payment Amount',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Total: ${_formatCurrency(totalAllocated)} | Payment: ${_formatCurrency(paymentAmount)} | Excess: ${_formatCurrency(excess)}',
+                    style: TextStyle(fontSize: 12, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: Color(0xFF764BA2),
+        duration: Duration(seconds: 4),
+      ),
+    );
+  }
+
   bool _shouldEnableProcessButton() {
     final draftController = Provider.of<PaymentEntryDraftController>(
       context,
@@ -1471,6 +1514,7 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                       child: Text('Clear All'),
                     ),
                   ),
+
                   SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
@@ -1481,10 +1525,13 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                                   0 ||
                               isLoadingPaymentData ||
                               paymentEntryData == null ||
-                              selectedCustomer ==
-                                  null // <- ADD THIS LINE
+                              selectedCustomer == null
                           ? null
                           : () async {
+                              if (_hasTotalAllocationError()) {
+                                _showAllocationErrorSnackBar();
+                                return; // Stop execution
+                              }
                               final controller = context
                                   .read<CraetePaymentEntryController>();
 
