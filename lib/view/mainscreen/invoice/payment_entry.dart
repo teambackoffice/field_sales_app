@@ -18,6 +18,7 @@ class PaymentEntryPage extends StatefulWidget {
 }
 
 class _PaymentEntryPageState extends State<PaymentEntryPage> {
+  bool showAllocationWarning = false;
   MessageElement? selectedCustomer;
   PaymentEntryModal? paymentEntryData;
   TextEditingController paymentController = TextEditingController();
@@ -153,23 +154,26 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
     final controller = invoiceControllers[invoiceId];
     if (controller != null && paymentEntryData != null) {
       final value = double.tryParse(controller.text) ?? 0.0;
-      final invoice = paymentEntryData!.message.invoices.firstWhere(
-        (inv) => inv.invoiceName == invoiceId,
-      );
-      final paymentAmount = double.tryParse(paymentController.text) ?? 0.0;
-
-      final maxAllocation = [
-        invoice.outstandingAmount.toDouble(),
-        paymentAmount,
-      ].reduce((a, b) => a < b ? a : b);
-      final finalAmount = value > maxAllocation ? maxAllocation : value;
-
-      if (finalAmount != value && finalAmount > 0) {
-        controller.text = finalAmount.toStringAsFixed(2);
-      }
+      // REMOVE THE AUTOMATIC CORRECTION - just store the value as entered
 
       setState(() {
-        invoiceAllocations[invoiceId] = finalAmount;
+        invoiceAllocations[invoiceId] = value; // Store actual entered value
+
+        // Warning logic for first invoice allocation
+        final firstInvoiceId = paymentEntryData!.message.invoices
+            .where((inv) => inv.outstandingAmount > 0)
+            .first
+            .invoiceName;
+
+        final paymentAmount = double.tryParse(paymentController.text) ?? 0.0;
+        showAllocationWarning =
+            invoiceId == firstInvoiceId &&
+            value == paymentAmount &&
+            paymentAmount > 0 &&
+            paymentEntryData!.message.invoices
+                    .where((inv) => inv.outstandingAmount > 0)
+                    .length >
+                1;
       });
     }
     _calculateTotals();
@@ -194,7 +198,8 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
       paymentEntryData = null;
       paymentController.clear();
       invoiceAllocations.clear();
-      selectedPaymentMethod = 'Cash'; // Reset to default
+      selectedPaymentMethod = 'Cash';
+      showAllocationWarning = false; // ADD THIS LINE
 
       for (var controller in invoiceControllers.values) {
         controller.dispose();
@@ -478,24 +483,93 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
               ),
               SizedBox(width: 8),
               Expanded(
-                child: TextFormField(
-                  controller: invoiceControllers[invoice.invoiceName],
-                  keyboardType: TextInputType.numberWithOptions(decimal: true),
-                  inputFormatters: [
-                    FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d*')),
-                  ],
-                  decoration: InputDecoration(
-                    hintText: '0.00',
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
+                child: Column(
+                  // WRAP TextFormField in Column
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: invoiceControllers[invoice.invoiceName],
+                      keyboardType: TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'^\d*\.?\d*'),
+                        ),
+                      ],
+                      decoration: InputDecoration(
+                        hintText: '0.00',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        prefixText: '₹ ',
+                      ),
+                      enabled: paymentController.text.isNotEmpty,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(fontSize: 14),
                     ),
-                    prefixText: '₹ ',
-                  ),
-                  enabled: paymentController.text.isNotEmpty,
-                  textAlign: TextAlign.right,
-                  style: TextStyle(fontSize: 14),
+                    // ADD WARNING BELOW THE TEXTFIELD
+                    Builder(
+                      builder: (context) {
+                        final enteredAmount =
+                            double.tryParse(
+                              invoiceControllers[invoice.invoiceName]?.text ??
+                                  '',
+                            ) ??
+                            0.0;
+                        final outstandingAmount = invoice.outstandingAmount
+                            .toDouble();
+                        final paymentAmount =
+                            double.tryParse(paymentController.text) ?? 0.0;
+
+                        // Show warning if entered amount > outstanding amount OR > payment amount
+                        final showWarning =
+                            enteredAmount > outstandingAmount ||
+                            enteredAmount > paymentAmount;
+
+                        if (!showWarning) return SizedBox.shrink();
+
+                        String warningText = '';
+                        if (enteredAmount > outstandingAmount &&
+                            enteredAmount > paymentAmount) {
+                          warningText =
+                              'Amount exceeds both outstanding (${_formatCurrency(outstandingAmount)}) and payment amount (${_formatCurrency(paymentAmount)})';
+                        } else if (enteredAmount > outstandingAmount) {
+                          warningText =
+                              'Amount exceeds outstanding amount (${_formatCurrency(outstandingAmount)})';
+                        } else if (enteredAmount > paymentAmount) {
+                          warningText =
+                              'Amount exceeds payment amount (${_formatCurrency(paymentAmount)})';
+                        }
+
+                        return Padding(
+                          padding: EdgeInsets.only(top: 4),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.warning_amber,
+                                color: Colors.orange[700],
+                                size: 14,
+                              ),
+                              SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  warningText,
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.orange[700],
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1227,6 +1301,41 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
+                                      if (showAllocationWarning) ...[
+                                        SizedBox(height: 12),
+                                        Container(
+                                          padding: EdgeInsets.all(12),
+                                          decoration: BoxDecoration(
+                                            color: Colors.amber[50],
+                                            border: Border.all(
+                                              color: Colors.amber[300]!,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Icon(
+                                                Icons.warning_amber,
+                                                color: Colors.amber[800],
+                                                size: 20,
+                                              ),
+                                              SizedBox(width: 8),
+                                              Expanded(
+                                                child: Text(
+                                                  'You have allocated the full payment amount to the first invoice. Consider distributing across multiple invoices if needed.',
+                                                  style: TextStyle(
+                                                    fontSize: 12,
+                                                    color: Colors.amber[800],
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                       SizedBox(height: 12),
                                       Row(
                                         children: [
