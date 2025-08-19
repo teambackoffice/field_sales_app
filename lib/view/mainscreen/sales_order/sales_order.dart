@@ -28,10 +28,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<SalesOrderController>(
-        context,
-        listen: false,
-      ).fetchsalesorder();
+      _loadSalesOrders();
     });
     _fabAnimationController = AnimationController(
       duration: Duration(milliseconds: 800),
@@ -65,6 +62,29 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     super.dispose();
   }
 
+  // Method to load sales orders
+  Future<void> _loadSalesOrders() async {
+    await Provider.of<SalesOrderController>(
+      context,
+      listen: false,
+    ).fetchsalesorder();
+  }
+
+  // Refresh method for pull-to-refresh
+  Future<void> _onRefresh() async {
+    await _loadSalesOrders();
+    // Optional: Show a success message
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Orders refreshed successfully'),
+        duration: Duration(seconds: 2),
+        backgroundColor: Colors.green,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,9 +106,16 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                 children: [
                   _buildHeader(),
                   Expanded(
-                    child: _buildOrdersList(
-                      salesOrders: filteredOrders,
-                      controller: controller,
+                    child: RefreshIndicator(
+                      onRefresh: _onRefresh,
+                      backgroundColor: Colors.white,
+                      color: Color(0xFF764BA2),
+                      strokeWidth: 3,
+                      displacement: 40,
+                      child: _buildOrdersList(
+                        salesOrders: filteredOrders,
+                        controller: controller,
+                      ),
                     ),
                   ),
                 ],
@@ -140,8 +167,27 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
               ],
             ),
           ),
+          // Manual refresh button
+          Container(
+            margin: EdgeInsets.only(right: 8),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: _onRefresh,
+                child: Container(
+                  padding: EdgeInsets.all(8),
+                  child: Icon(
+                    Icons.refresh,
+                    color: Color(0xFF2D3436),
+                    size: 24,
+                  ),
+                ),
+              ),
+            ),
+          ),
           PopupMenuButton<String>(
-            key: Key('filterPopupMenu'), // Add a key here
+            key: Key('filterPopupMenu'),
             icon: Icon(Icons.filter_list, color: Color(0xFF2D3436)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
@@ -174,10 +220,12 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 20),
       child: controller.isLoading
-          ? _buildShimmerOrdersListEnhanced() // <-- Show shimmer while loading
+          ? _buildShimmerOrdersListEnhanced()
           : salesOrders.isEmpty
           ? _buildEmptyState()
           : ListView.builder(
+              // Add physics to ensure pull-to-refresh works even with few items
+              physics: AlwaysScrollableScrollPhysics(),
               itemCount: salesOrders.length,
               itemBuilder: (context, index) {
                 return _buildOrderCard(salesOrders[index], index);
@@ -188,6 +236,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
 
   Widget _buildShimmerOrdersListEnhanced() {
     return ListView.builder(
+      physics: AlwaysScrollableScrollPhysics(), // Enable scrolling for refresh
       itemCount: 6,
       itemBuilder: (context, index) {
         return AnimatedContainer(
@@ -348,38 +397,59 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Color(0xFF764BA2).withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.receipt_long_outlined,
-              size: 64,
-              color: Color(0xFF764BA2).withOpacity(0.5),
-            ),
+    return SingleChildScrollView(
+      // Make empty state scrollable for pull-to-refresh
+      physics: AlwaysScrollableScrollPhysics(),
+      child: Container(
+        height: MediaQuery.of(context).size.height * 0.5,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Color(0xFF764BA2).withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.receipt_long_outlined,
+                  size: 64,
+                  color: Color(0xFF764BA2).withOpacity(0.5),
+                ),
+              ),
+              SizedBox(height: 24),
+              Text(
+                'No Orders Found',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF2D3436),
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Create your first sales order to get started',
+                style: TextStyle(fontSize: 16, color: Color(0xFF636E72)),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16),
+              // Refresh button in empty state
+              ElevatedButton.icon(
+                onPressed: _onRefresh,
+                icon: Icon(Icons.refresh),
+                label: Text('Refresh'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Color(0xFF764BA2),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
           ),
-          SizedBox(height: 24),
-          Text(
-            'No Orders Found',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF2D3436),
-            ),
-          ),
-          SizedBox(height: 8),
-          Text(
-            'Create your first sales order to get started',
-            style: TextStyle(fontSize: 16, color: Color(0xFF636E72)),
-            textAlign: TextAlign.center,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -723,12 +793,6 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                               order.customer,
                             ),
                             SizedBox(height: 12),
-                            // _buildInfoRow(
-                            //   Icons.money,
-                            //   'Total Amount',
-                            //   '\$${order.items.amount.toStringAsFixed(2)}',
-                            // ),
-                            SizedBox(height: 12),
                             _buildInfoRow(
                               Icons.calendar_today,
                               'Order Date',
@@ -763,17 +827,15 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
 
                       SizedBox(height: 16),
 
-                      // Items list - Fixed the iteration issue
+                      // Items list
                       ListView.separated(
                         shrinkWrap: true,
                         physics: NeverScrollableScrollPhysics(),
-                        itemCount:
-                            order.items.length ??
-                            0, // Use items instead of status
+                        itemCount: order.items.length ?? 0,
                         separatorBuilder: (context, index) =>
                             SizedBox(height: 12),
                         itemBuilder: (context, index) {
-                          final item = order.items[index]; // Use items list
+                          final item = order.items[index];
                           return Container(
                             padding: EdgeInsets.all(16),
                             decoration: BoxDecoration(
@@ -810,7 +872,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        item.itemCode, // Assuming item has name property
+                                        item.itemCode,
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w600,
@@ -835,8 +897,6 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
                       ),
 
                       SizedBox(height: 32),
-
-                      // Action buttons
                     ],
                   ),
                 ),
@@ -875,6 +935,4 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
       ],
     );
   }
-
-  // Helper widget for status chip
 }

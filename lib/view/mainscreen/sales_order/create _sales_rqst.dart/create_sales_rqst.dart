@@ -267,6 +267,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Consumer<SalesInvoiceIdsController>(
           builder: (context, invoiceController, child) {
+            final customer = invoiceController.salesInvoiceIds?.message;
             List<String> filteredInvoices = [];
             if (invoiceController.salesInvoiceIds?.invoiceIds != null) {
               filteredInvoices = invoiceController.salesInvoiceIds!.invoiceIds
@@ -450,6 +451,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                             itemCount: filteredInvoices.length,
                             itemBuilder: (context, index) {
                               final invoiceId = filteredInvoices[index];
+
                               final isSelected =
                                   _selectedInvoiceId == invoiceId;
                               final originalIndex = invoiceController
