@@ -25,7 +25,7 @@ class CreateSalesReturnService {
     String? salesPerson,
     List<Map<String, dynamic>>? items,
     String? reason,
-    String? notes,
+    String? return_reason,
   }) async {
     final sid = await _getSid();
     if (sid == null || sid.isEmpty) {
@@ -46,7 +46,8 @@ class CreateSalesReturnService {
     if (returnDate?.isNotEmpty ?? false) body["return_date"] = returnDate;
     if (customer?.isNotEmpty ?? false) body["customer"] = customer;
     if (reason?.isNotEmpty ?? false) body["reason"] = reason;
-    if (notes?.isNotEmpty ?? false) body["notes"] = notes;
+    if (return_reason?.isNotEmpty ?? false)
+      body["return_reason"] = return_reason;
     if (items != null && items.isNotEmpty) body["items"] = items;
 
     final uri = Uri.parse(url);

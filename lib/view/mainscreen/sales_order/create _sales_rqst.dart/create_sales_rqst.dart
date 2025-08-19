@@ -1946,7 +1946,7 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
         customer: customer,
 
         buyingDate: _buyingDateController.text,
-        notes: _notesController.text,
+        return_reason: _notesController.text,
         items: items,
       );
 

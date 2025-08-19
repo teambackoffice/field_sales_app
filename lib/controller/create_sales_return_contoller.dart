@@ -17,7 +17,7 @@ class CreateSalesReturnController with ChangeNotifier {
     String? customer,
     String? reason,
     String? buyingDate,
-    String? notes,
+    String? return_reason,
     List<Map<String, dynamic>>? items,
   }) async {
     isLoading = true;
@@ -31,7 +31,7 @@ class CreateSalesReturnController with ChangeNotifier {
         returnDate: returnDate,
         customer: customer,
         reason: reason,
-        notes: notes,
+        return_reason: return_reason,
         items: items,
       );
 
