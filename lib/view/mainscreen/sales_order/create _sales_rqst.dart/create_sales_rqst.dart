@@ -900,22 +900,6 @@ class _CreateSalesReturnPageState extends State<CreateSalesReturnPage> {
                                           fontSize: 12,
                                         ),
                                       ),
-                                      if (customer.mobileNo?.isNotEmpty == true)
-                                        Text(
-                                          'Mobile: ${customer.mobileNo}',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      if (customer.customerType.isNotEmpty)
-                                        Text(
-                                          'Type: ${customer.customerType}',
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
-                                          ),
-                                        ),
                                     ],
                                   ),
                                   trailing: isSelected

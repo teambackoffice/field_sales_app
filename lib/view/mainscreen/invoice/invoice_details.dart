@@ -495,14 +495,27 @@ class InvoiceDetails extends StatelessWidget {
                             ).withOpacity(0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Text(
-                            payment.status,
-                            style: TextStyle(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w600,
-                              color: _getPaymentStatusColor(payment.status),
-                            ),
-                          ),
+                          child: payment.status == "Submitted"
+                              ? Text(
+                                  'Paid',
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: _getPaymentStatusColor(
+                                      payment.status,
+                                    ),
+                                  ),
+                                )
+                              : Text(
+                                  payment.status,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: _getPaymentStatusColor(
+                                      payment.status,
+                                    ),
+                                  ),
+                                ),
                         ),
                       ],
                     ),
