@@ -36,8 +36,10 @@ class SalesOrderService {
         try {
           final decoded = jsonDecode(response.body);
 
-          return salesOrderModalFromJson(response.body);
-        } catch (e) {
+          final model = salesOrderModalFromJson(response.body);
+
+          return model;
+        } catch (e, stack) {
           throw Exception('Failed to parse response: $e');
         }
       } else {
@@ -45,7 +47,7 @@ class SalesOrderService {
           'Failed to load sales orders. Code: ${response.statusCode}',
         );
       }
-    } catch (e) {
+    } catch (e, stack) {
       throw Exception('Network error: $e');
     }
   }
