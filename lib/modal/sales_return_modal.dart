@@ -46,6 +46,7 @@ class Datum {
   String postingDate;
   String? workflowState;
   String customSalesPerson;
+  String? returnReason;
   List<Item> items;
 
   Datum({
@@ -56,6 +57,7 @@ class Datum {
     required this.postingDate,
     this.workflowState,
     required this.customSalesPerson,
+    this.returnReason,
     required this.items,
   });
 
@@ -67,6 +69,7 @@ class Datum {
     postingDate: json["posting_date"],
     workflowState: json["workflow_state"],
     customSalesPerson: json["custom_sales_person"],
+    returnReason: json["custom_return_reason"],
     items: List<Item>.from(json["items"].map((x) => Item.fromJson(x))),
   );
 
@@ -78,6 +81,7 @@ class Datum {
     "posting_date": postingDate,
     "workflow_state": workflowState,
     "custom_sales_person": customSalesPerson,
+    "custom_return_reason": returnReason,
     "items": List<dynamic>.from(items.map((x) => x.toJson())),
   };
 }

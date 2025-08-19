@@ -796,7 +796,75 @@ class _SalesReturnListPageState extends State<SalesReturnListPage>
                                                 ],
                                               ),
                                             ),
-
+                                            if (data.returnReason != null &&
+                                                data
+                                                    .returnReason!
+                                                    .isNotEmpty) ...[
+                                              const SizedBox(height: 12),
+                                              Row(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Container(
+                                                    padding:
+                                                        const EdgeInsets.all(8),
+                                                    decoration: BoxDecoration(
+                                                      color: const Color(
+                                                        0xFF9B59B6,
+                                                      ).withOpacity(0.1),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                            8,
+                                                          ),
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.link_outlined,
+                                                      size: 16,
+                                                      color: Color(0xFF9B59B6),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          'Return Reason',
+                                                          style: TextStyle(
+                                                            fontSize: 12,
+                                                            color: Colors
+                                                                .grey[600],
+                                                            fontWeight:
+                                                                FontWeight.w500,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 2,
+                                                        ),
+                                                        Text(
+                                                          data.returnReason!,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 14,
+                                                                color: Color(
+                                                                  0xFF2C3E50,
+                                                                ),
+                                                                fontWeight:
+                                                                    FontWeight
+                                                                        .w500,
+                                                                fontStyle:
+                                                                    FontStyle
+                                                                        .italic,
+                                                              ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
                                             // Items Section
                                             if (data.items.isNotEmpty) ...[
                                               const SizedBox(height: 16),
