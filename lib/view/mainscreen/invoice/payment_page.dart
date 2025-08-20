@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:location_tracker_app/controller/invoice_list_controller.dart';
 import 'package:location_tracker_app/controller/mode_of_pay_controller.dart';
 import 'package:location_tracker_app/controller/pay_sales_invoice_controller.dart';
@@ -22,12 +23,14 @@ class PaymentPage extends StatefulWidget {
 
 class _PaymentPageState extends State<PaymentPage>
     with TickerProviderStateMixin {
-  String _selectedMethod = 'card'; // card or cash
+  String _selectedMethod = 'cash'; // card or cash
   final _cardController = TextEditingController();
   final _expiryController = TextEditingController();
   final _cvvController = TextEditingController();
   final _nameController = TextEditingController();
   final _amountController = TextEditingController();
+  final _referenceNumberController = TextEditingController();
+  final _referenceDateController = TextEditingController();
   late AnimationController _amountAnimationController;
   late Animation<double> _amountScaleAnimation;
 
@@ -65,7 +68,13 @@ class _PaymentPageState extends State<PaymentPage>
     await controller.paySalesInvoice(
       invoice_id: widget.invoice.invoiceId,
       amount: _amountController.text,
-      mode_of_payment: _selectedMethod, // "card" or "cash"
+      mode_of_payment: _selectedMethod,
+      referenceNumber: _referenceNumberController.text,
+      referenceDate: _referenceDateController.text.isNotEmpty
+          ? DateFormat('yyyy-MM-dd').parse(_referenceDateController.text)
+          : null,
+
+      // "card" or "cash"
     );
 
     if (controller.error == null) {
@@ -416,6 +425,116 @@ class _PaymentPageState extends State<PaymentPage>
     );
   }
 
+  Widget _buildReferenceFields() {
+    if (_selectedMethod.isEmpty || _selectedMethod.toLowerCase() == 'cash') {
+      return const SizedBox.shrink(); // Don't show for cash payments or no selection
+    }
+
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Reference Details',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 16),
+
+              // Reference Number Field
+              TextFormField(
+                controller: _referenceNumberController,
+                decoration: InputDecoration(
+                  labelText: 'Reference Number',
+                  hintText: 'Enter transaction reference number',
+                  prefixIcon: const Icon(
+                    Icons.numbers,
+                    color: Color(0xFF667EEA),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF667EEA),
+                      width: 2,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Reference Date Field
+              TextFormField(
+                controller: _referenceDateController,
+                readOnly: true,
+                decoration: InputDecoration(
+                  labelText: 'Reference Date',
+                  hintText: 'Select transaction date',
+                  prefixIcon: const Icon(
+                    Icons.calendar_today,
+                    color: Color(0xFF667EEA),
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(
+                      color: Color(0xFF667EEA),
+                      width: 2,
+                    ),
+                  ),
+                ),
+                onTap: () => _selectReferenceDate(),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24), // Add spacing after reference fields
+      ],
+    );
+  }
+
+  void _selectReferenceDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF667EEA),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        _referenceDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -500,6 +619,8 @@ class _PaymentPageState extends State<PaymentPage>
             // Amount Input Section
             _buildAmountInput(),
             const SizedBox(height: 24),
+            _buildReferenceFields(),
+            const SizedBox(height: 24),
 
             // Payment Methods
             const Text(
@@ -531,7 +652,16 @@ class _PaymentPageState extends State<PaymentPage>
                   runSpacing: 12,
                   children: modes.map((mode) {
                     return GestureDetector(
-                      onTap: () => setState(() => _selectedMethod = mode),
+                      onTap: () {
+                        setState(() {
+                          _selectedMethod = mode;
+                          // Clear reference fields when switching to cash
+                          if (mode.toLowerCase() == 'cash') {
+                            _referenceNumberController.clear();
+                            _referenceDateController.clear();
+                          }
+                        });
+                      },
                       child: Container(
                         width: (MediaQuery.of(context).size.width / 2) - 30,
                         padding: const EdgeInsets.all(16),
@@ -585,7 +715,9 @@ class _PaymentPageState extends State<PaymentPage>
               height: 56,
               child: Consumer<PaySalesInvoiceController>(
                 builder: (context, controller, _) => ElevatedButton(
-                  onPressed: controller.isLoading ? null : _processPayment,
+                  onPressed: (controller.isLoading || _selectedMethod.isEmpty)
+                      ? null
+                      : _processPayment,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF667EEA),
                     foregroundColor: Colors.white,
@@ -600,7 +732,9 @@ class _PaymentPageState extends State<PaymentPage>
                           strokeWidth: 2,
                         )
                       : Text(
-                          'Pay ₹${_amountController.text.isEmpty ? '0.00' : _amountController.text}',
+                          _selectedMethod.isEmpty
+                              ? 'Select Payment Method'
+                              : 'Pay ₹${_amountController.text.isEmpty ? '0.00' : _amountController.text}',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,

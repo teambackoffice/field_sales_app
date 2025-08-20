@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart'; // for date formatting
 import 'package:location_tracker_app/config/api_constant.dart';
 
 class PaySalesInvoiceService {
@@ -12,6 +13,8 @@ class PaySalesInvoiceService {
     required String invoice_id,
     required String amount,
     required String modeOfPayment,
+    String? referenceNumber, // optional
+    DateTime? referenceDate, // optional
   }) async {
     final sid = await _secureStorage.read(key: 'sid'); // Get session id
 
@@ -21,13 +24,22 @@ class PaySalesInvoiceService {
 
     var headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
 
-    var body = json.encode({
+    final Map<String, dynamic> bodyMap = {
       "invoice_name": invoice_id,
       "payment_amount": amount,
       "mode_of_payment": modeOfPayment,
-    });
+    };
 
-    // 🔹 Debugging logs
+    if (referenceNumber != null && referenceNumber.isNotEmpty) {
+      bodyMap["reference_no"] = referenceNumber;
+    }
+
+    if (referenceDate != null) {
+      final formattedDate = DateFormat('yyyy-MM-dd').format(referenceDate);
+      bodyMap["reference_date"] = formattedDate;
+    }
+
+    final body = json.encode(bodyMap);
 
     final response = await http.post(
       Uri.parse(url),

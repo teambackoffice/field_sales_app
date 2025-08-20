@@ -16,6 +16,8 @@ class PaySalesInvoiceController extends ChangeNotifier {
     required String invoice_id,
     required String amount,
     required String mode_of_payment,
+    String? referenceNumber, // optional
+    DateTime? referenceDate, // optional
   }) async {
     _isLoading = true;
     _error = null;
@@ -27,6 +29,8 @@ class PaySalesInvoiceController extends ChangeNotifier {
         invoice_id: invoice_id,
         amount: amount,
         modeOfPayment: mode_of_payment,
+        referenceNumber: referenceNumber,
+        referenceDate: referenceDate,
       );
     } catch (e) {
       _error = e.toString();
