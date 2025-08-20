@@ -30,6 +30,18 @@ class CreateSalesOrderController extends ChangeNotifier {
         deliveryDate: deliveryDate,
         items: items,
       );
+
+      // NEW: Check if the API response contains an error
+      if (_response != null && _response!['message'] != null) {
+        final message = _response!['message'];
+
+        // Check if the response indicates an error
+        if (message['status'] == 'error') {
+          _error =
+              message['message'] ??
+              'An error occurred while creating the sales order';
+        }
+      }
     } catch (e) {
       _error = e.toString();
     } finally {

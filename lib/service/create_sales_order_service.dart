@@ -44,12 +44,14 @@ class CreateSalesOrderService {
       } else {
         throw Exception(_mapErrorMessage(response.body));
       }
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
       throw Exception("Request timed out. Please try again.");
-    } on SocketException {
+    } on SocketException catch (e) {
       throw Exception("No internet connection. Please check your network.");
-    } on FormatException {
+    } on FormatException catch (e) {
       throw Exception("Invalid server response.");
+    } catch (e) {
+      rethrow;
     }
   }
 
@@ -70,7 +72,7 @@ class CreateSalesOrderService {
         return decoded["message"].toString();
       }
       return "Unexpected server error.";
-    } catch (_) {
+    } catch (e) {
       return "Server error. Please try again later.";
     }
   }
