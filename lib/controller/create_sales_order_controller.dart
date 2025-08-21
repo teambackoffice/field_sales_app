@@ -35,11 +35,18 @@ class CreateSalesOrderController extends ChangeNotifier {
       if (_response != null && _response!['message'] != null) {
         final message = _response!['message'];
 
-        // Check if the response indicates an error
-        if (message['status'] == 'error') {
-          _error =
-              message['message'] ??
-              'An error occurred while creating the sales order';
+        if (message is Map && message['status'] == 'error') {
+          final errorMessage = message['message'];
+
+          if (errorMessage is String) {
+            // single error string
+            _error = errorMessage;
+          } else if (errorMessage is List) {
+            // multiple errors → bullet points, new lines
+            _error = errorMessage.map((e) => "• $e").join("\n");
+          } else {
+            _error = 'An unknown error occurred';
+          }
         }
       }
     } catch (e) {

@@ -1,3 +1,4 @@
+import 'package:another_flushbar/flushbar.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:location_tracker_app/controller/create_sales_order_controller.dart';
@@ -122,18 +123,29 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
 
       await controller.createSalesOrder(
         context: context,
-        customer: _selectedCustomer ?? "anupam",
+        customer: _selectedCustomer ?? "",
         deliveryDate: DateFormat('yyyy-MM-dd').format(delvery_date),
         items: _orderItems.map((item) => item.toJson()).toList(),
       );
 
       if (controller.error != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(controller.error!), // Already user-friendly
-            backgroundColor: Colors.red,
+        Flushbar(
+          messageText: Text(
+            controller.error!,
+            style: const TextStyle(
+              fontSize: 12, // 👈 change size
+              fontWeight: FontWeight.w600, // bold
+              color: Colors.white, // text color
+            ),
           ),
-        );
+          backgroundColor: Colors.orange.shade500,
+          icon: const Icon(Icons.error, color: Colors.white),
+          margin: const EdgeInsets.all(12),
+          borderRadius: BorderRadius.circular(12),
+          duration: const Duration(seconds: 4),
+          flushbarPosition: FlushbarPosition.BOTTOM,
+          animationDuration: const Duration(milliseconds: 400),
+        ).show(context);
         return;
       }
 
