@@ -27,7 +27,12 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
   double totalAllocated = 0.0;
   double advanceAmount = 0.0;
   bool isLoadingPaymentData = false;
-  String selectedPaymentMethod = 'Cash'; // Default payment method
+  String selectedPaymentMethod = 'Cash';
+
+  // ADD THESE NEW VARIABLES:
+  TextEditingController referenceNumberController = TextEditingController();
+  TextEditingController referenceDateController = TextEditingController();
+  DateTime? selectedReferenceDate;
 
   @override
   void initState() {
@@ -53,6 +58,34 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
       controller.dispose();
     }
     super.dispose();
+  }
+
+  void _selectReferenceDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now(),
+      firstDate: DateTime(2020),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: Color(0xFF667EEA),
+              onPrimary: Colors.white,
+              onSurface: Colors.black,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      setState(() {
+        selectedReferenceDate = picked;
+        referenceDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+      });
+    }
   }
 
   void _onCustomerSelected(MessageElement? customer) async {
@@ -163,34 +196,35 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
     );
   }
 
+  // Replace your _shouldEnableProcessButton method with this:
+
+  // Replace your _shouldEnableProcessButton method with this simple version:
+
   bool _shouldEnableProcessButton() {
     final draftController = Provider.of<PaymentEntryDraftController>(
       context,
       listen: false,
     );
 
-    // Disable if loading or error
+    // Only disable if loading or error - allow payments even with existing drafts
     if (draftController.isLoading || draftController.errorMessage != null) {
       return false;
     }
 
-    // Check if there's draft data
+    // Always enable if not loading/error - users can create new payments even with drafts
+    return true;
+  }
+
+  // Also, let's add a debug method to see what's happening:
+  void _debugButtonState() {
+    final draftController = Provider.of<PaymentEntryDraftController>(
+      context,
+      listen: false,
+    );
+
     if (draftController.paymentEntryStatus?.message != null) {
       final message = draftController.paymentEntryStatus!.message;
-
-      // Disable if total_allocated_amount > 0 (waiting for approval)
-      if (message.totalAllocatedAmount > 0) {
-        return false;
-      }
-
-      // Disable if there are any draft entries
-      if (message.data.any((entry) => entry.status.toLowerCase() == 'draft')) {
-        return false;
-      }
     }
-
-    // Enable if no drafts found
-    return true;
   }
 
   void _onInvoiceAllocationChanged(String invoiceId) {
@@ -243,6 +277,9 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
       invoiceAllocations.clear();
       selectedPaymentMethod = 'Cash';
       showAllocationWarning = false; // ADD THIS LINE
+      referenceNumberController.clear();
+      referenceDateController.clear();
+      selectedReferenceDate = null;
 
       for (var controller in invoiceControllers.values) {
         controller.dispose();
@@ -382,66 +419,135 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                   });
                 }
 
-                return Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: availableMethods.map((method) {
-                    final isSelected = selectedPaymentMethod == method;
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          selectedPaymentMethod = method;
-                        });
-                      },
-                      child: Container(
-                        width: (MediaQuery.of(context).size.width / 3) - 20,
-                        padding: EdgeInsets.symmetric(
-                          vertical: 12,
-                          horizontal: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Colors.purple.withOpacity(0.1)
-                              : Colors.grey[50],
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: isSelected
-                                ? Colors.purple
-                                : Colors.grey[300]!,
-                            width: isSelected ? 2 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              _getPaymentIcon(method),
-                              color: isSelected
-                                  ? Colors.purple
-                                  : Colors.grey[600],
-                              size: 24,
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Payment Method Selection
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: availableMethods.map((method) {
+                        final isSelected = selectedPaymentMethod == method;
+                        return GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              selectedPaymentMethod = method;
+                              // Clear reference fields when switching payment methods
+                              if (method.toLowerCase() == 'cash') {}
+                            });
+                          },
+                          child: Container(
+                            width: (MediaQuery.of(context).size.width / 3) - 20,
+                            padding: EdgeInsets.symmetric(
+                              vertical: 12,
+                              horizontal: 8,
                             ),
-                            SizedBox(height: 6),
-                            Text(
-                              method,
-                              style: TextStyle(
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.purple.withOpacity(0.1)
+                                  : Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
                                 color: isSelected
                                     ? Colors.purple
-                                    : Colors.grey[600],
-                                fontWeight: isSelected
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                                fontSize: 11,
+                                    : Colors.grey[300]!,
+                                width: isSelected ? 2 : 1,
                               ),
-                              textAlign: TextAlign.center,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
                             ),
-                          ],
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  _getPaymentIcon(method),
+                                  color: isSelected
+                                      ? Colors.purple
+                                      : Colors.grey[600],
+                                  size: 24,
+                                ),
+                                SizedBox(height: 6),
+                                Text(
+                                  method,
+                                  style: TextStyle(
+                                    color: isSelected
+                                        ? Colors.purple
+                                        : Colors.grey[600],
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.normal,
+                                    fontSize: 11,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+
+                    // ADD REFERENCE FIELDS FOR NON-CASH PAYMENTS
+                    if (selectedPaymentMethod.toLowerCase() != 'cash') ...[
+                      SizedBox(height: 20),
+                      Divider(),
+                      SizedBox(height: 16),
+
+                      // Reference Number Field
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.confirmation_number,
+                            color: Colors.purple,
+                            size: 20,
+                          ),
+                          SizedBox(width: 8),
+                          Text(
+                            'Reference Details',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.purple,
+                            ),
+                          ),
+                        ],
+                      ),
+                      SizedBox(height: 12),
+
+                      TextFormField(
+                        controller: referenceNumberController,
+                        decoration: InputDecoration(
+                          labelText: 'Reference Number *',
+                          hintText: 'Enter transaction/cheque number',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          prefixIcon: Icon(Icons.tag, size: 20),
                         ),
                       ),
-                    );
-                  }).toList(),
+                      SizedBox(height: 12),
+
+                      // Reference Date Field
+                      TextFormField(
+                        controller: referenceDateController,
+                        readOnly: true,
+                        onTap: _selectReferenceDate,
+                        decoration: InputDecoration(
+                          labelText: 'Reference Date *',
+                          hintText: 'Select transaction date',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          prefixIcon: Icon(Icons.calendar_today, size: 20),
+                          suffixIcon: Icon(Icons.arrow_drop_down),
+                        ),
+                      ),
+                    ],
+                  ],
                 );
               },
             ),
@@ -1517,80 +1623,9 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
 
                   SizedBox(width: 16),
                   Expanded(
-                    child: ElevatedButton(
-                      onPressed:
-                          paymentController.text.isEmpty ||
-                              (double.tryParse(paymentController.text) ??
-                                      0.0) <=
-                                  0 ||
-                              isLoadingPaymentData ||
-                              paymentEntryData == null ||
-                              selectedCustomer == null
-                          ? null
-                          : () async {
-                              if (_hasTotalAllocationError()) {
-                                _showAllocationErrorSnackBar();
-                                return; // Stop execution
-                              }
-                              final controller = context
-                                  .read<CraetePaymentEntryController>();
-
-                              // Prepare invoice allocations from the current state
-                              List<Map<String, dynamic>> allocations = [];
-                              invoiceAllocations.forEach((invoiceId, amount) {
-                                if (amount > 0) {
-                                  allocations.add({
-                                    "invoice": invoiceId,
-                                    "amount": amount,
-                                  });
-                                }
-                              });
-
-                              try {
-                                // Start API call
-                                await controller.createPayment(
-                                  customer: selectedCustomer!.name,
-                                  totalAllocatedAmount: double.parse(
-                                    paymentController.text,
-                                  ),
-                                  modeOfPayment:
-                                      selectedPaymentMethod, // Use selected payment method
-                                  invoiceAllocations: allocations,
-                                );
-
-                                // Show snackbar based on result
-                                if (controller.responseData != null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Payment Entry Created Successfully!',
-                                      ),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-
-                                  // Clear the form after successful payment
-                                  _clearAll();
-                                } else if (controller.errorMessage != null) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        'Error: ${controller.errorMessage}',
-                                      ),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                // Handle any unexpected errors
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text('Unexpected error: $e'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            },
+                    child: // Replace your ElevatedButton completely with this:
+                    ElevatedButton(
+                      onPressed: _getButtonPressedState(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue,
                         foregroundColor: Colors.white,
@@ -1618,6 +1653,126 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
         ),
       ),
     );
+  }
+
+  VoidCallback? _getButtonPressedState() {
+    // Add debug call to see what's happening
+    _debugButtonState();
+
+    // Check all conditions individually for better debugging
+    if (paymentController.text.isEmpty) {
+      return null;
+    }
+
+    final paymentAmount = double.tryParse(paymentController.text) ?? 0.0;
+    if (paymentAmount <= 0) {
+      return null;
+    }
+
+    if (isLoadingPaymentData) {
+      return null;
+    }
+
+    if (paymentEntryData == null) {
+      return null;
+    }
+
+    if (selectedCustomer == null) {
+      return null;
+    }
+
+    if (!_shouldEnableProcessButton()) {
+      return null;
+    }
+
+    // Return the actual function to execute when button is pressed
+    return () async {
+      // Enhanced validation
+      if (_hasTotalAllocationError()) {
+        _showAllocationErrorSnackBar();
+        return;
+      }
+
+      // Check for non-cash payment method requirements
+      if (selectedPaymentMethod.toLowerCase() != 'cash') {
+        String refNo = referenceNumberController.text.trim();
+        if (refNo.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Reference number is required for $selectedPaymentMethod',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+
+        if (selectedReferenceDate == null ||
+            referenceDateController.text.trim().isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Reference date is required for $selectedPaymentMethod',
+              ),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
+      }
+
+      final controller = context.read<CraetePaymentEntryController>();
+
+      // Prepare invoice allocations
+      List<Map<String, dynamic>> allocations = [];
+      invoiceAllocations.forEach((invoiceId, amount) {
+        if (amount > 0) {
+          allocations.add({"invoice": invoiceId, "amount": amount});
+        }
+      });
+
+      try {
+        await controller.createPayment(
+          customer: selectedCustomer!.name,
+          totalAllocatedAmount: paymentAmount,
+          modeOfPayment: selectedPaymentMethod,
+          invoiceAllocations: allocations,
+          referenceNumber: selectedPaymentMethod.toLowerCase() != 'cash'
+              ? referenceNumberController.text.trim()
+              : null,
+          referenceDate:
+              selectedPaymentMethod.toLowerCase() != 'cash' &&
+                  selectedReferenceDate != null
+              ? DateFormat('yyyy-MM-dd').format(selectedReferenceDate!)
+              : null,
+        );
+
+        if (controller.responseData != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Payment Entry Created Successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _clearAll();
+        } else if (controller.errorMessage != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error: ${controller.errorMessage}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Unexpected error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    };
   }
 }
 

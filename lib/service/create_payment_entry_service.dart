@@ -24,6 +24,8 @@ class CreatePaymentEntryService {
     required double totalAllocatedAmount,
     required String modeOfPayment,
     required List<Map<String, dynamic>> invoiceAllocations,
+    String? referenceNumber,
+    String? referenceDate,
   }) async {
     final sid = await _getSid();
     final salesPerson = await _getSalesPerson();
@@ -37,13 +39,27 @@ class CreatePaymentEntryService {
 
     final headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
 
-    final body = json.encode({
+    // Build the request body with proper null handling
+    Map<String, dynamic> requestBody = {
       "customer": customer,
       "total_allocated_amount": totalAllocatedAmount,
-      "sales_person": salesPerson, // From storage
+      "sales_person": salesPerson,
       "mode_of_payment": modeOfPayment,
       "invoice_allocations": invoiceAllocations,
-    });
+      "reference_no": referenceNumber ?? "",
+      "reference_date": referenceDate ?? "",
+    };
+
+    // Only add reference fields if they have values
+    if (referenceNumber != null && referenceNumber.trim().isNotEmpty) {
+      requestBody["reference_no"] = referenceNumber.trim();
+    }
+
+    if (referenceDate != null && referenceDate.trim().isNotEmpty) {
+      requestBody["reference_date"] = referenceDate.trim();
+    }
+
+    final body = json.encode(requestBody);
 
     final response = await http.post(
       Uri.parse(url),
