@@ -6,6 +6,8 @@ import 'package:location_tracker_app/controller/customer_list_controller.dart';
 import 'package:location_tracker_app/controller/item_list_controller.dart';
 import 'package:location_tracker_app/controller/item_tax_controller.dart'; // Add this import
 import 'package:location_tracker_app/controller/sales_order_controller.dart';
+import 'package:location_tracker_app/controller/specialOffer/get_special_offer_controller.dart';
+import 'package:location_tracker_app/controller/specialOffer/post_special_offer_controller.dart';
 import 'package:location_tracker_app/modal/customer_list_modal.dart';
 import 'package:location_tracker_app/modal/item_tax_modal.dart'; // Add this import
 import 'package:provider/provider.dart';
@@ -71,6 +73,8 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   final TextEditingController _orderNumberController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
   bool isSpecialOrder = false;
+  bool isSpecialOrderLoading = false; // Add this for loading state
+  bool isInitialized = false;
   // Form data
   DateTime delvery_date = DateTime.now();
   String? _selectedCustomer;
@@ -93,7 +97,114 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
         context,
         listen: false,
       ).getItemTaxes(); // Load tax data
+      _initializeSpecialOfferSettings();
     });
+  }
+
+  Future<void> _initializeSpecialOfferSettings() async {
+    final getController = Provider.of<GetSpecialOfferController>(
+      context,
+      listen: false,
+    );
+    await getController.fetchChundakadanSettings();
+
+    if (getController.settings != null && mounted) {
+      setState(() {
+        // Access nested data structure and invert the logic
+        final data = getController.settings?['message']?['data'];
+        bool backendValue = data?['enable_stock_validation'] ?? false;
+        isSpecialOrder =
+            !backendValue; // Invert: backend true = switch OFF, backend false = switch ON
+        isInitialized = true;
+      });
+    }
+  }
+
+  Future<void> _updateSpecialOffer(bool value) async {
+    if (!mounted) return;
+
+    setState(() {
+      isSpecialOrderLoading = true;
+    });
+
+    try {
+      final updateController = Provider.of<SpecialOfferController>(
+        context,
+        listen: false,
+      );
+
+      // Invert the logic: switch ON = backend false, switch OFF = backend true
+      bool backendValue = !value;
+      await updateController.updateSpecialOfferSettings(backendValue);
+
+      if (updateController.error != null) {
+        // Show error message
+        Flushbar(
+          messageText: Text(
+            'Failed to update setting: ${updateController.error}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: Colors.red.shade500,
+          icon: const Icon(Icons.error, color: Colors.white),
+          margin: const EdgeInsets.all(12),
+          borderRadius: BorderRadius.circular(12),
+          duration: const Duration(seconds: 4),
+          flushbarPosition: FlushbarPosition.BOTTOM,
+          animationDuration: const Duration(milliseconds: 400),
+        ).show(context);
+      } else {
+        // Success - update the local state
+        setState(() {
+          isSpecialOrder = value;
+        });
+
+        Flushbar(
+          messageText: Text(
+            'Special offer setting updated successfully',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: Colors.green.shade500,
+          icon: const Icon(Icons.check_circle, color: Colors.white),
+          margin: const EdgeInsets.all(12),
+          borderRadius: BorderRadius.circular(12),
+          duration: const Duration(seconds: 3),
+          flushbarPosition: FlushbarPosition.BOTTOM,
+          animationDuration: const Duration(milliseconds: 400),
+        ).show(context);
+      }
+    } catch (e) {
+      Flushbar(
+        messageText: Text(
+          'Error: $e',
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        backgroundColor: Colors.red.shade500,
+        icon: const Icon(Icons.error, color: Colors.white),
+        margin: const EdgeInsets.all(12),
+        borderRadius: BorderRadius.circular(12),
+        duration: const Duration(seconds: 4),
+        flushbarPosition: FlushbarPosition.BOTTOM,
+        animationDuration: const Duration(milliseconds: 400),
+      ).show(context);
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSpecialOrderLoading = false;
+        });
+      }
+    }
   }
 
   void _generateOrderNumber() {
@@ -301,24 +412,53 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                       ]
                     : null,
               ),
-              child: Icon(
-                isSpecialOrder
-                    ? Icons.stars_rounded
-                    : Icons.star_border_rounded,
-                color: isSpecialOrder ? Colors.white : Colors.grey.shade400,
-                size: 24,
-              ),
+              child:
+                  isSpecialOrderLoading // Show loading indicator
+                  ? Padding(
+                      padding: EdgeInsets.all(12),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          isSpecialOrder ? Colors.white : Color(0xFF764BA2),
+                        ),
+                      ),
+                    )
+                  : Icon(
+                      isSpecialOrder
+                          ? Icons.stars_rounded
+                          : Icons.star_border_rounded,
+                      color: isSpecialOrder
+                          ? Colors.white
+                          : Colors.grey.shade400,
+                      size: 24,
+                    ),
             ),
             SizedBox(width: 16),
-            Text(
-              'Special Offer',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: isSpecialOrder ? Color(0xFF764BA2) : Color(0xFF2D3436),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Special Offer',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: isSpecialOrder
+                          ? Color(0xFF764BA2)
+                          : Color(0xFF2D3436),
+                    ),
+                  ),
+                  if (isSpecialOrderLoading)
+                    Text(
+                      'Updating...',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                ],
               ),
             ),
-            Spacer(),
             Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
@@ -332,11 +472,9 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
               ),
               child: Switch(
                 value: isSpecialOrder,
-                onChanged: (value) {
-                  setState(() {
-                    isSpecialOrder = value;
-                  });
-                },
+                onChanged: isSpecialOrderLoading
+                    ? null
+                    : _updateSpecialOffer, // Updated this line
                 activeColor: Colors.white,
                 activeTrackColor: Color(0xFF764BA2),
                 inactiveThumbColor: Colors.white,

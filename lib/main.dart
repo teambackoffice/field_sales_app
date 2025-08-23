@@ -19,6 +19,8 @@ import 'package:location_tracker_app/controller/sales_invoice_details_controller
 import 'package:location_tracker_app/controller/sales_invoice_id_controller.dart';
 import 'package:location_tracker_app/controller/sales_order_controller.dart';
 import 'package:location_tracker_app/controller/sales_return_controller.dart';
+import 'package:location_tracker_app/controller/specialOffer/get_special_offer_controller.dart';
+import 'package:location_tracker_app/controller/specialOffer/post_special_offer_controller.dart';
 import 'package:location_tracker_app/firebase_options.dart';
 import 'package:location_tracker_app/service/login_service.dart';
 import 'package:location_tracker_app/view/login/login_page.dart';
@@ -56,6 +58,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SalesInvoiceIdsController()),
         ChangeNotifierProvider(create: (_) => SalesInvoiceDetailController()),
         ChangeNotifierProvider(create: (_) => ItemTaxController()),
+        ChangeNotifierProvider(create: (_) => GetSpecialOfferController()),
+        ChangeNotifierProvider(create: (_) => SpecialOfferController()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
