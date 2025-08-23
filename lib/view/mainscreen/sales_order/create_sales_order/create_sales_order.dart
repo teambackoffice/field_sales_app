@@ -70,7 +70,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
   // Controllers
   final TextEditingController _orderNumberController = TextEditingController();
   final TextEditingController _notesController = TextEditingController();
-
+  bool isSpecialOrder = false;
   // Form data
   DateTime delvery_date = DateTime.now();
   String? _selectedCustomer;
@@ -242,6 +242,8 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                           SizedBox(height: 16),
                           _buildItemsCard(taxList),
                           SizedBox(height: 16),
+                          _buildSpecialOrderSwitch(), // Add this line
+                          SizedBox(height: 16),
                           _buildTotalCard(),
                           SizedBox(height: 16),
                           _buildSaveButton(),
@@ -251,6 +253,98 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                     );
                   },
             ),
+      ),
+    );
+  }
+
+  Widget _buildSpecialOrderSwitch() {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        padding: EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          gradient: isSpecialOrder
+              ? LinearGradient(
+                  colors: [
+                    Color(0xFF667EEA).withOpacity(0.1),
+                    Color(0xFF764BA2).withOpacity(0.1),
+                  ],
+                  begin: Alignment.centerLeft,
+                  end: Alignment.centerRight,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: isSpecialOrder
+                    ? LinearGradient(
+                        colors: [Color(0xFF667EEA), Color(0xFF764BA2)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      )
+                    : null,
+                color: isSpecialOrder ? null : Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: isSpecialOrder
+                    ? [
+                        BoxShadow(
+                          color: Color(0xFF764BA2).withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
+                        ),
+                      ]
+                    : null,
+              ),
+              child: Icon(
+                isSpecialOrder
+                    ? Icons.stars_rounded
+                    : Icons.star_border_rounded,
+                color: isSpecialOrder ? Colors.white : Colors.grey.shade400,
+                size: 24,
+              ),
+            ),
+            SizedBox(width: 16),
+            Text(
+              'Special Offer',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: isSpecialOrder ? Color(0xFF764BA2) : Color(0xFF2D3436),
+              ),
+            ),
+            Spacer(),
+            Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Switch(
+                value: isSpecialOrder,
+                onChanged: (value) {
+                  setState(() {
+                    isSpecialOrder = value;
+                  });
+                },
+                activeColor: Colors.white,
+                activeTrackColor: Color(0xFF764BA2),
+                inactiveThumbColor: Colors.white,
+                inactiveTrackColor: Colors.grey.shade300,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

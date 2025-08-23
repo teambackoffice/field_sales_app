@@ -8,19 +8,26 @@ import 'package:location_tracker_app/config/api_constant.dart';
 class LoginService {
   final String baseUrl = '${ApiConstants.baseUrl}user_login';
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
   Future<bool> isLoggedIn() async {
     final sid = await _secureStorage.read(key: 'sid');
+    print("🔑 Checking if logged in -> SID: $sid");
     return sid != null && sid.isNotEmpty;
   }
 
   Future<bool> login(String username, String password) async {
     final url = Uri.parse('$baseUrl?usr=$username&pwd=$password');
+    print("🌐 Sending login request -> $url");
 
     try {
       final response = await http.post(url);
+      print("📥 Response Status: ${response.statusCode}");
+      print("📥 Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
+        print("✅ Decoded JSON: $responseData");
+
         final fullName = responseData['full_name'];
         final message = responseData['message'];
         final apiKey = message['api_key'];
@@ -45,28 +52,39 @@ class LoginService {
           value: salesPersonId,
         );
 
-        // Convert roles to JSON string and store
         await _secureStorage.write(key: 'roles', value: jsonEncode(roles));
+
+        print("🔒 Stored user details successfully!");
+        print("➡️ fullName: $fullName");
+        print("➡️ email: $email");
+        print("➡️ employeeId: $empId");
+        print("➡️ roles: $roles");
 
         return message['success_key'] == 1;
       } else {
+        print("❌ Login failed with status: ${response.statusCode}");
         return false;
       }
     } catch (e) {
+      print("⚠️ Exception during login: $e");
       return false;
     }
   }
 
   Future<String?> getFullName() async {
-    return await _secureStorage.read(key: 'full_name');
+    final name = await _secureStorage.read(key: 'full_name');
+    print("👤 Retrieved Full Name: $name");
+    return name;
   }
 
   Future<String?> getApiKey() async {
-    return await _secureStorage.read(key: 'api_key');
+    final key = await _secureStorage.read(key: 'api_key');
+    print("🔑 Retrieved API Key: $key");
+    return key;
   }
 
-  // Optional: Method to clear storage on logout
   Future<void> logout() async {
+    print("🚪 Logging out -> Clearing all storage");
     await _secureStorage.deleteAll();
   }
 }
