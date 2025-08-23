@@ -244,9 +244,9 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
           messageText: Text(
             controller.error!,
             style: const TextStyle(
-              fontSize: 12, // 👈 change size
-              fontWeight: FontWeight.w600, // bold
-              color: Colors.white, // text color
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
             ),
           ),
           backgroundColor: Colors.orange.shade500,
@@ -260,6 +260,13 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
         return;
       }
 
+      // 🔄 If special offer switch was ON, turn it OFF after successful order (do this FIRST)
+      if (isSpecialOrder) {
+        // Update silently without showing additional messages
+        _updateSpecialOfferSilently(false);
+      }
+
+      // 🎯 SUCCESS: Sales order created successfully
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ Sales Order created successfully!'),
@@ -267,11 +274,45 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
         ),
       );
 
+      // Navigate and refresh
       Navigator.pop(context);
       Provider.of<SalesOrderController>(
         context,
         listen: false,
       ).fetchsalesorder();
+    }
+  }
+
+  void _updateSpecialOfferSilently(bool value) {
+    if (!mounted) return;
+
+    // Update locally immediately
+    setState(() {
+      isSpecialOrder = value;
+    });
+
+    // Update backend asynchronously without blocking UI
+    _updateBackendSilently(value);
+  }
+
+  Future<void> _updateBackendSilently(bool value) async {
+    try {
+      final updateController = Provider.of<SpecialOfferController>(
+        context,
+        listen: false,
+      );
+
+      // Invert the logic: switch ON = backend false, switch OFF = backend true
+      bool backendValue = !value;
+      await updateController.updateSpecialOfferSettings(backendValue);
+
+      if (updateController.error != null) {
+        print(
+          'Failed to update special offer setting: ${updateController.error}',
+        );
+      }
+    } catch (e) {
+      print('Error updating special offer setting: $e');
     }
   }
 
