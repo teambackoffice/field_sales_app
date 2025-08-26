@@ -12,6 +12,8 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
+  bool _isLoggingOut = false;
+
   final FlutterSecureStorage storage = const FlutterSecureStorage();
   String username = "User"; // default value
   String email = "user@example.com"; // default value
@@ -150,24 +152,9 @@ class _ProfilePageState extends State<ProfilePage> {
                         width: double.infinity,
                         height: 50,
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const LoginPage(),
-                              ),
-                            );
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: const Text('Log out successful!'),
-                                backgroundColor: const Color(0xFF764BA2),
-                                behavior: SnackBarBehavior.floating,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                              ),
-                            );
-                          },
+                          onPressed: _isLoggingOut
+                              ? null
+                              : () => _showLogoutDialog(context),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF764BA2),
                             foregroundColor: Colors.white,
@@ -176,13 +163,22 @@ class _ProfilePageState extends State<ProfilePage> {
                             ),
                             elevation: 0,
                           ),
-                          child: const Text(
-                            'Log Out',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
+                          child: _isLoggingOut
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text(
+                                  'Log Out',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                         ),
                       ),
                     ],
@@ -192,6 +188,63 @@ class _ProfilePageState extends State<ProfilePage> {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showLogoutDialog(BuildContext pageContext) {
+    showDialog(
+      context: pageContext,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Log Out"),
+        content: const Text("Are you sure you want to log out?"),
+        actions: [
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(dialogContext), // close only the dialog
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF764BA2),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            onPressed: () async {
+              Navigator.pop(dialogContext); // close dialog only
+              setState(() => _isLoggingOut = true);
+
+              // simulate some delay (e.g., API call / storage clearing)
+              await Future.delayed(const Duration(seconds: 2));
+
+              // clear user data if needed
+              await storage.deleteAll();
+
+              setState(() => _isLoggingOut = false);
+
+              // use pageContext (NOT dialogContext)
+              Navigator.pushReplacement(
+                pageContext,
+                MaterialPageRoute(builder: (context) => const LoginPage()),
+              );
+
+              ScaffoldMessenger.of(pageContext).showSnackBar(
+                SnackBar(
+                  content: const Text('Log out successful!'),
+                  backgroundColor: const Color(0xFF764BA2),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              );
+            },
+            child: const Text("Log Out"),
+          ),
+        ],
       ),
     );
   }
