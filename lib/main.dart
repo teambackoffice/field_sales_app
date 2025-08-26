@@ -23,22 +23,34 @@ import 'package:location_tracker_app/controller/specialOffer/get_special_offer_c
 import 'package:location_tracker_app/controller/specialOffer/post_special_offer_controller.dart';
 import 'package:location_tracker_app/firebase_options.dart';
 import 'package:location_tracker_app/service/login_service.dart';
-import 'package:location_tracker_app/view/login/login_page.dart';
-import 'package:location_tracker_app/view/mainscreen/homepage.dart';
+import 'package:location_tracker_app/view/spalsh_screen/splash_screen.dart';
 import 'package:provider/provider.dart';
+
+// Add this global navigator key if you don't have it
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Start notifications but don’t wait indefinitely
+  // Start notifications but don't wait indefinitely
   FirebaseApi().initNotification();
 
-  final authService = LoginService();
-  final isLoggedIn = await authService.isLoggedIn();
+  runApp(MyApp()); // Use MyApp instead of MaterialApp directly
+}
 
-  runApp(
-    MultiProvider(
+class MyApp extends StatelessWidget {
+  final LoginService _authService = LoginService();
+
+  MyApp({super.key});
+
+  Future<bool> checkLogin() async {
+    return await _authService.isLoggedIn();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => LoginController()),
         ChangeNotifierProvider(create: (_) => GetCustomerListController()),
@@ -62,39 +74,11 @@ void main() async {
         ChangeNotifierProvider(create: (_) => SpecialOfferController()),
       ],
       child: MaterialApp(
+        navigatorKey: navigatorKey,
         debugShowCheckedModeBanner: false,
         title: 'Location Tracker',
         theme: ThemeData(primarySwatch: Colors.deepPurple),
-        home: isLoggedIn ? MainScreen() : LoginPage(),
-      ),
-    ),
-  );
-}
-
-class MyApp extends StatelessWidget {
-  final LoginService _authService = LoginService();
-
-  MyApp({super.key});
-
-  Future<bool> checkLogin() async {
-    return await _authService.isLoggedIn();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      debugShowCheckedModeBanner: false,
-      title: 'Location Tracker',
-      theme: ThemeData(primarySwatch: Colors.deepPurple),
-      home: FutureBuilder<bool>(
-        future: checkLogin(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Scaffold(body: Center(child: CircularProgressIndicator()));
-          }
-          return snapshot.data! ? MainScreen() : LoginPage();
-        },
+        home: SplashScreen(), // Start with splash screen
       ),
     );
   }
