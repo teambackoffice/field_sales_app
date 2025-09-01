@@ -10,6 +10,7 @@ class Task {
   final String description;
   final String priority;
   TaskStatus status;
+  String? remarks;
 
   Task({
     required this.id,
@@ -19,6 +20,7 @@ class Task {
     required this.description,
     required this.priority,
     required this.status,
+    this.remarks,
   });
 }
 
