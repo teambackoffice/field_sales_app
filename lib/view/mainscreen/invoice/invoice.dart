@@ -562,10 +562,10 @@ class _InvoicePageState extends State<InvoicePage> {
   }
 
   Widget _buildTrailingWidget(Invoice invoice) {
-    bool isFullyPaid =
-        invoice.outstandingAmount == 0 &&
-        invoice.payments.isNotEmpty &&
-        invoice.payments.every((payment) => payment.status == "Submitted");
+    bool isFullyPaid = invoice.outstandingAmount == 0;
+    //  &&
+    // invoice.payments.isNotEmpty &&
+    // invoice.payments.every((payment) => payment.status == "Submitted");
 
     bool hasDraftedPayment = invoice.payments.any(
       (payment) => payment.status == "Draft",

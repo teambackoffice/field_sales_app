@@ -115,7 +115,10 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
           );
         },
       ),
-      floatingActionButton: _buildUniqueFloatingButton(),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 30.0), // 👈 move up by 20px
+        child: _buildUniqueFloatingButton(),
+      ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }

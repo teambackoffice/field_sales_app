@@ -206,12 +206,25 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
       listen: false,
     );
 
-    // Only disable if loading or error - allow payments even with existing drafts
-    if (draftController.isLoading || draftController.errorMessage != null) {
-      return false;
-    }
+    // Check loading/error states
+    // if (draftController.isLoading || draftController.errorMessage != null) {
+    //   return false;
+    // }
 
-    // Always enable if not loading/error - users can create new payments even with drafts
+    // Check required fields
+    if (selectedCustomer == null) return false;
+    if (paymentEntryData == null) return false;
+    if (isLoadingPaymentData) return false;
+
+    // final paymentAmount = double.tryParse(paymentController.text) ?? 0.0;
+    // if (paymentAmount <= 0) return false;
+
+    // Check reference fields for non-cash payments
+    // if (selectedPaymentMethod.toLowerCase() != 'cash') {
+    //   if (referenceNumberController.text.trim().isEmpty) return false;
+    //   if (selectedReferenceDate == null) return false;
+    // }
+
     return true;
   }
 
@@ -231,7 +244,6 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
     final controller = invoiceControllers[invoiceId];
     if (controller != null && paymentEntryData != null) {
       final value = double.tryParse(controller.text) ?? 0.0;
-      // REMOVE THE AUTOMATIC CORRECTION - just store the value as entered
 
       setState(() {
         invoiceAllocations[invoiceId] = value; // Store actual entered value
@@ -1623,27 +1635,31 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
 
                   SizedBox(width: 16),
                   Expanded(
-                    child: // Replace your ElevatedButton completely with this:
-                    ElevatedButton(
-                      onPressed: _getButtonPressedState(),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: Consumer<CraetePaymentEntryController>(
-                        builder: (context, controller, child) {
-                          return controller.isLoading
-                              ? SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                              : Text('Process Payment');
-                        },
-                      ),
+                    child: Consumer<PaymentEntryDraftController>(
+                      // Add Consumer here
+                      builder: (context, draftController, child) {
+                        return ElevatedButton(
+                          onPressed: _getButtonPressedState(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: Consumer<CraetePaymentEntryController>(
+                            builder: (context, controller, child) {
+                              return controller.isLoading
+                                  ? SizedBox(
+                                      height: 20,
+                                      width: 20,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : Text('Process Payment');
+                            },
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ],
@@ -1759,7 +1775,7 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
         } else if (controller.errorMessage != null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Error: ${controller.errorMessage}'),
+              content: Text(' ${controller.errorMessage}'),
               backgroundColor: Colors.red,
             ),
           );

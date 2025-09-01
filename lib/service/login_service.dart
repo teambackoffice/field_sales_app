@@ -54,12 +54,6 @@ class LoginService {
 
         await _secureStorage.write(key: 'roles', value: jsonEncode(roles));
 
-        print("🔒 Stored user details successfully!");
-        print("➡️ fullName: $fullName");
-        print("➡️ email: $email");
-        print("➡️ employeeId: $empId");
-        print("➡️ roles: $roles");
-
         return message['success_key'] == 1;
       } else {
         print("❌ Login failed with status: ${response.statusCode}");

@@ -44,11 +44,11 @@ class CreateSalesOrderService {
       } else {
         throw Exception(_mapErrorMessage(response.body));
       }
-    } on TimeoutException catch (e) {
+    } on TimeoutException {
       throw Exception("Request timed out. Please try again.");
-    } on SocketException catch (e) {
+    } on SocketException {
       throw Exception("No internet connection. Please check your network.");
-    } on FormatException catch (e) {
+    } on FormatException {
       throw Exception("Invalid server response.");
     } catch (e) {
       rethrow;
