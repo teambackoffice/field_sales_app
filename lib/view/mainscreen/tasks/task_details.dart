@@ -1,27 +1,83 @@
 import 'package:flutter/material.dart';
-import 'package:location_tracker_app/view/mainscreen/tasks/tasks.dart';
+import 'package:location_tracker_app/modal/task_modal.dart';
+
+enum TaskStatus { inProgress, completed, cancelled, overdue }
+
+extension TaskStatusExtension on TaskStatus {
+  String get displayName {
+    switch (this) {
+      case TaskStatus.inProgress:
+        return 'In Progress';
+      case TaskStatus.completed:
+        return 'Completed';
+      case TaskStatus.overdue:
+        return 'Overdue';
+      case TaskStatus.cancelled:
+        return 'Cancelled';
+    }
+  }
+
+  Color get color {
+    switch (this) {
+      case TaskStatus.inProgress:
+        return Colors.blue;
+      case TaskStatus.completed:
+        return Color(0xFF4CAF50);
+      case TaskStatus.overdue:
+        return Color(0xFFB71C1C);
+      case TaskStatus.cancelled:
+        return Colors.red;
+    }
+  }
+
+  IconData get icon {
+    switch (this) {
+      case TaskStatus.inProgress:
+        return Icons.play_circle_outline;
+      case TaskStatus.completed:
+        return Icons.check_circle;
+      case TaskStatus.overdue:
+        return Icons.warning;
+      case TaskStatus.cancelled:
+        return Icons.cancel;
+    }
+  }
+}
 
 class TaskDetailPage extends StatefulWidget {
-  final Task task;
-  final Function(Task) onStatusChanged;
+  final Datum task;
 
-  const TaskDetailPage({
-    super.key,
-    required this.task,
-    required this.onStatusChanged,
-  });
+  const TaskDetailPage({super.key, required this.task});
 
   @override
   State<TaskDetailPage> createState() => _TaskDetailPageState();
 }
 
 class _TaskDetailPageState extends State<TaskDetailPage> {
-  late Task currentTask;
+  late Datum currentTask;
+  late TaskStatus currentStatus;
 
   @override
   void initState() {
     super.initState();
     currentTask = widget.task;
+    currentStatus = _getTaskStatus(currentTask.status);
+  }
+
+  // Helper method to convert API status to TaskStatus enum
+  TaskStatus _getTaskStatus(String apiStatus) {
+    switch (apiStatus.toLowerCase()) {
+      case 'completed':
+        return TaskStatus.completed;
+      case 'cancelled':
+        return TaskStatus.cancelled;
+      case 'overdue':
+        return TaskStatus.overdue;
+      case 'in progress':
+      case 'working':
+      default:
+        return TaskStatus.inProgress;
+    }
   }
 
   @override
@@ -38,23 +94,24 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildDetailCard('Customer Information', Icons.person, [
-              _buildDetailRow('Name', currentTask.customerName),
-            ]),
+            _buildTaskHeaderCard(),
             const SizedBox(height: 16),
-            _buildDetailCard('Task Timeline', Icons.schedule, [
-              _buildDetailRow('Start Date', _formatDate(currentTask.startDate)),
-              _buildDetailRow('End Date', _formatDate(currentTask.endDate)),
-              _buildDetailRow('Duration', _calculateDuration()),
-            ]),
+            _buildCustomerCard(),
+            const SizedBox(height: 16),
+            _buildTimelineCard(),
             const SizedBox(height: 16),
             _buildStatusCard(),
             const SizedBox(height: 16),
             _buildDescriptionCard(),
-            if (currentTask.remarks != null && currentTask.remarks!.isNotEmpty)
+            if (currentTask.customRemarks != null &&
+                currentTask.customRemarks.toString().isNotEmpty &&
+                currentTask.customRemarks != "null")
               const SizedBox(height: 16),
-            if (currentTask.remarks != null && currentTask.remarks!.isNotEmpty)
+            if (currentTask.customRemarks != null &&
+                currentTask.customRemarks.toString().isNotEmpty &&
+                currentTask.customRemarks != "null")
               _buildRemarksCard(),
+            const SizedBox(height: 80), // Space for FAB
           ],
         ),
       ),
@@ -62,11 +119,90 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         onPressed: _showStatusDialog,
         backgroundColor: const Color(0xFF764BA2),
         label: const Text(
-          'Change Status',
+          'Update Status',
           style: TextStyle(color: Colors.white),
+        ),
+        icon: const Icon(Icons.edit, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildTaskHeaderCard() {
+    return Card(
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF764BA2), Color(0xFF667EEA)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                currentTask.subject,
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  const Icon(Icons.assignment, color: Colors.white70, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Task ID: ${currentTask.name}',
+                    style: const TextStyle(color: Colors.white70, fontSize: 14),
+                  ),
+                ],
+              ),
+              if (currentTask.customAssignedTo.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.person_outline,
+                      color: Colors.white70,
+                      size: 16,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Assigned to: ${currentTask.customAssignedTo}',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildCustomerCard() {
+    return _buildDetailCard('Customer Information', Icons.person, [
+      _buildDetailRow('Customer Name', currentTask.customCustomer),
+    ]);
+  }
+
+  Widget _buildTimelineCard() {
+    return _buildDetailCard('Task Timeline', Icons.schedule, [
+      _buildDetailRow('Start Date', _formatDate(currentTask.expStartDate)),
+      _buildDetailRow('End Date', _formatDate(currentTask.expEndDate)),
+      _buildDetailRow('Duration', _calculateDuration()),
+    ]);
   }
 
   Widget _buildDetailCard(String title, IconData icon, List<Widget> children) {
@@ -107,7 +243,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 100,
+            width: 120,
             child: Text(
               '$label:',
               style: const TextStyle(
@@ -116,7 +252,12 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
               ),
             ),
           ),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 16))),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+            ),
+          ),
         ],
       ),
     );
@@ -147,29 +288,47 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
             ),
             const SizedBox(height: 16),
             Container(
-              padding: const EdgeInsets.all(12),
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: currentTask.status.color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: currentTask.status.color.withOpacity(0.3),
-                ),
+                color: currentStatus.color.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: currentStatus.color.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
-                  Icon(
-                    currentTask.status.icon,
-                    color: currentTask.status.color,
-                    size: 24,
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: currentStatus.color,
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      currentStatus.icon,
+                      color: Colors.white,
+                      size: 20,
+                    ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    currentTask.status.displayName,
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: currentTask.status.color,
-                    ),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        currentTask.status,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: currentStatus.color,
+                        ),
+                      ),
+                      Text(
+                        currentStatus.displayName,
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: currentStatus.color.withOpacity(0.7),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -194,7 +353,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                 Icon(Icons.description, color: Color(0xFF764BA2)),
                 SizedBox(width: 8),
                 Text(
-                  'Description',
+                  'Task Description',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -204,9 +363,29 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
               ],
             ),
             const SizedBox(height: 16),
-            Text(
-              currentTask.description,
-              style: const TextStyle(fontSize: 16, height: 1.5),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey[200]!),
+              ),
+              child: Text(
+                currentTask.description.isNotEmpty
+                    ? currentTask.description
+                    : 'No description provided',
+                style: TextStyle(
+                  fontSize: 16,
+                  height: 1.5,
+                  color: currentTask.description.isNotEmpty
+                      ? Colors.black87
+                      : Colors.grey[500],
+                  fontStyle: currentTask.description.isNotEmpty
+                      ? FontStyle.normal
+                      : FontStyle.italic,
+                ),
+              ),
             ),
           ],
         ),
@@ -238,9 +417,22 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
               ],
             ),
             const SizedBox(height: 16),
-            Text(
-              currentTask.remarks ?? "",
-              style: const TextStyle(fontSize: 16, height: 1.5),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.amber[50],
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber[200]!),
+              ),
+              child: Text(
+                currentTask.customRemarks?.toString() ?? "",
+                style: const TextStyle(
+                  fontSize: 16,
+                  height: 1.5,
+                  color: Colors.black87,
+                ),
+              ),
             ),
           ],
         ),
@@ -249,17 +441,56 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+
+    return '${date.day} ${months[date.month - 1]}, ${date.year}';
   }
 
   String _calculateDuration() {
-    final difference = currentTask.endDate.difference(currentTask.startDate);
-    return '${difference.inDays + 1} days';
+    final difference = currentTask.expEndDate.difference(
+      currentTask.expStartDate,
+    );
+    final days = difference.inDays + 1;
+
+    if (days == 1) {
+      return '1 day';
+    } else if (days < 7) {
+      return '$days days';
+    } else if (days < 30) {
+      final weeks = (days / 7).floor();
+      final remainingDays = days % 7;
+      String result = '$weeks week${weeks > 1 ? 's' : ''}';
+      if (remainingDays > 0) {
+        result += ' $remainingDays day${remainingDays > 1 ? 's' : ''}';
+      }
+      return result;
+    } else {
+      final months = (days / 30).floor();
+      final remainingDays = days % 30;
+      String result = '$months month${months > 1 ? 's' : ''}';
+      if (remainingDays > 0) {
+        result += ' $remainingDays day${remainingDays > 1 ? 's' : ''}';
+      }
+      return result;
+    }
   }
 
   void _showStatusDialog() {
     final TextEditingController remarksController = TextEditingController();
-    TaskStatus? selectedStatus = currentTask.status;
+    TaskStatus? selectedStatus = currentStatus;
 
     showDialog(
       context: context,
@@ -267,34 +498,87 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         return StatefulBuilder(
           builder: (context, setStateDialog) {
             return AlertDialog(
-              title: const Text('Change Task Status'),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: Row(
+                children: const [
+                  Icon(Icons.edit, color: Color(0xFF764BA2)),
+                  SizedBox(width: 8),
+                  Text('Update Task Status'),
+                ],
+              ),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const Text(
+                      'Select new status:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
                     ...TaskStatus.values.map((status) {
-                      return RadioListTile<TaskStatus>(
-                        value: status,
-                        groupValue: selectedStatus,
-                        onChanged: (TaskStatus? value) {
-                          setStateDialog(() {
-                            selectedStatus = value!;
-                          });
-                        },
-                        title: Text(status.displayName),
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 4),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(8),
+                          color: selectedStatus == status
+                              ? status.color.withOpacity(0.1)
+                              : null,
+                        ),
+                        child: RadioListTile<TaskStatus>(
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                          ),
+                          value: status,
+                          groupValue: selectedStatus,
+                          onChanged: (TaskStatus? value) {
+                            setStateDialog(() {
+                              selectedStatus = value!;
+                            });
+                          },
+                          title: Row(
+                            children: [
+                              Icon(status.icon, color: status.color, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                status.displayName,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w500,
+                                  color: selectedStatus == status
+                                      ? status.color
+                                      : Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          activeColor: status.color,
+                        ),
                       );
                     }).toList(),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     TextField(
                       controller: remarksController,
                       decoration: InputDecoration(
-                        labelText: "Remarks (optional)",
-                        hintText: "Add a note about this status change...",
+                        labelText: "Add remarks (optional)",
+                        hintText: "Enter any additional comments...",
+                        prefixIcon: const Icon(Icons.comment_outlined),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF764BA2),
+                          ),
                         ),
                       ),
-                      maxLines: 2,
+                      maxLines: 3,
+                      textCapitalization: TextCapitalization.sentences,
                     ),
                   ],
                 ),
@@ -302,12 +586,22 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('Cancel'),
+                  child: Text(
+                    'Cancel',
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
                 ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF764BA2),
                     foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                   ),
                   onPressed: () {
                     if (selectedStatus != null) {
@@ -320,7 +614,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                       Navigator.of(context).pop();
                     }
                   },
-                  child: const Text("Update"),
+                  child: const Text("Update Status"),
                 ),
               ],
             );
@@ -332,21 +626,71 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
 
   void _updateStatus(TaskStatus newStatus, {String? remarks}) {
     setState(() {
-      currentTask.status = newStatus;
-      currentTask.remarks = remarks; // store remarks in the task model
+      currentStatus = newStatus;
+      // Update the API status string based on the new status
+      switch (newStatus) {
+        case TaskStatus.completed:
+          currentTask.status = 'Completed';
+          break;
+        case TaskStatus.cancelled:
+          currentTask.status = 'Cancelled';
+          break;
+        case TaskStatus.overdue:
+          currentTask.status = 'Overdue';
+          break;
+        case TaskStatus.inProgress:
+        default:
+          currentTask.status = 'In Progress';
+          break;
+      }
+
+      if (remarks != null) {
+        currentTask.customRemarks = remarks;
+      }
     });
 
-    widget.onStatusChanged(currentTask);
+    // Here you would typically call an API to update the task status
+    // _updateTaskStatusAPI(currentTask.name, newStatus, remarks);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          'Task updated to ${newStatus.displayName}'
-          '${remarks != null ? " (Remarks: $remarks)" : ""}',
+        content: Row(
+          children: [
+            Icon(newStatus.icon, color: Colors.white),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Task updated to ${newStatus.displayName}'
+                '${remarks != null && remarks.isNotEmpty ? "\nRemarks: $remarks" : ""}',
+                style: const TextStyle(fontSize: 16),
+              ),
+            ),
+          ],
         ),
         backgroundColor: newStatus.color,
-        duration: const Duration(seconds: 3),
+        duration: const Duration(seconds: 4),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }
+
+  // Uncomment and implement this method to actually update via API
+  /*
+  Future<void> _updateTaskStatusAPI(String taskId, TaskStatus status, String? remarks) async {
+    try {
+      // Call your API service to update task status
+      // await taskService.updateTaskStatus(taskId, status.name, remarks);
+    } catch (e) {
+      // Handle error
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update task: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  */
 }

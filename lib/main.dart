@@ -21,6 +21,7 @@ import 'package:location_tracker_app/controller/sales_order_controller.dart';
 import 'package:location_tracker_app/controller/sales_return_controller.dart';
 import 'package:location_tracker_app/controller/specialOffer/get_special_offer_controller.dart';
 import 'package:location_tracker_app/controller/specialOffer/post_special_offer_controller.dart';
+import 'package:location_tracker_app/controller/task_controller.dart';
 import 'package:location_tracker_app/firebase_options.dart';
 import 'package:location_tracker_app/service/login_service.dart';
 import 'package:location_tracker_app/view/spalsh_screen/splash_screen.dart';
@@ -72,6 +73,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => ItemTaxController()),
         ChangeNotifierProvider(create: (_) => GetSpecialOfferController()),
         ChangeNotifierProvider(create: (_) => SpecialOfferController()),
+        ChangeNotifierProvider(create: (_) => EmployeeTaskController()),
       ],
       child: MaterialApp(
         navigatorKey: navigatorKey,

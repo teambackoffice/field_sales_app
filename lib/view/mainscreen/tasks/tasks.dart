@@ -1,28 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/controller/task_controller.dart';
+import 'package:location_tracker_app/modal/task_modal.dart';
 import 'package:location_tracker_app/view/mainscreen/tasks/task_details.dart';
-
-// Task model
-class Task {
-  final String id;
-  final String customerName;
-  final DateTime startDate;
-  final DateTime endDate;
-  final String description;
-  final String priority;
-  TaskStatus status;
-  String? remarks;
-
-  Task({
-    required this.id,
-    required this.customerName,
-    required this.startDate,
-    required this.endDate,
-    required this.description,
-    required this.priority,
-    required this.status,
-    this.remarks,
-  });
-}
+import 'package:provider/provider.dart';
 
 enum TaskStatus { inProgress, completed, cancelled, overdue }
 
@@ -45,7 +25,7 @@ extension TaskStatusExtension on TaskStatus {
       case TaskStatus.inProgress:
         return Colors.blue;
       case TaskStatus.completed:
-        return Color(0xFF764BA2);
+        return Color(0xFF4CAF50);
       case TaskStatus.overdue:
         return Color(0xFFB71C1C);
       case TaskStatus.cancelled:
@@ -58,7 +38,7 @@ extension TaskStatusExtension on TaskStatus {
       case TaskStatus.inProgress:
         return Icons.play_circle_outline;
       case TaskStatus.completed:
-        return Icons.check;
+        return Icons.check_circle;
       case TaskStatus.overdue:
         return Icons.warning;
       case TaskStatus.cancelled:
@@ -75,98 +55,121 @@ class EmployeeTasks extends StatefulWidget {
 }
 
 class _EmployeeTasksState extends State<EmployeeTasks> {
-  List<Task> tasks = [
-    Task(
-      id: '1',
-      customerName: 'John Smith',
-      startDate: DateTime.now().subtract(const Duration(days: 5)),
-      endDate: DateTime.now().add(const Duration(days: 3)),
-      description: 'Website maintenance and updates for the company portal',
-      priority: 'High',
-      status: TaskStatus.inProgress,
-    ),
-    Task(
-      id: '2',
-      customerName: 'Sarah Johnson',
-      startDate: DateTime.now().subtract(const Duration(days: 2)),
-      endDate: DateTime.now().add(const Duration(days: 7)),
-      description: 'Mobile app development for restaurant ordering system',
-      priority: 'Medium',
-      status: TaskStatus.overdue,
-    ),
-    Task(
-      id: '3',
-      customerName: 'Mike Wilson',
-      startDate: DateTime.now().subtract(const Duration(days: 10)),
-      endDate: DateTime.now().subtract(const Duration(days: 1)),
-      description: 'Database optimization and performance improvements',
-      priority: 'High',
-      status: TaskStatus.completed,
-    ),
-    Task(
-      id: '4',
-      customerName: 'Emily Davis',
-      startDate: DateTime.now().add(const Duration(days: 1)),
-      endDate: DateTime.now().add(const Duration(days: 14)),
-      description: 'E-commerce platform integration with payment gateway',
-      priority: 'Low',
-      status: TaskStatus.overdue,
-    ),
-    Task(
-      id: '5',
-      customerName: 'Robert Brown',
-      startDate: DateTime.now().subtract(const Duration(days: 3)),
-      endDate: DateTime.now().add(const Duration(days: 2)),
-      description: 'Security audit and vulnerability assessment',
-      priority: 'High',
-      status: TaskStatus.cancelled,
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<EmployeeTaskController>(context, listen: false).fetchTasks();
+    });
+  }
+
+  // Helper method to convert API status to TaskStatus enum
+  TaskStatus _getTaskStatus(String apiStatus) {
+    switch (apiStatus.toLowerCase()) {
+      case 'completed':
+        return TaskStatus.completed;
+      case 'cancelled':
+        return TaskStatus.cancelled;
+      case 'overdue':
+        return TaskStatus.overdue;
+      case 'in progress':
+      case 'working':
+      default:
+        return TaskStatus.inProgress;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       body: SafeArea(
-        child: Column(
-          children: [
-            _buildHeader(),
-            Expanded(
-              child: tasks.isEmpty
-                  ? const Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.task_alt, size: 64, color: Colors.grey),
-                          SizedBox(height: 16),
-                          Text(
-                            'No tasks available',
-                            style: TextStyle(fontSize: 18, color: Colors.grey),
-                          ),
-                        ],
+        child: Consumer<EmployeeTaskController>(
+          builder: (context, controller, child) {
+            final tasks = controller.tasks; // Now directly List<Datum>
+            final isLoading = controller.isLoading;
+            final errorMessage = controller.errorMessage;
+
+            if (isLoading) {
+              return const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Loading tasks...'),
+                  ],
+                ),
+              );
+            }
+
+            if (errorMessage != null) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error, size: 64, color: Colors.red[300]),
+                    SizedBox(height: 16),
+                    Text(
+                      'Error loading tasks',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: tasks.length,
-                      itemBuilder: (context, index) {
-                        final task = tasks[index];
-                        return _buildTaskCard(task);
-                      },
                     ),
-            ),
-          ],
+                    SizedBox(height: 8),
+                    Text(
+                      errorMessage,
+                      style: TextStyle(color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: () => controller.fetchTasks(),
+                      child: Text('Retry'),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            List<Datum> allTasks = [];
+            for (var taskModal in tasks) {
+              allTasks.addAll(taskModal.message.data);
+            }
+
+            return Column(
+              children: [
+                _buildHeader(allTasks.length),
+                Expanded(
+                  child: allTasks.isEmpty
+                      ? _buildEmptyState()
+                      : RefreshIndicator(
+                          onRefresh: () => controller.fetchTasks(),
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: allTasks.length,
+                            itemBuilder: (context, index) {
+                              final task = allTasks[index];
+                              return _buildTaskCard(task, index);
+                            },
+                          ),
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildHeader(int taskCount) {
     return Container(
       padding: const EdgeInsets.all(20),
       child: Row(
         children: [
-          /// Gradient Icon Container
+          // Gradient Icon Container
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -187,12 +190,12 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
 
           const SizedBox(width: 16),
 
-          /// Title + Subtitle
+          // Title + Subtitle
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
+              children: [
+                const Text(
                   'Employee Tasks',
                   style: TextStyle(
                     fontSize: 28,
@@ -200,17 +203,43 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
                     color: Color(0xFF2D3436),
                   ),
                 ),
+                const SizedBox(height: 4),
               ],
             ),
           ),
-
-          /// Action button (optional)
         ],
       ),
     );
   }
 
-  Widget _buildTaskCard(Task task) {
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.task_alt, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
+          Text(
+            'No tasks available',
+            style: TextStyle(
+              fontSize: 18,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Check back later for new assignments',
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTaskCard(Datum task, int index) {
+    final status = _getTaskStatus(task.status);
+
     return Card(
       color: Colors.white,
       margin: const EdgeInsets.only(bottom: 12),
@@ -224,14 +253,16 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Task header with subject and status
               Row(
                 children: [
                   Expanded(
                     child: Text(
-                      task.customerName,
+                      task.subject,
                       style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
+                        color: Color(0xFF2D3436),
                       ),
                     ),
                   ),
@@ -241,25 +272,19 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: task.status.color.withOpacity(0.1),
+                      color: status.color.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: task.status.color.withOpacity(0.3),
-                      ),
+                      border: Border.all(color: status.color.withOpacity(0.3)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(
-                          task.status.icon,
-                          size: 16,
-                          color: task.status.color,
-                        ),
+                        Icon(status.icon, size: 16, color: status.color),
                         const SizedBox(width: 4),
                         Text(
-                          task.status.displayName,
+                          task.status,
                           style: TextStyle(
-                            color: task.status.color,
+                            color: status.color,
                             fontWeight: FontWeight.w600,
                             fontSize: 12,
                           ),
@@ -269,41 +294,74 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
                   ),
                 ],
               ),
+
               const SizedBox(height: 12),
+
+              // Customer information
+              Row(
+                children: [
+                  Icon(Icons.person, size: 16, color: Colors.grey[600]),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Customer: ${task.customCustomer}',
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // Start date
               Row(
                 children: [
                   Icon(Icons.calendar_today, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 8),
                   Text(
-                    'Start: ${_formatDate(task.startDate)}',
+                    'Start: ${_formatDate(task.expStartDate)}',
                     style: TextStyle(
                       color: Colors.grey[600],
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
+
               const SizedBox(height: 4),
+
+              // End date
               Row(
                 children: [
                   Icon(Icons.event, size: 16, color: Colors.grey[600]),
                   const SizedBox(width: 8),
                   Text(
-                    'End: ${_formatDate(task.endDate)}',
+                    'End: ${_formatDate(task.expEndDate)}',
                     style: TextStyle(
                       color: Colors.grey[600],
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                task.description,
-                style: TextStyle(color: Colors.grey[700]),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
+
+              const SizedBox(height: 12),
+
+              // Description
+              if (task.description.isNotEmpty) ...[
+                Text(
+                  task.description,
+                  style: TextStyle(
+                    color: Colors.grey[700],
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 8),
+              ],
             ],
           ),
         ),
@@ -312,25 +370,13 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
   }
 
   String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
   }
 
-  void _navigateToTaskDetail(Task task) {
+  void _navigateToTaskDetail(Datum task) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => TaskDetailPage(
-          task: task,
-          onStatusChanged: (updatedTask) {
-            setState(() {
-              final index = tasks.indexWhere((t) => t.id == updatedTask.id);
-              if (index != -1) {
-                tasks[index] = updatedTask;
-              }
-            });
-          },
-        ),
-      ),
+      MaterialPageRoute(builder: (context) => TaskDetailPage(task: task)),
     );
   }
 }
