@@ -1,44 +1,52 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/controller/remark_task_controller.dart';
+import 'package:location_tracker_app/controller/update_task_status_controller.dart';
 import 'package:location_tracker_app/modal/task_modal.dart';
 
-enum TaskStatus { inProgress, completed, cancelled, overdue }
+enum TaskStatus { Open, InProgress, Completed, Overdue, Cancelled }
 
 extension TaskStatusExtension on TaskStatus {
   String get displayName {
     switch (this) {
-      case TaskStatus.inProgress:
+      case TaskStatus.Open:
+        return 'Open';
+      case TaskStatus.InProgress:
         return 'In Progress';
-      case TaskStatus.completed:
+      case TaskStatus.Completed:
         return 'Completed';
-      case TaskStatus.overdue:
+      case TaskStatus.Overdue:
         return 'Overdue';
-      case TaskStatus.cancelled:
+      default:
         return 'Cancelled';
     }
   }
 
   Color get color {
     switch (this) {
-      case TaskStatus.inProgress:
+      case TaskStatus.Open:
         return Colors.blue;
-      case TaskStatus.completed:
+      case TaskStatus.InProgress:
+        return Colors.orange;
+      case TaskStatus.Completed:
         return Color(0xFF4CAF50);
-      case TaskStatus.overdue:
+      case TaskStatus.Overdue:
         return Color(0xFFB71C1C);
-      case TaskStatus.cancelled:
+      case TaskStatus.Cancelled:
         return Colors.red;
     }
   }
 
   IconData get icon {
     switch (this) {
-      case TaskStatus.inProgress:
+      case TaskStatus.Open:
+        return Icons.radio_button_unchecked;
+      case TaskStatus.InProgress:
         return Icons.play_circle_outline;
-      case TaskStatus.completed:
+      case TaskStatus.Completed:
         return Icons.check_circle;
-      case TaskStatus.overdue:
+      case TaskStatus.Overdue:
         return Icons.warning;
-      case TaskStatus.cancelled:
+      case TaskStatus.Cancelled:
         return Icons.cancel;
     }
   }
@@ -67,16 +75,18 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   // Helper method to convert API status to TaskStatus enum
   TaskStatus _getTaskStatus(String apiStatus) {
     switch (apiStatus.toLowerCase()) {
+      case 'open':
+        return TaskStatus.Open;
       case 'completed':
-        return TaskStatus.completed;
+        return TaskStatus.Completed;
       case 'cancelled':
-        return TaskStatus.cancelled;
+        return TaskStatus.Cancelled;
       case 'overdue':
-        return TaskStatus.overdue;
+        return TaskStatus.Overdue;
       case 'in progress':
       case 'working':
       default:
-        return TaskStatus.inProgress;
+        return TaskStatus.InProgress;
     }
   }
 
@@ -122,7 +132,6 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
           'Update Status',
           style: TextStyle(color: Colors.white),
         ),
-        icon: const Icon(Icons.edit, color: Colors.white),
       ),
     );
   }
@@ -491,6 +500,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   void _showStatusDialog() {
     final TextEditingController remarksController = TextEditingController();
     TaskStatus? selectedStatus = currentStatus;
+    bool isLoading = false;
 
     showDialog(
       context: context,
@@ -503,7 +513,6 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
               ),
               title: Row(
                 children: const [
-                  Icon(Icons.edit, color: Color(0xFF764BA2)),
                   SizedBox(width: 8),
                   Text('Update Task Status'),
                 ],
@@ -603,18 +612,34 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                       vertical: 12,
                     ),
                   ),
-                  onPressed: () {
-                    if (selectedStatus != null) {
-                      _updateStatus(
-                        selectedStatus!,
-                        remarks: remarksController.text.trim().isEmpty
-                            ? null
-                            : remarksController.text.trim(),
-                      );
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  child: const Text("Update Status"),
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          if (selectedStatus != null) {
+                            setStateDialog(() {
+                              isLoading = true;
+                            });
+
+                            await _updateTaskWithBothAPIs(
+                              selectedStatus!,
+                              remarks: remarksController.text.trim().isEmpty
+                                  ? null
+                                  : remarksController.text.trim(),
+                            );
+
+                            Navigator.of(context).pop();
+                          }
+                        },
+                  child: isLoading
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text("Update Status"),
                 ),
               ],
             );
@@ -624,22 +649,118 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     );
   }
 
+  // Add these controller instances at the top of your class
+  final UpdateTaskStatusController _statusController =
+      UpdateTaskStatusController();
+  final RemarkTaskController _remarksController = RemarkTaskController();
+
+  /// Updated method to handle both APIs
+  Future<void> _updateTaskWithBothAPIs(
+    TaskStatus newStatus, {
+    String? remarks,
+  }) async {
+    try {
+      // Determine what needs to be updated
+      bool statusChanged = currentStatus != newStatus;
+      bool hasRemarks = remarks != null && remarks.isNotEmpty;
+
+      // Get task name (you'll need to provide this based on your task model)
+      String taskName =
+          getTaskName(); // Replace with your actual task name getter
+
+      List<Future> apiCalls = [];
+
+      // Call status update API if status changed
+      if (statusChanged) {
+        apiCalls.add(
+          _statusController.updateTask(
+            taskName,
+            newStatus.name,
+          ), // or newStatus.displayName
+        );
+      }
+
+      // Call remarks API if remarks provided
+      if (hasRemarks) {
+        apiCalls.add(_remarksController.addRemarks(taskName, remarks));
+      }
+
+      // Execute all API calls concurrently
+      if (apiCalls.isNotEmpty) {
+        await Future.wait(apiCalls);
+
+        // Update local state after successful API calls
+        if (statusChanged) {
+          setState(() {
+            currentStatus = newStatus;
+          });
+        }
+
+        // Show success message
+        _showSuccessMessage(statusChanged, hasRemarks);
+      }
+    } catch (e) {
+      // Handle errors
+      _showErrorMessage(e.toString());
+    }
+  }
+
+  /// Helper method to get task name - replace with your actual implementation
+  String getTaskName() {
+    // Return the actual task name from your task object
+    // Example: return widget.task.name;
+    return widget.task.name;
+  }
+
+  /// Show success message
+  void _showSuccessMessage(bool statusUpdated, bool remarksAdded) {
+    String message = "";
+    if (statusUpdated && remarksAdded) {
+      message = "Task status and remarks updated successfully!";
+    } else if (statusUpdated) {
+      message = "Task status updated successfully!";
+    } else if (remarksAdded) {
+      message = "Remarks added successfully!";
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Show error message
+  void _showErrorMessage(String error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Error: $error"),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
   void _updateStatus(TaskStatus newStatus, {String? remarks}) {
     setState(() {
       currentStatus = newStatus;
       // Update the API status string based on the new status
       switch (newStatus) {
-        case TaskStatus.completed:
+        case TaskStatus.Open:
+          currentTask.status = 'Open';
+          break;
+        case TaskStatus.Completed:
           currentTask.status = 'Completed';
           break;
-        case TaskStatus.cancelled:
+        case TaskStatus.Cancelled:
           currentTask.status = 'Cancelled';
           break;
-        case TaskStatus.overdue:
+        case TaskStatus.Overdue:
           currentTask.status = 'Overdue';
           break;
-        case TaskStatus.inProgress:
-        default:
+        case TaskStatus.InProgress:
           currentTask.status = 'In Progress';
           break;
       }

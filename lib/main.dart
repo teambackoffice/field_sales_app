@@ -15,6 +15,7 @@ import 'package:location_tracker_app/controller/mode_of_pay_controller.dart';
 import 'package:location_tracker_app/controller/pay_sales_invoice_controller.dart';
 import 'package:location_tracker_app/controller/payment_entry_controller.dart';
 import 'package:location_tracker_app/controller/payment_entry_draft_controller.dart';
+import 'package:location_tracker_app/controller/remark_task_controller.dart';
 import 'package:location_tracker_app/controller/sales_invoice_details_controller.dart';
 import 'package:location_tracker_app/controller/sales_invoice_id_controller.dart';
 import 'package:location_tracker_app/controller/sales_order_controller.dart';
@@ -22,6 +23,7 @@ import 'package:location_tracker_app/controller/sales_return_controller.dart';
 import 'package:location_tracker_app/controller/specialOffer/get_special_offer_controller.dart';
 import 'package:location_tracker_app/controller/specialOffer/post_special_offer_controller.dart';
 import 'package:location_tracker_app/controller/task_controller.dart';
+import 'package:location_tracker_app/controller/update_task_status_controller.dart';
 import 'package:location_tracker_app/firebase_options.dart';
 import 'package:location_tracker_app/service/login_service.dart';
 import 'package:location_tracker_app/view/spalsh_screen/splash_screen.dart';
@@ -74,6 +76,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => GetSpecialOfferController()),
         ChangeNotifierProvider(create: (_) => SpecialOfferController()),
         ChangeNotifierProvider(create: (_) => EmployeeTaskController()),
+        ChangeNotifierProvider(create: (_) => UpdateTaskStatusController()),
+        ChangeNotifierProvider(create: (_) => RemarkTaskController()),
       ],
       child: MaterialApp(
         navigatorKey: navigatorKey,
