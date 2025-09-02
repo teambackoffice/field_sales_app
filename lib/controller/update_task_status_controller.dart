@@ -7,19 +7,36 @@ class UpdateTaskStatusController with ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  Future<void> updateTask(String taskName, String status) async {
+  /// Updated method to support completion date
+  Future<bool> updateTask({
+    required String taskName,
+    required String status,
+    DateTime? completionDate, // Added optional completion date parameter
+  }) async {
     _isLoading = true;
     notifyListeners();
 
-    var response = await _taskService.updateTaskStatus(
-      taskName: taskName,
-      status: status,
-    );
+    try {
+      var response = await _taskService.updateTaskStatus(
+        taskName: taskName,
+        status: status,
+        completionDate: completionDate, // Pass the completion date
+      );
 
-    _isLoading = false;
-    notifyListeners();
+      _isLoading = false;
+      notifyListeners();
 
-    if (response != null) {
-    } else {}
+      if (response != null) {
+        return true; // Return success
+      } else {
+        return false; // Return failure
+      }
+    } catch (e) {
+      _isLoading = false;
+      notifyListeners();
+      return false; // Return failure
+    }
   }
+
+  /// New method with named parameters for clarity
 }

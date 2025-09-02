@@ -23,16 +23,7 @@ class EmployeeTaskService {
       '${ApiConstants.baseUrl}get_task_details?sales_person=$salesPerson',
     );
 
-    print("---- API REQUEST ----");
-    print("URL: $url");
-    print("Headers: $headers");
-
     final response = await http.get(url, headers: headers);
-
-    print("---- API RESPONSE ----");
-    print("Status Code: ${response.statusCode}");
-    print("Reason Phrase: ${response.reasonPhrase}");
-    print("Body: ${response.body}");
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);

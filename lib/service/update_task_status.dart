@@ -12,6 +12,7 @@ class UpdateTaskStatus {
   Future<Map<String, dynamic>?> updateTaskStatus({
     required String taskName,
     required String status,
+    DateTime? completionDate, // Optional completion date
   }) async {
     try {
       // Get sid from secure storage
@@ -23,20 +24,34 @@ class UpdateTaskStatus {
 
       var headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
 
-      var url = Uri.parse(_baseUrl); // ✅ removed `.update_status` mistake
+      var url = Uri.parse(_baseUrl);
 
       var request = http.Request('POST', url);
-      request.body = json.encode({"task_name": taskName, "status": status});
+
+      // Build request body
+      Map<String, dynamic> requestBody = {
+        "task_name": taskName,
+        "status": status,
+      };
+
+      // Add completion_date only if provided
+      if (completionDate != null) {
+        requestBody["completion_date"] = completionDate.toIso8601String();
+      }
+
+      request.body = json.encode(requestBody);
       request.headers.addAll(headers);
 
       http.StreamedResponse response = await request.send();
 
       if (response.statusCode == 200) {
         String resBody = await response.stream.bytesToString();
+
         var decoded = json.decode(resBody);
 
         return decoded;
       } else {
+        String errorBody = await response.stream.bytesToString();
         return null;
       }
     } catch (e) {

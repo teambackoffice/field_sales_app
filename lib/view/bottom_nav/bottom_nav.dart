@@ -20,7 +20,7 @@ class ModernBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Container(
-        margin: const EdgeInsets.fromLTRB(5, 0, 10, 16),
+        margin: const EdgeInsets.fromLTRB(0, 0, 6, 16),
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
           color: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,

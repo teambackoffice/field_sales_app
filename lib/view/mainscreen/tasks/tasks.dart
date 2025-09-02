@@ -282,7 +282,9 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
                         Icon(status.icon, size: 16, color: status.color),
                         const SizedBox(width: 4),
                         Text(
-                          task.status,
+                          task.status == "Working"
+                              ? "In Progress"
+                              : task.status,
                           style: TextStyle(
                             color: status.color,
                             fontWeight: FontWeight.w600,

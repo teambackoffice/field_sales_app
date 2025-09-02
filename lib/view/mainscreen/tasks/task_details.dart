@@ -3,7 +3,7 @@ import 'package:location_tracker_app/controller/remark_task_controller.dart';
 import 'package:location_tracker_app/controller/update_task_status_controller.dart';
 import 'package:location_tracker_app/modal/task_modal.dart';
 
-enum TaskStatus { Open, InProgress, Completed, Overdue, Cancelled }
+enum TaskStatus { Open, InProgress, Completed, Overdue }
 
 extension TaskStatusExtension on TaskStatus {
   String get displayName {
@@ -16,8 +16,6 @@ extension TaskStatusExtension on TaskStatus {
         return 'Completed';
       case TaskStatus.Overdue:
         return 'Overdue';
-      default:
-        return 'Cancelled';
     }
   }
 
@@ -31,8 +29,6 @@ extension TaskStatusExtension on TaskStatus {
         return Color(0xFF4CAF50);
       case TaskStatus.Overdue:
         return Color(0xFFB71C1C);
-      case TaskStatus.Cancelled:
-        return Colors.red;
     }
   }
 
@@ -46,8 +42,6 @@ extension TaskStatusExtension on TaskStatus {
         return Icons.check_circle;
       case TaskStatus.Overdue:
         return Icons.warning;
-      case TaskStatus.Cancelled:
-        return Icons.cancel;
     }
   }
 }
@@ -79,8 +73,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         return TaskStatus.Open;
       case 'completed':
         return TaskStatus.Completed;
-      case 'cancelled':
-        return TaskStatus.Cancelled;
+
       case 'overdue':
         return TaskStatus.Overdue;
       case 'in progress':
@@ -655,6 +648,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   final RemarkTaskController _remarksController = RemarkTaskController();
 
   /// Updated method to handle both APIs
+  /// Updated method to handle both APIs
   Future<void> _updateTaskWithBothAPIs(
     TaskStatus newStatus, {
     String? remarks,
@@ -672,11 +666,26 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
 
       // Call status update API if status changed
       if (statusChanged) {
+        // Prepare completion date if status is completed
+        DateTime? completionDate;
+        if (newStatus == TaskStatus.Completed) {
+          completionDate = DateTime.now();
+          print(
+            "📅 Task is being completed, setting completion date: ${completionDate.toString().split(' ')[0]}",
+          ); // yyyy-mm-dd format
+        }
+
+        // Update the API call to include completion date
+        // Change this line in your _updateTaskWithBothAPIs method:
         apiCalls.add(
           _statusController.updateTask(
-            taskName,
-            newStatus.name,
-          ), // or newStatus.displayName
+            // ✅ Correct method name
+            taskName: taskName,
+            status: newStatus == TaskStatus.InProgress
+                ? "Working"
+                : newStatus.name,
+            completionDate: completionDate,
+          ),
         );
       }
 
@@ -754,9 +763,6 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         case TaskStatus.Completed:
           currentTask.status = 'Completed';
           break;
-        case TaskStatus.Cancelled:
-          currentTask.status = 'Cancelled';
-          break;
         case TaskStatus.Overdue:
           currentTask.status = 'Overdue';
           break;
@@ -796,22 +802,4 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
       ),
     );
   }
-
-  // Uncomment and implement this method to actually update via API
-  /*
-  Future<void> _updateTaskStatusAPI(String taskId, TaskStatus status, String? remarks) async {
-    try {
-      // Call your API service to update task status
-      // await taskService.updateTaskStatus(taskId, status.name, remarks);
-    } catch (e) {
-      // Handle error
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to update task: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-  */
 }
