@@ -295,7 +295,9 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: currentStatus.color.withOpacity(0.1),
+                color: currentTask.status == 'Cancelled'
+                    ? Colors.red
+                    : currentStatus.color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: currentStatus.color.withOpacity(0.3)),
               ),
@@ -304,11 +306,15 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: currentStatus.color,
+                      color: currentTask.status == 'Cancelled'
+                          ? Colors.red
+                          : currentStatus.color,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      currentStatus.icon,
+                      currentTask.status == 'Cancelled'
+                          ? Icons.cancel
+                          : currentStatus.icon,
                       color: Colors.white,
                       size: 20,
                     ),
@@ -318,11 +324,13 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        currentStatus.displayName,
+                        currentTask.status,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: currentStatus.color,
+                          color: currentTask.status == 'Cancelled'
+                              ? Colors.white
+                              : currentStatus.color,
                         ),
                       ),
                     ],
