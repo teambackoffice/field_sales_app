@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:location_tracker_app/controller/remark_task_controller.dart';
+import 'package:location_tracker_app/controller/task_controller.dart';
 import 'package:location_tracker_app/controller/update_task_status_controller.dart';
 import 'package:location_tracker_app/modal/task_modal.dart';
+import 'package:provider/provider.dart';
 
 enum TaskStatus { Open, InProgress, Completed, Overdue }
 
@@ -316,18 +318,11 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        currentTask.status,
+                        currentStatus.displayName,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: currentStatus.color,
-                        ),
-                      ),
-                      Text(
-                        currentStatus.displayName,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: currentStatus.color.withOpacity(0.7),
                         ),
                       ),
                     ],
@@ -619,7 +614,10 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                                   ? null
                                   : remarksController.text.trim(),
                             );
-
+                            Provider.of<EmployeeTaskController>(
+                              context,
+                              listen: false,
+                            ).fetchTasks();
                             Navigator.of(context).pop();
                           }
                         },
