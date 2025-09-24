@@ -1410,9 +1410,7 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
               SizedBox(height: 16),
 
               // Payment Method Selection
-              paymentEntryData?.message.totalOutstandingAmount == 0
-                  ? SizedBox()
-                  : _buildPaymentMethodSelection(),
+              _buildPaymentMethodSelection(),
 
               SizedBox(height: 16),
 

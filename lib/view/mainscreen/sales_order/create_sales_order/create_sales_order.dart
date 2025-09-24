@@ -480,7 +480,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Special Offer',
+                    'Special Order',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
