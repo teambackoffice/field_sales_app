@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "653300730533",
-    "project_id": "field-sales-763fe",
-    "storage_bucket": "field-sales-763fe.firebasestorage.app"
+    "project_number": "107539432647",
+    "project_id": "chundakadan-app",
+    "storage_bucket": "chundakadan-app.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:653300730533:android:dbed720520f7601fd81b4c",
+        "mobilesdk_app_id": "1:107539432647:android:fc0d6f6bab37a420362ae2",
         "android_client_info": {
-          "package_name": "com.example.location_tracker_app"
+          "package_name": "com.location_tracker_app"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyCJV1rMslpHxre3hSNjArnrAORWbCsQuo4"
+          "current_key": "AIzaSyA2Z0LLN8GPToyMHAbgdpOPvjG1X1QPMgo"
         }
       ],
       "services": {

@@ -1,4 +1,4 @@
-package com.example.location_tracker_app
+package com.location_tracker_app
 
 import android.Manifest
 import android.content.ComponentName

@@ -50,19 +50,20 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCJV1rMslpHxre3hSNjArnrAORWbCsQuo4',
-    appId: '1:653300730533:android:dbed720520f7601fd81b4c',
-    messagingSenderId: '653300730533',
-    projectId: 'field-sales-763fe',
-    storageBucket: 'field-sales-763fe.firebasestorage.app',
+    apiKey: 'AIzaSyA2Z0LLN8GPToyMHAbgdpOPvjG1X1QPMgo',
+    appId: '1:107539432647:android:fc0d6f6bab37a420362ae2',
+    messagingSenderId: '107539432647',
+    projectId: 'chundakadan-app',
+    storageBucket: 'chundakadan-app.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyAcBjhgxrPv2KajEX_FGABXJNzmUAML3dc',
-    appId: '1:653300730533:ios:b8303a523b9fc8e1d81b4c',
-    messagingSenderId: '653300730533',
-    projectId: 'field-sales-763fe',
-    storageBucket: 'field-sales-763fe.firebasestorage.app',
+    apiKey: 'AIzaSyC_sxZU6YanIdzjD7xhBrUMlloys2A5jdg',
+    appId: '1:107539432647:ios:5519adad179ac14d362ae2',
+    messagingSenderId: '107539432647',
+    projectId: 'chundakadan-app',
+    storageBucket: 'chundakadan-app.firebasestorage.app',
     iosBundleId: 'com.example.locationTrackerApp',
   );
+
 }

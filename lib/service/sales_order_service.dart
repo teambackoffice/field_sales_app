@@ -31,8 +31,13 @@ class SalesOrderService {
         Uri.parse(requestUrl),
         headers: {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'},
       );
+      print('Request URL: $requestUrl');
+      print('Response Status: ${response.statusCode}');
+      print('Response Headers: ${response.headers}');
+      print('Response Body: ${response.body}');
 
       if (response.statusCode == 200) {
+        print('Response Body: ${response.body}');
         try {
           final decoded = jsonDecode(response.body);
 
@@ -40,6 +45,7 @@ class SalesOrderService {
 
           return model;
         } catch (e, stack) {
+          print('Parsing Error: $e');
           throw Exception('Failed to parse response: $e');
         }
       } else {
@@ -48,6 +54,9 @@ class SalesOrderService {
         );
       }
     } catch (e, stack) {
+      print('Error: $e');
+      print('Stack: $stack');
+
       throw Exception('Network error: $e');
     }
   }

@@ -1,4 +1,4 @@
-package com.example.location_tracker_app
+package com.location_tracker_app
 
 import android.app.*
 import android.content.Intent
@@ -71,11 +71,11 @@ class LocationTrackingService : Service() {
         return try {
             startForegroundService()
             
-            val locationRequest = LocationRequest.create().apply {
-                priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-                interval = intervalMs
-                fastestInterval = intervalMs / 2
-            }
+            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs)
+                .setWaitForAccurateLocation(false)
+                .setMinUpdateIntervalMillis(intervalMs / 2)
+                .setMaxUpdateDelayMillis(intervalMs)
+                .build()
 
             locationCallback?.let { callback ->
                 fusedLocationClient.requestLocationUpdates(
@@ -123,10 +123,9 @@ class LocationTrackingService : Service() {
 
     fun getCurrentLocation(result: MethodChannel.Result) {
         try {
-            val locationRequest = LocationRequest.create().apply {
-                priority = LocationRequest.PRIORITY_HIGH_ACCURACY
-                numUpdates = 1
-            }
+            val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 0)
+                .setMaxUpdates(1)
+                .build()
 
             val singleLocationCallback = object : LocationCallback() {
                 override fun onLocationResult(locationResult: LocationResult) {

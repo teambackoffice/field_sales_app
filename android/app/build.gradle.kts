@@ -1,40 +1,76 @@
+import java.util.Properties
+import java.io.FileInputStream
+import org.gradle.api.GradleException
+
 plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
     id("com.google.gms.google-services")
     // END: FlutterFire Configuration
+    
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
+// Load keystore properties
+val keystoreProperties = Properties()
+val keystorePropertiesFile = file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+} else {
+    throw GradleException("⚠️ key.properties file not found at ${keystorePropertiesFile.path}")
+}
+
 android {
-    namespace = "com.example.location_tracker_app"
+    namespace = "com.location_tracker_app"
     compileSdk = 35
-    ndkVersion = flutter.ndkVersion
-
-    compileOptions {
-        isCoreLibraryDesugaringEnabled = true   // <-- IMPORTANT for flutter_local_notifications
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
 
     defaultConfig {
-        applicationId = "com.example.location_tracker_app"
-        minSdk = 23
-        targetSdk = flutter.targetSdkVersion
-        versionCode = flutter.versionCode
-        versionName = flutter.versionName
+        applicationId = "com.location_tracker_app"
+        minSdk = flutter.minSdkVersion
+        targetSdk = 35
+        versionCode = 4
+        versionName = "1.0.4"
+    }
+
+    signingConfigs {
+        create("release") {
+            val keyAliasValue = keystoreProperties["keyAlias"] as? String
+                ?: throw GradleException("keyAlias missing in key.properties")
+            val keyPasswordValue = keystoreProperties["keyPassword"] as? String
+                ?: throw GradleException("keyPassword missing in key.properties")
+            val storeFileValue = keystoreProperties["storeFile"] as? String
+                ?: throw GradleException("storeFile missing in key.properties")
+            val storePasswordValue = keystoreProperties["storePassword"] as? String
+                ?: throw GradleException("storePassword missing in key.properties")
+
+            storeFile = file(storeFileValue)
+            storePassword = storePasswordValue
+            keyAlias = keyAliasValue
+            keyPassword = keyPasswordValue
+        }
     }
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            isMinifyEnabled = false
+            isShrinkResources = false
+            signingConfig = signingConfigs.getByName("release")
         }
+        debug {
+            signingConfig = signingConfigs.getByName("release")
+        }
+    }
+
+    // ✅ Required for modern Android & flutter_local_notifications
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+        isCoreLibraryDesugaringEnabled = true
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
     }
 }
 
@@ -43,13 +79,7 @@ flutter {
 }
 
 dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.24")
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     implementation("com.google.android.gms:play-services-location:21.0.1")
-
-    // Kotlin stdlib
-    implementation("org.jetbrains.kotlin:kotlin-stdlib")
-
-    // Required for Java 8+ API desugaring
-    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
-
-    // (Other dependencies will be auto-added by Flutter plugins)
 }

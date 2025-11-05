@@ -1,6 +1,4 @@
-import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:location_tracker_app/api/fiebase_api.dart';
 import 'package:location_tracker_app/controller/create_payment_entry_controller.dart';
 import 'package:location_tracker_app/controller/create_sales_order_controller.dart';
 import 'package:location_tracker_app/controller/create_sales_return_contoller.dart';
@@ -24,7 +22,6 @@ import 'package:location_tracker_app/controller/specialOffer/get_special_offer_c
 import 'package:location_tracker_app/controller/specialOffer/post_special_offer_controller.dart';
 import 'package:location_tracker_app/controller/task_controller.dart';
 import 'package:location_tracker_app/controller/update_task_status_controller.dart';
-import 'package:location_tracker_app/firebase_options.dart';
 import 'package:location_tracker_app/service/login_service.dart';
 import 'package:location_tracker_app/view/spalsh_screen/splash_screen.dart';
 import 'package:provider/provider.dart';
@@ -33,12 +30,6 @@ import 'package:provider/provider.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-
-  // Start notifications but don't wait indefinitely
-  FirebaseApi().initNotification();
-
   runApp(MyApp()); // Use MyApp instead of MaterialApp directly
 }
 
