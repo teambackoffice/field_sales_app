@@ -23,12 +23,12 @@ if (keystorePropertiesFile.exists()) {
 
 android {
     namespace = "com.location_tracker_app"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.location_tracker_app"
         minSdk = flutter.minSdkVersion
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 4
         versionName = "1.0.4"
     }

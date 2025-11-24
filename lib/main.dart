@@ -26,11 +26,11 @@ import 'package:location_tracker_app/service/login_service.dart';
 import 'package:location_tracker_app/view/spalsh_screen/splash_screen.dart';
 import 'package:provider/provider.dart';
 
-// Add this global navigator key if you don't have it
+// Global navigator key
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  runApp(MyApp()); // Use MyApp instead of MaterialApp directly
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -75,7 +75,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         title: 'Location Tracker',
         theme: ThemeData(primarySwatch: Colors.deepPurple),
-        home: SplashScreen(), // Start with splash screen
+        home: SplashScreen(),
       ),
     );
   }
