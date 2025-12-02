@@ -4,6 +4,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:location_tracker_app/service/employee_location_service.dart';
 import 'package:location_tracker_app/service/location_interval_service.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class LocationController extends ChangeNotifier {
   static const MethodChannel _channel = MethodChannel('location_tracking');
@@ -316,20 +317,39 @@ class LocationController extends ChangeNotifier {
 
   Future<bool> requestPermissions() async {
     try {
-      print("🔐 Requesting permissions...");
-      final bool hasBackgroundPermission = await _channel.invokeMethod(
-        'requestBackgroundPermission',
-      );
-
-      if (!hasBackgroundPermission) {
-        error = 'Background location permission required';
-        print("❌ Permission denied");
+      print("🔐 Requesting permissions using permission_handler...");
+      
+      // 1. Request Foreground Permission (While using the app)
+      PermissionStatus locationStatus = await Permission.locationWhenInUse.request();
+      print("📍 Foreground location status: $locationStatus");
+      
+      if (!locationStatus.isGranted) {
+        error = 'Location permission is required to track attendance.';
+        print("❌ Foreground permission denied");
         notifyListeners();
         return false;
       }
+      
+      // 2. Request Background Permission (Allow all the time)
+      // On Android 11+, this will guide the user to settings
+      print("📍 Requesting background location (Allow all the time)...");
+      PermissionStatus backgroundStatus = await Permission.locationAlways.request();
+      print("📍 Background location status: $backgroundStatus");
+      
+      if (backgroundStatus.isGranted) {
+        print("✅ All permissions granted (Foreground + Background)");
+        return true;
+      }
 
-      print("✅ Permissions granted");
-      return true;
+      // 3. If Background is not granted, guide user to settings
+      print("⚠️ Background permission not granted. Opening settings...");
+      error = "Please select 'Allow all the time' in settings for background tracking.";
+      notifyListeners();
+      
+      // Open app settings so user can select "Allow all the time"
+      await openAppSettings();
+      
+      return false;
     } catch (e) {
       error = 'Permission error: $e';
       print("❌ Permission error: $e");
