@@ -18,11 +18,13 @@ class CreateSalesOrderService {
     try {
       final sid = await _secureStorage.read(key: 'sid');
       if (sid == null) {
+        print("❌ ERROR: SID is null");
         throw Exception("Session expired. Please log in again.");
       }
 
       final salesPerson = await _secureStorage.read(key: 'sales_person_id');
       if (salesPerson == null) {
+        print("❌ ERROR: Sales person ID not found");
         throw Exception("Sales person not found. Please contact admin.");
       }
 
@@ -35,22 +37,35 @@ class CreateSalesOrderService {
         "items": items,
       });
 
+      print("📤 Request Body: $body");
+
       final response = await http
           .post(Uri.parse(url), headers: headers, body: body)
           .timeout(const Duration(seconds: 15));
 
+      print("📥 Response Code: ${response.statusCode}");
+      print("📥 Raw Response Body: ${response.body}");
+
       if (response.statusCode == 200) {
+        print("✅ Success Response: ${response.body}");
         return json.decode(response.body);
       } else {
-        throw Exception(_mapErrorMessage(response.body));
+        final errorMsg = _mapErrorMessage(response.body);
+        print("❌ Error Response: ${response.body}");
+        print("❗ Mapped Error Message: $errorMsg");
+        throw Exception(errorMsg);
       }
-    } on TimeoutException {
+    } on TimeoutException catch (e) {
+      print("⏳ Timeout Error: $e");
       throw Exception("Request timed out. Please try again.");
-    } on SocketException {
+    } on SocketException catch (e) {
+      print("🌐 Socket Error: $e");
       throw Exception("No internet connection. Please check your network.");
-    } on FormatException {
+    } on FormatException catch (e) {
+      print("⚠️ Format Error: $e");
       throw Exception("Invalid server response.");
     } catch (e) {
+      print("🔥 Unknown Error: $e");
       rethrow;
     }
   }

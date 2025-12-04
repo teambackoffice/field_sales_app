@@ -239,6 +239,7 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
 
   Widget _buildTaskCard(Datum task, int index) {
     final status = _getTaskStatus(task.status);
+    final description = task.description ?? '';
 
     return Card(
       color: Colors.white,
@@ -348,12 +349,11 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
                 ],
               ),
 
-              const SizedBox(height: 12),
-
-              // Description
-              if (task.description.isNotEmpty) ...[
+              // Description - FIXED: Now handles null values safely
+              if (description.isNotEmpty) ...[
+                const SizedBox(height: 12),
                 Text(
-                  task.description,
+                  description,
                   style: TextStyle(
                     color: Colors.grey[700],
                     fontSize: 14,
@@ -362,7 +362,6 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
               ],
             ],
           ),

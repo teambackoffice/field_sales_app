@@ -1,3 +1,4 @@
+import 'package:dropdown_search/dropdown_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
@@ -1299,46 +1300,79 @@ class _PaymentEntryPageState extends State<PaymentEntryPage> {
                           );
                         }
 
-                        return DropdownButtonFormField<MessageElement>(
-                          value: selectedCustomer,
-                          hint: Text('Choose a customer...'),
-                          isExpanded: true,
-                          decoration: InputDecoration(
-                            border: OutlineInputBorder(),
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
+                        return DropdownSearch<MessageElement>(
+                          items:
+                              List<MessageElement>.from(
+                                controller.customerlist!.message.message,
+                              )..sort(
+                                (a, b) => a.customerName
+                                    .toLowerCase()
+                                    .compareTo(b.customerName.toLowerCase()),
+                              ),
+                          selectedItem: selectedCustomer,
+                          dropdownDecoratorProps: DropDownDecoratorProps(
+                            dropdownSearchDecoration: InputDecoration(
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              contentPadding: EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 12,
+                              ),
+                              hintText: 'Search customer...',
+                              prefixIcon: Icon(
+                                Icons.search,
+                                color: Colors.blue,
+                              ),
                             ),
                           ),
-                          onChanged: _onCustomerSelected,
-                          items: controller.customerlist!.message.message.map((
-                            customer,
-                          ) {
-                            return DropdownMenuItem<MessageElement>(
-                              value: customer,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    customer.customerName,
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  if (customer.mobileNo != null &&
-                                      customer.mobileNo!.isNotEmpty)
-                                    Text(
-                                      customer.mobileNo!,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.grey[600],
-                                      ),
-                                    ),
-                                ],
+                          popupProps: PopupPropsMultiSelection.menu(
+                            showSearchBox: true,
+                            searchFieldProps: TextFieldProps(
+                              decoration: InputDecoration(
+                                hintText: 'Type to search...',
+                                prefixIcon: Icon(Icons.search),
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
                               ),
-                            );
-                          }).toList(),
+                            ),
+                            itemBuilder: (context, customer, isSelected) {
+                              return ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.blue,
+                                  child: Text(
+                                    customer.customerName
+                                        .substring(0, 1)
+                                        .toUpperCase(),
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                                title: Text(customer.customerName),
+                                subtitle:
+                                    customer.mobileNo != null &&
+                                        customer.mobileNo!.isNotEmpty
+                                    ? Text(customer.mobileNo!)
+                                    : null,
+                                selected: isSelected,
+                                selectedTileColor: Colors.blue.withOpacity(0.1),
+                              );
+                            },
+                          ),
+                          itemAsString: (customer) => customer.customerName,
+                          filterFn: (customer, filter) {
+                            final searchLower = filter.toLowerCase();
+                            return customer.customerName.toLowerCase().contains(
+                                  searchLower,
+                                ) ||
+                                (customer.mobileNo?.toLowerCase().contains(
+                                      searchLower,
+                                    ) ??
+                                    false);
+                          },
+                          onChanged: _onCustomerSelected,
                         );
                       },
                     ),

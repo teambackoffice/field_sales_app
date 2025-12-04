@@ -1,4 +1,4 @@
-// To parse this JSON data, do
+// To parse this JSON data:
 //
 //     final employeeTaskModal = employeeTaskModalFromJson(jsonString);
 
@@ -11,7 +11,7 @@ String employeeTaskModalToJson(EmployeeTaskModal data) =>
     json.encode(data.toJson());
 
 class EmployeeTaskModal {
-  Message message;
+  final Message message;
 
   EmployeeTaskModal({required this.message});
 
@@ -22,10 +22,10 @@ class EmployeeTaskModal {
 }
 
 class Message {
-  String status;
-  String message;
-  List<Datum> data;
-  int code;
+  final String status;
+  final String message;
+  final List<Datum> data;
+  final int code;
 
   Message({
     required this.status,
@@ -35,10 +35,10 @@ class Message {
   });
 
   factory Message.fromJson(Map<String, dynamic> json) => Message(
-    status: json["status"],
-    message: json["message"],
+    status: json["status"] ?? "",
+    message: json["message"] ?? "",
     data: List<Datum>.from(json["data"].map((x) => Datum.fromJson(x))),
-    code: json["code"],
+    code: json["code"] ?? 0,
   );
 
   Map<String, dynamic> toJson() => {
@@ -53,35 +53,35 @@ class Datum {
   String name;
   String subject;
   String status;
-  String customCustomer;
+  String? customCustomer;
   String customAssignedTo;
   DateTime expStartDate;
   DateTime expEndDate;
-  String description;
-  dynamic customRemarks;
+  String? description;
+  String? customRemarks;
 
   Datum({
     required this.name,
     required this.subject,
     required this.status,
-    required this.customCustomer,
+    this.customCustomer,
     required this.customAssignedTo,
     required this.expStartDate,
     required this.expEndDate,
-    required this.description,
-    required this.customRemarks,
+    this.description,
+    this.customRemarks,
   });
 
   factory Datum.fromJson(Map<String, dynamic> json) => Datum(
-    name: json["name"],
-    subject: json["subject"],
-    status: json["status"],
-    customCustomer: json["custom_customer"],
-    customAssignedTo: json["custom_assigned_to"],
+    name: json["name"] ?? "",
+    subject: json["subject"] ?? "",
+    status: json["status"] ?? "",
+    customCustomer: json["custom_customer"], // nullable allowed
+    customAssignedTo: json["custom_assigned_to"] ?? "",
     expStartDate: DateTime.parse(json["exp_start_date"]),
     expEndDate: DateTime.parse(json["exp_end_date"]),
-    description: json["description"],
-    customRemarks: json["custom_remarks"],
+    description: json["description"], // API returns null -> OK
+    customRemarks: json["custom_remarks"], // API returns null -> OK
   );
 
   Map<String, dynamic> toJson() => {

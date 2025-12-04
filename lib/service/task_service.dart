@@ -9,35 +9,57 @@ class EmployeeTaskService {
   final _storage = const FlutterSecureStorage();
 
   Future<List<EmployeeTaskModal>> getTaskDetails() async {
-    // Get sales_person from secure storage
-    String? salesPerson = await _storage.read(key: 'sales_person_id');
-    String? sid = await _storage.read(key: 'sid');
+    try {
+      // Read stored data
+      String? salesPerson = await _storage.read(key: 'sales_person_id');
+      String? sid = await _storage.read(key: 'sid');
 
-    if (salesPerson == null) {
-      throw Exception("Sales person not found in storage");
-    }
-
-    var headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
-
-    final url = Uri.parse(
-      '${ApiConstants.baseUrl}get_task_details?sales_person=$salesPerson',
-    );
-
-    final response = await http.get(url, headers: headers);
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-
-      // Check if the response has the expected structure
-      if (data is Map<String, dynamic> && data.containsKey('message')) {
-        // Parse as single EmployeeTaskModal since the API returns the entire response structure
-        final taskModal = EmployeeTaskModal.fromJson(data);
-        return [taskModal]; // Return as list with single item
-      } else {
-        throw Exception("Unexpected response format: missing 'message' key");
+      if (salesPerson == null) {
+        throw Exception("Sales person not found in storage");
       }
-    } else {
-      throw Exception("Failed to fetch tasks: ${response.reasonPhrase}");
+
+      var headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
+
+      final url = Uri.parse(
+        '${ApiConstants.baseUrl}get_task_details?sales_person=$salesPerson',
+      );
+
+      // 🔵 PRINT REQUEST DETAILS
+      print("📤 GET Request URL: $url");
+      print("📤 Request Headers: $headers");
+
+      final response = await http.get(url, headers: headers);
+
+      // 🔵 PRINT RAW RESPONSE
+      print("📥 Response Status: ${response.statusCode}");
+      print("📥 Raw Response Body: ${response.body}");
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+
+        // 🔵 PRINT PARSED JSON
+        print("📦 Parsed JSON: $data");
+
+        if (data is Map<String, dynamic> && data.containsKey('message')) {
+          final taskModal = EmployeeTaskModal.fromJson(data);
+
+          // 🔵 PRINT FINAL PARSED MODEL
+          print("✅ Parsed EmployeeTaskModal: $taskModal");
+
+          return [taskModal];
+        } else {
+          throw Exception(
+            "Unexpected response format: Missing 'message' key.\nResponse: $data",
+          );
+        }
+      } else {
+        throw Exception(
+          "Failed to fetch tasks. HTTP ${response.statusCode}: ${response.reasonPhrase}",
+        );
+      }
+    } catch (e) {
+      print("🔥 Exception occurred: $e");
+      rethrow;
     }
   }
 }

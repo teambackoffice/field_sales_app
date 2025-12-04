@@ -28,9 +28,9 @@ extension TaskStatusExtension on TaskStatus {
       case TaskStatus.InProgress:
         return Colors.orange;
       case TaskStatus.Completed:
-        return Color(0xFF4CAF50);
+        return const Color(0xFF4CAF50);
       case TaskStatus.Overdue:
-        return Color(0xFFB71C1C);
+        return const Color(0xFFB71C1C);
     }
   }
 
@@ -61,25 +61,31 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   late Datum currentTask;
   late TaskStatus currentStatus;
 
+  // Controller instances
+  final UpdateTaskStatusController _statusController =
+      UpdateTaskStatusController();
+  final RemarkTaskController _remarksController = RemarkTaskController();
+
   @override
   void initState() {
     super.initState();
     currentTask = widget.task;
-    currentStatus = _getTaskStatus(currentTask.status);
+    currentStatus = _getTaskStatus(currentTask.status ?? '');
   }
 
   // Helper method to convert API status to TaskStatus enum
-  TaskStatus _getTaskStatus(String apiStatus) {
-    switch (apiStatus.toLowerCase()) {
+  TaskStatus _getTaskStatus(String? apiStatusRaw) {
+    final apiStatus = (apiStatusRaw ?? '').toLowerCase().trim();
+    switch (apiStatus) {
       case 'open':
         return TaskStatus.Open;
       case 'completed':
         return TaskStatus.Completed;
-
       case 'overdue':
         return TaskStatus.Overdue;
       case 'in progress':
       case 'working':
+        return TaskStatus.InProgress;
       default:
         return TaskStatus.InProgress;
     }
@@ -108,13 +114,9 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
             _buildStatusCard(),
             const SizedBox(height: 16),
             _buildDescriptionCard(),
-            if (currentTask.customRemarks != null &&
-                currentTask.customRemarks.toString().isNotEmpty &&
-                currentTask.customRemarks != "null")
+            if ((currentTask.customRemarks?.toString() ?? '').isNotEmpty)
               const SizedBox(height: 16),
-            if (currentTask.customRemarks != null &&
-                currentTask.customRemarks.toString().isNotEmpty &&
-                currentTask.customRemarks != "null")
+            if ((currentTask.customRemarks?.toString() ?? '').isNotEmpty)
               _buildRemarksCard(),
             const SizedBox(height: 80), // Space for FAB
           ],
@@ -132,6 +134,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   }
 
   Widget _buildTaskHeaderCard() {
+    final assigned = currentTask.customAssignedTo ?? '';
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -150,7 +153,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                currentTask.subject,
+                currentTask.subject ?? '',
                 style: const TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -163,12 +166,12 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                   const Icon(Icons.assignment, color: Colors.white70, size: 16),
                   const SizedBox(width: 6),
                   Text(
-                    'Task ID: ${currentTask.name}',
+                    'Task ID: ${currentTask.name ?? ''}',
                     style: const TextStyle(color: Colors.white70, fontSize: 14),
                   ),
                 ],
               ),
-              if (currentTask.customAssignedTo.isNotEmpty) ...[
+              if (assigned.isNotEmpty) ...[
                 const SizedBox(height: 4),
                 Row(
                   children: [
@@ -179,7 +182,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Assigned to: ${currentTask.customAssignedTo}',
+                      'Assigned to: $assigned',
                       style: const TextStyle(
                         color: Colors.white70,
                         fontSize: 14,
@@ -197,15 +200,15 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
 
   Widget _buildCustomerCard() {
     return _buildDetailCard('Customer Information', Icons.person, [
-      _buildDetailRow('Customer Name', currentTask.customCustomer),
+      _buildDetailRow('Customer Name', currentTask.customCustomer ?? ""),
     ]);
   }
 
   Widget _buildTimelineCard() {
     return _buildDetailCard('Task Timeline', Icons.schedule, [
-      _buildDetailRow('Start Date', _formatDate(currentTask.expStartDate)),
-      _buildDetailRow('End Date', _formatDate(currentTask.expEndDate)),
-      _buildDetailRow('Duration', _calculateDuration()),
+      _buildDetailRow('Start Date', _formatDateSafe(currentTask.expStartDate)),
+      _buildDetailRow('End Date', _formatDateSafe(currentTask.expEndDate)),
+      _buildDetailRow('Duration', _calculateDurationSafe()),
     ]);
   }
 
@@ -268,6 +271,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   }
 
   Widget _buildStatusCard() {
+    final statusText = currentTask.status ?? currentStatus.displayName;
+    final isCancelled = statusText.toLowerCase() == 'cancelled';
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -295,7 +300,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
               width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: currentTask.status == 'Cancelled'
+                color: isCancelled
                     ? Colors.red
                     : currentStatus.color.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
@@ -306,15 +311,11 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: currentTask.status == 'Cancelled'
-                          ? Colors.red
-                          : currentStatus.color,
+                      color: isCancelled ? Colors.red : currentStatus.color,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
-                      currentTask.status == 'Cancelled'
-                          ? Icons.cancel
-                          : currentStatus.icon,
+                      isCancelled ? Icons.cancel : currentStatus.icon,
                       color: Colors.white,
                       size: 20,
                     ),
@@ -324,11 +325,11 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        currentTask.status,
+                        statusText,
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: currentTask.status == 'Cancelled'
+                          color: isCancelled
                               ? Colors.white
                               : currentStatus.color,
                         ),
@@ -345,6 +346,9 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   }
 
   Widget _buildDescriptionCard() {
+    final desc = currentTask.description?.trim() ?? '';
+    final hasDesc = desc.isNotEmpty;
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -377,18 +381,12 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                 border: Border.all(color: Colors.grey[200]!),
               ),
               child: Text(
-                currentTask.description.isNotEmpty
-                    ? currentTask.description
-                    : 'No description provided',
+                hasDesc ? desc : 'No description provided',
                 style: TextStyle(
                   fontSize: 16,
                   height: 1.5,
-                  color: currentTask.description.isNotEmpty
-                      ? Colors.black87
-                      : Colors.grey[500],
-                  fontStyle: currentTask.description.isNotEmpty
-                      ? FontStyle.normal
-                      : FontStyle.italic,
+                  color: hasDesc ? Colors.black87 : Colors.grey[500],
+                  fontStyle: hasDesc ? FontStyle.normal : FontStyle.italic,
                 ),
               ),
             ),
@@ -399,6 +397,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
   }
 
   Widget _buildRemarksCard() {
+    final remarks = currentTask.customRemarks?.toString() ?? '';
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -431,7 +430,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                 border: Border.all(color: Colors.amber[200]!),
               ),
               child: Text(
-                currentTask.customRemarks?.toString() ?? "",
+                remarks,
                 style: const TextStyle(
                   fontSize: 16,
                   height: 1.5,
@@ -445,7 +444,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     );
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDateSafe(DateTime? date) {
+    if (date == null) return '—';
     const months = [
       'Jan',
       'Feb',
@@ -460,21 +460,18 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
       'Nov',
       'Dec',
     ];
-
     return '${date.day} ${months[date.month - 1]}, ${date.year}';
   }
 
-  String _calculateDuration() {
-    final difference = currentTask.expEndDate.difference(
-      currentTask.expStartDate,
-    );
+  String _calculateDurationSafe() {
+    final start = currentTask.expStartDate;
+    final end = currentTask.expEndDate;
+    final difference = end.difference(start);
     final days = difference.inDays + 1;
 
-    if (days == 1) {
-      return '1 day';
-    } else if (days < 7) {
-      return '$days days';
-    } else if (days < 30) {
+    if (days <= 1) return '1 day';
+    if (days < 7) return '$days days';
+    if (days < 30) {
       final weeks = (days / 7).floor();
       final remainingDays = days % 7;
       String result = '$weeks week${weeks > 1 ? 's' : ''}';
@@ -495,7 +492,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
 
   void _showStatusDialog() {
     final TextEditingController remarksController = TextEditingController();
-    TaskStatus? selectedStatus = currentStatus;
+    TaskStatus selectedStatus = currentStatus;
     bool isLoading = false;
 
     showDialog(
@@ -543,7 +540,7 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                           groupValue: selectedStatus,
                           onChanged: (TaskStatus? value) {
                             setStateDialog(() {
-                              selectedStatus = value!;
+                              selectedStatus = value ?? selectedStatus;
                             });
                           },
                           title: Row(
@@ -611,23 +608,25 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
                   onPressed: isLoading
                       ? null
                       : () async {
-                          if (selectedStatus != null) {
-                            setStateDialog(() {
-                              isLoading = true;
-                            });
+                          setStateDialog(() {
+                            isLoading = true;
+                          });
 
-                            await _updateTaskWithBothAPIs(
-                              selectedStatus!,
-                              remarks: remarksController.text.trim().isEmpty
-                                  ? null
-                                  : remarksController.text.trim(),
-                            );
-                            Provider.of<EmployeeTaskController>(
-                              context,
-                              listen: false,
-                            ).fetchTasks();
-                            Navigator.of(context).pop();
-                          }
+                          final remarks = remarksController.text.trim().isEmpty
+                              ? null
+                              : remarksController.text.trim();
+
+                          await _updateTaskWithBothAPIs(
+                            selectedStatus,
+                            remarks: remarks,
+                          );
+
+                          // Refresh tasks and close dialog
+                          Provider.of<EmployeeTaskController>(
+                            context,
+                            listen: false,
+                          ).fetchTasks();
+                          Navigator.of(context).pop();
                         },
                   child: isLoading
                       ? const SizedBox(
@@ -648,12 +647,6 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     );
   }
 
-  // Add these controller instances at the top of your class
-  final UpdateTaskStatusController _statusController =
-      UpdateTaskStatusController();
-  final RemarkTaskController _remarksController = RemarkTaskController();
-
-  /// Updated method to handle both APIs
   /// Updated method to handle both APIs
   Future<void> _updateTaskWithBothAPIs(
     TaskStatus newStatus, {
@@ -664,9 +657,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
       bool statusChanged = currentStatus != newStatus;
       bool hasRemarks = remarks != null && remarks.isNotEmpty;
 
-      // Get task name (you'll need to provide this based on your task model)
-      String taskName =
-          getTaskName(); // Replace with your actual task name getter
+      // Get task name from currentTask
+      String taskName = getTaskName();
 
       List<Future> apiCalls = [];
 
@@ -676,20 +668,14 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         DateTime? completionDate;
         if (newStatus == TaskStatus.Completed) {
           completionDate = DateTime.now();
-          print(
-            "📅 Task is being completed, setting completion date: ${completionDate.toString().split(' ')[0]}",
-          ); // yyyy-mm-dd format
         }
 
-        // Update the API call to include completion date
-        // Change this line in your _updateTaskWithBothAPIs method:
         apiCalls.add(
           _statusController.updateTask(
-            // ✅ Correct method name
             taskName: taskName,
             status: newStatus == TaskStatus.InProgress
                 ? "Working"
-                : newStatus.name,
+                : newStatus.displayName,
             completionDate: completionDate,
           ),
         );
@@ -708,6 +694,27 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         if (statusChanged) {
           setState(() {
             currentStatus = newStatus;
+            // Update display string on the task
+            switch (newStatus) {
+              case TaskStatus.Open:
+                currentTask.status = 'Open';
+                break;
+              case TaskStatus.Completed:
+                currentTask.status = 'Completed';
+                break;
+              case TaskStatus.Overdue:
+                currentTask.status = 'Overdue';
+                break;
+              case TaskStatus.InProgress:
+                currentTask.status = 'In Progress';
+                break;
+            }
+          });
+        }
+
+        if (hasRemarks) {
+          setState(() {
+            currentTask.customRemarks = remarks;
           });
         }
 
@@ -720,11 +727,9 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     }
   }
 
-  /// Helper method to get task name - replace with your actual implementation
+  /// Helper method to get task name
   String getTaskName() {
-    // Return the actual task name from your task object
-    // Example: return widget.task.name;
-    return widget.task.name;
+    return widget.task.name ?? '';
   }
 
   /// Show success message
@@ -737,6 +742,8 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
     } else if (remarksAdded) {
       message = "Remarks added successfully!";
     }
+
+    if (message.isEmpty) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -754,57 +761,6 @@ class _TaskDetailPageState extends State<TaskDetailPage> {
         content: Text("Error: $error"),
         backgroundColor: Colors.red,
         duration: const Duration(seconds: 3),
-      ),
-    );
-  }
-
-  void _updateStatus(TaskStatus newStatus, {String? remarks}) {
-    setState(() {
-      currentStatus = newStatus;
-      // Update the API status string based on the new status
-      switch (newStatus) {
-        case TaskStatus.Open:
-          currentTask.status = 'Open';
-          break;
-        case TaskStatus.Completed:
-          currentTask.status = 'Completed';
-          break;
-        case TaskStatus.Overdue:
-          currentTask.status = 'Overdue';
-          break;
-        case TaskStatus.InProgress:
-          currentTask.status = 'In Progress';
-          break;
-      }
-
-      if (remarks != null) {
-        currentTask.customRemarks = remarks;
-      }
-    });
-
-    // Here you would typically call an API to update the task status
-    // _updateTaskStatusAPI(currentTask.name, newStatus, remarks);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Icon(newStatus.icon, color: Colors.white),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Task updated to ${newStatus.displayName}'
-                '${remarks != null && remarks.isNotEmpty ? "\nRemarks: $remarks" : ""}',
-                style: const TextStyle(fontSize: 16),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: newStatus.color,
-        duration: const Duration(seconds: 4),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        margin: const EdgeInsets.all(16),
       ),
     );
   }

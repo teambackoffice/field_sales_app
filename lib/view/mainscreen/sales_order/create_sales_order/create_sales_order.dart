@@ -67,6 +67,9 @@ class CreateSalesOrder extends StatefulWidget {
 }
 
 class _CreateSalesOrderState extends State<CreateSalesOrder> {
+  TextEditingController _searchCtrl = TextEditingController();
+  List<MessageElement> _filteredCustomers = [];
+
   final _formKey = GlobalKey<FormState>();
 
   // Controllers
@@ -516,7 +519,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                 onChanged: isSpecialOrderLoading
                     ? null
                     : _updateSpecialOffer, // Updated this line
-                activeColor: Colors.white,
+                activeThumbColor: Colors.white,
                 activeTrackColor: Color(0xFF764BA2),
                 inactiveThumbColor: Colors.white,
                 inactiveTrackColor: Colors.grey.shade300,
@@ -739,7 +742,472 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     }
   }
 
+  void _openCustomerSearchDialog(List<MessageElement> customers) {
+    _filteredCustomers = List<MessageElement>.from(customers)
+      ..sort(
+        (a, b) => a.customerName.toLowerCase().compareTo(
+          b.customerName.toLowerCase(),
+        ),
+      );
+    _searchCtrl.clear();
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return Dialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+              elevation: 8,
+              insetPadding: EdgeInsets.symmetric(
+                horizontal: 24,
+                vertical: 40,
+              ), // More screen coverage
+              child: Container(
+                width:
+                    MediaQuery.of(context).size.width *
+                    0.9, // 90% of screen width
+                height:
+                    MediaQuery.of(context).size.height *
+                    0.8, // 80% of screen height
+                constraints: BoxConstraints(
+                  maxWidth: 600, // Max width for larger screens
+                  maxHeight: 800, // Increased max height
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // ✨ Modern Header with Close Button
+                    Container(
+                      padding: EdgeInsets.fromLTRB(28, 24, 20, 20),
+                      decoration: BoxDecoration(
+                        color: Color(0xFF764BA2),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.people_alt_rounded,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                          SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  "Select Customer",
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                SizedBox(height: 6),
+                              ],
+                            ),
+                          ),
+                          IconButton(
+                            icon: Icon(
+                              Icons.close,
+                              color: Colors.white,
+                              size: 28,
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            splashRadius: 24,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // 🔍 Enhanced Search Field
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(24, 24, 24, 16),
+                      child: TextField(
+                        controller: _searchCtrl,
+                        autofocus: true,
+                        style: TextStyle(fontSize: 16),
+                        decoration: InputDecoration(
+                          hintText: "Search by name",
+                          hintStyle: TextStyle(
+                            color: Colors.grey[400],
+                            fontSize: 15,
+                          ),
+                          prefixIcon: Padding(
+                            padding: EdgeInsets.all(14),
+                            child: Icon(
+                              Icons.search_rounded,
+                              color: Color(0xFF764BA2),
+                              size: 26,
+                            ),
+                          ),
+                          suffixIcon: _searchCtrl.text.isNotEmpty
+                              ? IconButton(
+                                  icon: Icon(
+                                    Icons.clear_rounded,
+                                    color: Colors.grey[400],
+                                    size: 24,
+                                  ),
+                                  onPressed: () {
+                                    setStateDialog(() {
+                                      _searchCtrl.clear();
+                                      _filteredCustomers = customers;
+                                    });
+                                  },
+                                  splashRadius: 24,
+                                )
+                              : null,
+                          filled: true,
+                          fillColor: Colors.grey[50],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.grey[200]!),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(color: Colors.grey[200]!),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide(
+                              color: Color(0xFF764BA2),
+                              width: 2,
+                            ),
+                          ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 18,
+                          ),
+                        ),
+                        onChanged: (value) {
+                          setStateDialog(() {
+                            if (value.isEmpty) {
+                              _filteredCustomers =
+                                  List<MessageElement>.from(customers)..sort(
+                                    (a, b) =>
+                                        a.customerName.toLowerCase().compareTo(
+                                          b.customerName.toLowerCase(),
+                                        ),
+                                  );
+                            } else {
+                              _filteredCustomers =
+                                  customers
+                                      .where(
+                                        (c) =>
+                                            (c.customerName ?? '')
+                                                .toLowerCase()
+                                                .contains(
+                                                  value.toLowerCase(),
+                                                ) ||
+                                            c.name.toLowerCase().contains(
+                                              value.toLowerCase(),
+                                            ),
+                                      )
+                                      .toList()
+                                    ..sort(
+                                      (a, b) => a.customerName
+                                          .toLowerCase()
+                                          .compareTo(
+                                            b.customerName.toLowerCase(),
+                                          ),
+                                    );
+                            }
+                          });
+                        },
+                      ),
+                    ),
+
+                    // 📋 Improved Customer List
+                    Expanded(
+                      child: _filteredCustomers.isEmpty
+                          ? _buildEmptyState()
+                          : ListView.separated(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                              itemCount: _filteredCustomers.length,
+                              separatorBuilder: (_, __) => SizedBox(height: 8),
+                              itemBuilder: (_, index) {
+                                final customer = _filteredCustomers[index];
+                                final isSelected =
+                                    _selectedCustomer == customer.name;
+
+                                return Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () {
+                                      Navigator.pop(context);
+                                      setState(() {
+                                        _selectedCustomer = customer.name;
+                                      });
+                                    },
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: Container(
+                                      padding: EdgeInsets.all(18),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? Color(
+                                                0xFF764BA2,
+                                              ).withOpacity(0.08)
+                                            : Colors.white,
+                                        border: Border.all(
+                                          color: isSelected
+                                              ? Color(
+                                                  0xFF764BA2,
+                                                ).withOpacity(0.4)
+                                              : Colors.grey[200]!,
+                                          width: isSelected ? 2 : 1.5,
+                                        ),
+                                        borderRadius: BorderRadius.circular(14),
+                                        boxShadow: isSelected
+                                            ? [
+                                                BoxShadow(
+                                                  color: Color(
+                                                    0xFF764BA2,
+                                                  ).withOpacity(0.15),
+                                                  blurRadius: 8,
+                                                  offset: Offset(0, 4),
+                                                ),
+                                              ]
+                                            : [],
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          // Avatar
+
+                                          // Customer Info
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  customer.customerName ?? '',
+                                                  style: TextStyle(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: Colors.black87,
+                                                    height: 1.3,
+                                                  ),
+                                                  maxLines: 2,
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                                SizedBox(height: 6),
+                                                Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.badge_rounded,
+                                                      size: 16,
+                                                      color: Colors.grey[500],
+                                                    ),
+                                                    SizedBox(width: 6),
+                                                    Expanded(
+                                                      child: Text(
+                                                        customer.name,
+                                                        style: TextStyle(
+                                                          fontSize: 12,
+                                                          color:
+                                                              Colors.grey[600],
+                                                          fontWeight:
+                                                              FontWeight.w500,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+
+                                          SizedBox(width: 12),
+
+                                          // GST Badge
+                                          Container(
+                                            padding: EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 8,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: customer.hasGstin == true
+                                                  ? Color(
+                                                      0xFF10B981,
+                                                    ).withOpacity(0.12)
+                                                  : Color(
+                                                      0xFFF59E0B,
+                                                    ).withOpacity(0.12),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              border: Border.all(
+                                                color: customer.hasGstin == true
+                                                    ? Color(
+                                                        0xFF10B981,
+                                                      ).withOpacity(0.4)
+                                                    : Color(
+                                                        0xFFF59E0B,
+                                                      ).withOpacity(0.4),
+                                                width: 1.5,
+                                              ),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  customer.hasGstin == true
+                                                      ? Icons.verified_rounded
+                                                      : Icons
+                                                            .info_outline_rounded,
+                                                  size: 16,
+                                                  color:
+                                                      customer.hasGstin == true
+                                                      ? Color(0xFF10B981)
+                                                      : Color(0xFFF59E0B),
+                                                ),
+                                                SizedBox(width: 6),
+                                                Text(
+                                                  customer.hasGstin == true
+                                                      ? 'GST'
+                                                      : 'No GST',
+                                                  style: TextStyle(
+                                                    color:
+                                                        customer.hasGstin ==
+                                                            true
+                                                        ? Color(0xFF10B981)
+                                                        : Color(0xFFF59E0B),
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                    letterSpacing: 0.5,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+
+                                          if (isSelected) ...[
+                                            SizedBox(width: 12),
+                                            Icon(
+                                              Icons.check_circle_rounded,
+                                              color: Color(0xFF764BA2),
+                                              size: 28,
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+
+                    // 📊 Bottom Summary Bar (Optional)
+                    if (_filteredCustomers.isNotEmpty)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[50],
+                          border: Border(
+                            top: BorderSide(color: Colors.grey[200]!, width: 1),
+                          ),
+                          borderRadius: BorderRadius.only(
+                            bottomLeft: Radius.circular(20),
+                            bottomRight: Radius.circular(20),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline_rounded,
+                              size: 20,
+                              color: Colors.grey[600],
+                            ),
+                            SizedBox(width: 10),
+                            Text(
+                              "Showing ${_filteredCustomers.length} of ${customers.length} customers",
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // 🎨 Empty State Widget
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.search_off_rounded,
+              size: 56,
+              color: Colors.grey[400],
+            ),
+          ),
+          SizedBox(height: 20),
+          Text(
+            "No customers found",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          SizedBox(height: 10),
+          Text(
+            "Try adjusting your search terms",
+            style: TextStyle(fontSize: 15, color: Colors.grey[500]),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCustomerCard({required List<MessageElement> customers}) {
+    // Find the selected customer to get the display name
+    String displayName = '';
+    if (_selectedCustomer != null) {
+      try {
+        final selectedCustomerData = customers.firstWhere(
+          (c) => c.name == _selectedCustomer,
+        );
+        displayName = selectedCustomerData.customerName ?? _selectedCustomer!;
+      } catch (e) {
+        displayName = _selectedCustomer!;
+      }
+    }
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -750,92 +1218,50 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
           children: [
             Text(
               'Customer Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF2D3436),
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                labelText: 'Select Customer',
-                prefixIcon: Icon(Icons.person, color: Color(0xFF764BA2)),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: BorderSide(color: Color(0xFF764BA2)),
+
+            // 👇 Field That Opens Searchable Dialog
+            GestureDetector(
+              onTap: () => _openCustomerSearchDialog(customers),
+              child: AbsorbPointer(
+                child: TextFormField(
+                  controller: TextEditingController(
+                    text: displayName,
+                  ), // Shows customer name
+                  decoration: InputDecoration(
+                    labelText: 'Select Customer',
+                    hintText: 'Tap to select a customer',
+                    prefixIcon: Icon(Icons.person, color: Color(0xFF764BA2)),
+                    suffixIcon: _selectedCustomer != null
+                        ? Icon(Icons.check_circle, color: Color(0xFF10B981))
+                        : Icon(Icons.arrow_drop_down, color: Colors.grey),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: BorderSide(
+                        color: _selectedCustomer != null
+                            ? Color(0xFF764BA2).withOpacity(0.5)
+                            : Colors.grey[300]!,
+                        width: _selectedCustomer != null ? 2 : 1,
+                      ),
+                    ),
+                  ),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                    color: Colors.black87,
+                  ),
+                  validator: (value) => (value == null || value.isEmpty)
+                      ? 'Please select a customer'
+                      : null,
                 ),
               ),
-              value: _selectedCustomer,
-              isExpanded: true,
-              items: customers.map((customer) {
-                return DropdownMenuItem<String>(
-                  value: customer.name,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          customer.name,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 14,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      SizedBox(width: 8),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: customer.hasGstin == true
-                                ? [Color(0xFF667EEA), Color(0xFF764BA2)]
-                                : [Color(0xFFF59E0B), Color(0xFFD97706)],
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              customer.hasGstin == true
-                                  ? Icons.verified_rounded
-                                  : Icons.warning_rounded,
-                              size: 12,
-                              color: Colors.white,
-                            ),
-                            SizedBox(width: 3),
-                            Text(
-                              customer.hasGstin == true ? 'GST' : 'No GST',
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: (value) {
-                setState(() {
-                  _selectedCustomer = value;
-                });
-              },
-              validator: (value) {
-                if (value == null) return 'Please select a customer';
-                return null;
-              },
             ),
+
             if (_selectedCustomer != null) ...[
               SizedBox(height: 12),
               _buildSelectedCustomerInfo(customers),
@@ -996,7 +1422,77 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  void _showAddItemBottomSheet(List<ItemTax> taxList) {
+  Future<void> _showAddItemBottomSheet(List<ItemTax> taxList) async {
+    // ✅ PRE-LOAD CHECK: Ensure items are loaded before opening bottom sheet
+    final itemController = Provider.of<ItemListController>(
+      context,
+      listen: false,
+    );
+
+    if (itemController.itemlist == null ||
+        itemController.itemlist!.message.isEmpty) {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => Center(
+          child: Card(
+            margin: EdgeInsets.all(40),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Padding(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFF764BA2)),
+                  SizedBox(height: 16),
+                  Text(
+                    'Loading items...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF2D3436),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Fetch items
+      await itemController.fetchItemList();
+
+      // Close loading dialog
+      if (mounted) Navigator.pop(context);
+
+      // Check if fetch was successful
+      if (itemController.error != null) {
+        Flushbar(
+          messageText: Text(
+            'Failed to load items: ${itemController.error}',
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          backgroundColor: Colors.red.shade500,
+          icon: const Icon(Icons.error, color: Colors.white),
+          margin: const EdgeInsets.all(12),
+          borderRadius: BorderRadius.circular(12),
+          duration: const Duration(seconds: 4),
+          flushbarPosition: FlushbarPosition.BOTTOM,
+          animationDuration: const Duration(milliseconds: 400),
+        ).show(context);
+        return;
+      }
+    }
+
+    // ✅ NOW OPEN BOTTOM SHEET - Data is ready
     final TextEditingController searchController = TextEditingController();
     String searchText = "";
     final FocusNode searchFocusNode = FocusNode();
@@ -1008,218 +1504,341 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            final itemlist = itemController.itemlist?.message ?? [];
+            final filteredList = itemlist.where((item) {
+              return item.itemName.toLowerCase().contains(
+                    searchText.toLowerCase(),
+                  ) ||
+                  item.itemCode.toLowerCase().contains(
+                    searchText.toLowerCase(),
+                  );
+            }).toList();
+
             return Container(
               height: MediaQuery.of(context).size.height * 0.8,
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
-              child: Consumer<ItemListController>(
-                builder: (context, controller, child) {
-                  if (controller.isLoading) {
-                    return Center(child: CircularProgressIndicator());
-                  }
-
-                  final itemlist = controller.itemlist?.message ?? [];
-                  final filteredList = itemlist.where((item) {
-                    return item.itemName.toLowerCase().contains(
-                          searchText.toLowerCase(),
-                        ) ||
-                        item.itemCode.toLowerCase().contains(
-                          searchText.toLowerCase(),
-                        );
-                  }).toList();
-
-                  return Column(
-                    children: [
-                      // Header
-                      Container(
-                        padding: EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          border: Border(
-                            bottom: BorderSide(color: Colors.grey.shade200),
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Add Item to Order',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            IconButton(
-                              onPressed: () => Navigator.pop(context),
-                              icon: Icon(Icons.close),
-                            ),
-                          ],
-                        ),
+              child: Column(
+                children: [
+                  // ✅ Header
+                  Container(
+                    padding: EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Colors.grey.shade200),
                       ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Add Item to Order',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                  ),
 
-                      // Search Field
-                      Container(
-                        margin: EdgeInsets.fromLTRB(16, 16, 16, 8),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: searchFocusNode.hasFocus
-                                ? Color(0xFF764BA2).withOpacity(0.3)
-                                : Colors.grey.shade200,
-                            width: 1.5,
-                          ),
-                        ),
-                        child: TextField(
-                          controller: searchController,
-                          focusNode: searchFocusNode,
-                          decoration: InputDecoration(
-                            hintText: "Search by name or code...",
-                            prefixIcon: Icon(
-                              Icons.search_rounded,
-                              color: Color(0xFF764BA2),
-                            ),
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 14,
-                            ),
-                          ),
-                          onChanged: (value) {
-                            setState(() {
-                              searchText = value;
-                            });
-                          },
-                        ),
+                  // ✅ Search Field
+                  Container(
+                    margin: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: searchFocusNode.hasFocus
+                            ? Color(0xFF764BA2).withOpacity(0.3)
+                            : Colors.grey.shade200,
+                        width: 1.5,
                       ),
-
-                      // Item List
-                      Expanded(
-                        child: filteredList.isEmpty
-                            ? Center(child: Text('No items found'))
-                            : ListView.builder(
-                                padding: EdgeInsets.all(16),
-                                itemCount: filteredList.length,
-                                itemBuilder: (context, index) {
-                                  final product = filteredList[index];
-                                  final taxRate = _getTaxRate(
-                                    product.taxTemplate,
-                                    taxList,
-                                  );
-                                  final inventoryItem = InventoryItem(
-                                    name: product.itemCode,
-                                    price: product.price,
-                                    unit: product.uom,
-                                    taxTemplate: product.taxTemplate,
-                                  );
-
-                                  return Card(
-                                    margin: EdgeInsets.only(bottom: 8),
-                                    child: ListTile(
-                                      contentPadding: EdgeInsets.all(12),
-                                      leading: Container(
-                                        width: 40,
-                                        height: 40,
-                                        decoration: BoxDecoration(
-                                          color: Colors.white,
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                        ),
-                                        child: Icon(
-                                          Icons.inventory_2,
-                                          color: Color(0xFF764BA2),
-                                          size: 20,
-                                        ),
-                                      ),
-                                      title: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            product.itemName,
-                                            style: TextStyle(
-                                              fontWeight: FontWeight.w500,
-                                            ),
-                                          ),
-                                          Text(
-                                            product.itemCode,
-                                            style: TextStyle(
-                                              color: Colors.grey.shade700,
-                                              fontSize: 12,
-                                            ),
-                                          ),
-                                          // Show tax information
-                                          if (taxRate > 0) ...[
-                                            SizedBox(height: 4),
-                                            Container(
-                                              padding: EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.green.shade50,
-                                                borderRadius:
-                                                    BorderRadius.circular(4),
-                                                border: Border.all(
-                                                  color: Colors.green.shade200,
-                                                ),
-                                              ),
-                                              child: Text(
-                                                'GST: ${taxRate.toStringAsFixed(1)}%',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: Colors.green.shade700,
-                                                  fontWeight: FontWeight.w500,
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                      subtitle: Padding(
-                                        padding: const EdgeInsets.only(top: 4),
-                                        child: Text(
-                                          '₹${product.price.toStringAsFixed(2)}',
-                                          style: TextStyle(
-                                            color: Colors.grey.shade700,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ),
-                                      trailing: ElevatedButton(
-                                        onPressed: () {
-                                          _showQuantityDialog(
-                                            inventoryItem,
-                                            taxList,
-                                          );
-                                        },
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: Color(0xFF764BA2),
-                                          foregroundColor: Colors.white,
-                                          minimumSize: Size(60, 36),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              8,
-                                            ),
-                                          ),
-                                        ),
-                                        child: Text('Add'),
-                                      ),
-                                    ),
-                                  );
+                    ),
+                    child: TextField(
+                      controller: searchController,
+                      focusNode: searchFocusNode,
+                      decoration: InputDecoration(
+                        hintText: "Search by name or code...",
+                        prefixIcon: Icon(
+                          Icons.search_rounded,
+                          color: Color(0xFF764BA2),
+                        ),
+                        suffixIcon: searchText.isNotEmpty
+                            ? IconButton(
+                                icon: Icon(
+                                  Icons.clear_rounded,
+                                  color: Colors.grey[400],
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    searchController.clear();
+                                    searchText = "";
+                                  });
                                 },
-                              ),
+                              )
+                            : null,
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                       ),
-                    ],
-                  );
-                },
+                      onChanged: (value) {
+                        setState(() {
+                          searchText = value;
+                        });
+                      },
+                    ),
+                  ),
+
+                  // ✅ Item Count Badge
+                  if (filteredList.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Color(0xFF764BA2).withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              '${filteredList.length} items',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF764BA2),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // ✅ Optimized Item List
+                  Expanded(
+                    child: filteredList.isEmpty
+                        ? _buildEmptyItemState()
+                        : ListView.builder(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            itemCount: filteredList.length,
+                            // ✅ Performance optimizations
+                            addAutomaticKeepAlives: false,
+                            addRepaintBoundaries: true,
+                            cacheExtent: 200,
+                            itemBuilder: (context, index) {
+                              final product = filteredList[index];
+                              final taxRate = _getTaxRate(
+                                product.taxTemplate,
+                                taxList,
+                              );
+                              final inventoryItem = InventoryItem(
+                                name: product.itemCode,
+                                price: product.price,
+                                unit: product.uom,
+                                taxTemplate: product.taxTemplate,
+                              );
+
+                              return _buildItemCard(
+                                product,
+                                taxRate,
+                                inventoryItem,
+                                taxList,
+                              );
+                            },
+                          ),
+                  ),
+                ],
               ),
             );
           },
         );
       },
+    );
+  }
+
+  // ✅ Extract item card to separate method for better performance
+  Widget _buildItemCard(
+    dynamic product,
+    double taxRate,
+    InventoryItem inventoryItem,
+    List<ItemTax> taxList,
+  ) {
+    return Card(
+      margin: EdgeInsets.only(bottom: 8),
+      elevation: 1,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _showQuantityDialog(inventoryItem, taxList),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: EdgeInsets.all(12),
+          child: Row(
+            children: [
+              // Item Icon
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Color(0xFF764BA2).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.inventory_2,
+                  color: Color(0xFF764BA2),
+                  size: 24,
+                ),
+              ),
+              SizedBox(width: 12),
+
+              // Item Details
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      product.itemName,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 15,
+                        color: Color(0xFF2D3436),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      product.itemCode,
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    SizedBox(height: 6),
+                    Row(
+                      children: [
+                        // Price
+                        Text(
+                          '₹${product.price.toStringAsFixed(2)}',
+                          style: TextStyle(
+                            color: Color(0xFF764BA2),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        // Tax Badge
+                        if (taxRate > 0) ...[
+                          SizedBox(width: 8),
+                          Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.green.shade200),
+                            ),
+                            child: Text(
+                              'GST: ${taxRate.toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.green.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              SizedBox(width: 8),
+
+              // Add Button
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Color(0xFF764BA2),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0xFF764BA2).withOpacity(0.3),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  'Add',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ✅ Empty state for search with no results
+  Widget _buildEmptyItemState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.search_off_rounded,
+              size: 56,
+              color: Colors.grey[400],
+            ),
+          ),
+          SizedBox(height: 20),
+          Text(
+            "No items found",
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          SizedBox(height: 10),
+          Text(
+            "Try adjusting your search terms",
+            style: TextStyle(fontSize: 15, color: Colors.grey[500]),
+          ),
+        ],
+      ),
     );
   }
 
