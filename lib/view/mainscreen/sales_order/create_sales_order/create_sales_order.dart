@@ -15,6 +15,7 @@ import 'package:provider/provider.dart';
 // Enhanced OrderItem class with tax information
 class OrderItem {
   final String item_code;
+  final String item_name;
   final double rate;
   final int qty;
   final String taxTemplate;
@@ -22,6 +23,7 @@ class OrderItem {
 
   OrderItem({
     required this.item_code,
+    required this.item_name,
     required this.rate,
     required this.qty,
     required this.taxTemplate,
@@ -35,6 +37,7 @@ class OrderItem {
   Map<String, dynamic> toJson() {
     return {
       'item_code': item_code,
+      'item_name': item_name,
       'rate': rate,
       'qty': qty,
       'tax_template': taxTemplate,
@@ -45,16 +48,18 @@ class OrderItem {
 
 class InventoryItem {
   final String name;
+  final String itemName; // ✅ ADD THIS
   final double price;
   final String unit;
   final String description;
-  final String taxTemplate; // Add tax template
+  final String taxTemplate;
 
   InventoryItem({
     required this.name,
+    required this.itemName, // ✅ ADD THIS
     required this.price,
     required this.unit,
-    required this.taxTemplate, // Add this
+    required this.taxTemplate,
     this.description = '',
   });
 }
@@ -1651,6 +1656,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                               );
                               final inventoryItem = InventoryItem(
                                 name: product.itemCode,
+                                itemName: product.itemName, // ✅ ADD THIS LINE
                                 price: product.price,
                                 unit: product.uom,
                                 taxTemplate: product.taxTemplate,
@@ -1986,6 +1992,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                         if (quantity > 0) {
                           final orderItem = OrderItem(
                             item_code: item.name,
+                            item_name: item.itemName,
                             rate: item.price,
                             qty: quantity.toInt(),
                             taxTemplate: item.taxTemplate,
@@ -2079,10 +2086,10 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item.item_code,
+                        item.item_name,
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
-                          fontSize: 16,
+                          fontSize: 14,
                           color: Color(0xFF2D3436),
                         ),
                       ),
@@ -2284,8 +2291,9 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     final item = _orderItems[index];
     final inventoryItem = InventoryItem(
       name: item.item_code,
+      itemName: item.item_name, // ✅ ADD THIS LINE
       price: item.rate,
-      unit: 'unit', // You might want to store this in OrderItem
+      unit: 'unit',
       taxTemplate: item.taxTemplate,
     );
 
