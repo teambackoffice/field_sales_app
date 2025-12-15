@@ -17,16 +17,11 @@ class CreateSalesOrderService {
   }) async {
     try {
       final sid = await _secureStorage.read(key: 'sid');
-      if (sid == null) {
-        print("❌ ERROR: SID is null");
-        throw Exception("Session expired. Please log in again.");
-      }
+      if (sid == null) throw Exception("Session expired. Please log in again.");
 
       final salesPerson = await _secureStorage.read(key: 'sales_person_id');
-      if (salesPerson == null) {
-        print("❌ ERROR: Sales person ID not found");
+      if (salesPerson == null)
         throw Exception("Sales person not found. Please contact admin.");
-      }
 
       var headers = {'Content-Type': 'application/json', 'Cookie': 'sid=$sid'};
 
@@ -37,6 +32,8 @@ class CreateSalesOrderService {
         "items": items,
       });
 
+      print("📤 Request URL: $url");
+      print("📤 Request Headers: $headers");
       print("📤 Request Body: $body");
 
       final response = await http
@@ -45,27 +42,36 @@ class CreateSalesOrderService {
 
       print("📥 Response Code: ${response.statusCode}");
       print("📥 Raw Response Body: ${response.body}");
+      print("📥 Response Headers: ${response.headers}");
+
+      Map<String, dynamic>? decoded;
+      try {
+        decoded = json.decode(response.body);
+        print("📦 Decoded JSON: $decoded");
+      } catch (e) {
+        print("⚠️ JSON Decode Failed: $e");
+      }
 
       if (response.statusCode == 200) {
-        print("✅ Success Response: ${response.body}");
-        return json.decode(response.body);
+        print("✅ SUCCESS FULL RESPONSE RETURNED");
+        return decoded ?? {"response": response.body};
       } else {
-        final errorMsg = _mapErrorMessage(response.body);
-        print("❌ Error Response: ${response.body}");
-        print("❗ Mapped Error Message: $errorMsg");
-        throw Exception(errorMsg);
+        final friendlyMessage = _mapErrorMessage(response.body);
+        print("❌ ERROR FULL RESPONSE RETURNED");
+        print("❗ Friendly Error: $friendlyMessage");
+        throw Exception(friendlyMessage);
       }
     } on TimeoutException catch (e) {
-      print("⏳ Timeout Error: $e");
+      print("⏳ TIMEOUT ERROR: $e");
       throw Exception("Request timed out. Please try again.");
     } on SocketException catch (e) {
-      print("🌐 Socket Error: $e");
+      print("🌐 NETWORK ERROR: $e");
       throw Exception("No internet connection. Please check your network.");
     } on FormatException catch (e) {
-      print("⚠️ Format Error: $e");
+      print("⚠️ FORMAT ERROR: $e");
       throw Exception("Invalid server response.");
     } catch (e) {
-      print("🔥 Unknown Error: $e");
+      print("🔥 UNKNOWN ERROR: $e");
       rethrow;
     }
   }
