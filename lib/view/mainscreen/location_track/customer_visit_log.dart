@@ -130,7 +130,8 @@ class _CustomerVisitLoggerState extends State<CustomerVisitLogger> {
         longitude: position.longitude,
         latitude: position.latitude,
         customerName:
-            _selectedCustomer?.name ?? _customerNameController.text.trim(),
+            _selectedCustomer?.customerName ??
+            _customerNameController.text.trim(),
         description: _descriptionController.text.trim(),
       );
 
