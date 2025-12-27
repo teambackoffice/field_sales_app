@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:location_tracker_app/controller/employee_location_controller.dart';
 import 'package:location_tracker_app/view/mainscreen/location_track/customer_visit_log.dart';
+import 'package:location_tracker_app/view/mainscreen/location_track/customer_visit_timer.dart';
 import 'package:provider/provider.dart';
 
 class LocationTrackingPage extends StatefulWidget {
@@ -606,6 +607,14 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                     ),
                   );
                   break;
+                case 'customer_timer': // ✅ ADD THIS CASE
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CustomerVisitTimerPage(),
+                    ),
+                  );
+                  break;
                 case 'send_pending':
                   controller.sendPendingEntries();
                   break;
@@ -627,6 +636,35 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                     ],
                   ),
                 ),
+                // ✅ ADD THIS NEW MENU ITEM
+                PopupMenuItem(
+                  value: 'customer_timer',
+                  child: Row(
+                    children: [
+                      Icon(Icons.timer, size: 20, color: Colors.blue),
+                      SizedBox(width: 8),
+                      Text('Customer Visit Timer'),
+                    ],
+                  ),
+                ),
+                // Show active visit indicator if there's an active visit
+                if (controller.hasActiveCustomerVisit)
+                  PopupMenuItem(
+                    enabled: false, // Just a visual indicator, not clickable
+                    child: Row(
+                      children: [
+                        Icon(Icons.circle, size: 12, color: Colors.green),
+                        SizedBox(width: 8),
+                        Text(
+                          'Active Visit',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 if (controller.hasPendingEntries)
                   PopupMenuItem(
                     value: 'send_pending',

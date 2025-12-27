@@ -24,27 +24,13 @@ class EmployeeTaskService {
         '${ApiConstants.baseUrl}get_task_details?sales_person=$salesPerson',
       );
 
-      // 🔵 PRINT REQUEST DETAILS
-      print("📤 GET Request URL: $url");
-      print("📤 Request Headers: $headers");
-
       final response = await http.get(url, headers: headers);
-
-      // 🔵 PRINT RAW RESPONSE
-      print("📥 Response Status: ${response.statusCode}");
-      print("📥 Raw Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
 
-        // 🔵 PRINT PARSED JSON
-        print("📦 Parsed JSON: $data");
-
         if (data is Map<String, dynamic> && data.containsKey('message')) {
           final taskModal = EmployeeTaskModal.fromJson(data);
-
-          // 🔵 PRINT FINAL PARSED MODEL
-          print("✅ Parsed EmployeeTaskModal: $taskModal");
 
           return [taskModal];
         } else {
@@ -58,7 +44,6 @@ class EmployeeTaskService {
         );
       }
     } catch (e) {
-      print("🔥 Exception occurred: $e");
       rethrow;
     }
   }

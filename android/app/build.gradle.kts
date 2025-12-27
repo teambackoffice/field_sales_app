@@ -29,7 +29,7 @@ android {
         applicationId = "com.location_tracker_app"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 4
+        versionCode = 5
         versionName = "1.0.4"
     }
 

@@ -318,24 +318,26 @@ class LocationController extends ChangeNotifier {
   Future<bool> requestPermissions() async {
     try {
       print("🔐 Requesting permissions using permission_handler...");
-      
+
       // 1. Request Foreground Permission (While using the app)
-      PermissionStatus locationStatus = await Permission.locationWhenInUse.request();
+      PermissionStatus locationStatus = await Permission.locationWhenInUse
+          .request();
       print("📍 Foreground location status: $locationStatus");
-      
+
       if (!locationStatus.isGranted) {
         error = 'Location permission is required to track attendance.';
         print("❌ Foreground permission denied");
         notifyListeners();
         return false;
       }
-      
+
       // 2. Request Background Permission (Allow all the time)
       // On Android 11+, this will guide the user to settings
       print("📍 Requesting background location (Allow all the time)...");
-      PermissionStatus backgroundStatus = await Permission.locationAlways.request();
+      PermissionStatus backgroundStatus = await Permission.locationAlways
+          .request();
       print("📍 Background location status: $backgroundStatus");
-      
+
       if (backgroundStatus.isGranted) {
         print("✅ All permissions granted (Foreground + Background)");
         return true;
@@ -343,12 +345,13 @@ class LocationController extends ChangeNotifier {
 
       // 3. If Background is not granted, guide user to settings
       print("⚠️ Background permission not granted. Opening settings...");
-      error = "Please select 'Allow all the time' in settings for background tracking.";
+      error =
+          "Please select 'Allow all the time' in settings for background tracking.";
       notifyListeners();
-      
+
       // Open app settings so user can select "Allow all the time"
       await openAppSettings();
-      
+
       return false;
     } catch (e) {
       error = 'Permission error: $e';
@@ -670,6 +673,59 @@ class LocationController extends ChangeNotifier {
     } catch (e) {
       print("❌ Credential check failed: $e");
       rethrow;
+    }
+  }
+  // Add to your LocationController class
+
+  // Customer visit tracking - in memory
+  Map<String, dynamic>? activeCustomerVisit;
+
+  bool get hasActiveCustomerVisit => activeCustomerVisit != null;
+
+  Future<bool> checkInToCustomer({
+    required String customerName,
+    String? purpose,
+  }) async {
+    try {
+      // You can add location fetching here if needed
+
+      activeCustomerVisit = {
+        'customer_name': customerName,
+        'purpose': purpose ?? '',
+        'check_in_time': DateTime.now(),
+      };
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      error = 'Failed to check in: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
+  Future<bool> checkOutFromCustomer() async {
+    if (activeCustomerVisit == null) return false;
+
+    try {
+      final checkInTime = activeCustomerVisit!['check_in_time'] as DateTime;
+      final checkOutTime = DateTime.now();
+      final duration = checkOutTime.difference(checkInTime);
+
+      // You can send data to API here
+      print('Visit completed:');
+      print('Customer: ${activeCustomerVisit!['customer_name']}');
+      print('Duration: ${duration.inMinutes} minutes');
+
+      // Clear active visit
+      activeCustomerVisit = null;
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      error = 'Failed to check out: $e';
+      notifyListeners();
+      return false;
     }
   }
 }

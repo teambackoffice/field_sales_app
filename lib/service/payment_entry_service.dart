@@ -38,8 +38,6 @@ class PaymentEntryService {
           final decoded = jsonDecode(response.body);
           final modal = PaymentEntryModal.fromJson(decoded);
 
-          // If you want to print fields inside modal:
-
           return modal;
         } catch (e) {
           throw Exception('Failed to parse response: $e');

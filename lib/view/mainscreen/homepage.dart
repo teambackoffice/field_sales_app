@@ -5,7 +5,6 @@ import 'package:location_tracker_app/view/mainscreen/location_track/location_tra
 import 'package:location_tracker_app/view/mainscreen/profile_page/profile_page.dart';
 import 'package:location_tracker_app/view/mainscreen/sales_order/sales_order.dart';
 import 'package:location_tracker_app/view/mainscreen/tasks/tasks.dart';
-// Import the modern bottom nav bar
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});

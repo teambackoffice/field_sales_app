@@ -11,22 +11,17 @@ class LoginService {
 
   Future<bool> isLoggedIn() async {
     final sid = await _secureStorage.read(key: 'sid');
-    print("🔑 Checking if logged in -> SID: $sid");
     return sid != null && sid.isNotEmpty;
   }
 
   Future<bool> login(String username, String password) async {
     final url = Uri.parse('$baseUrl?usr=$username&pwd=$password');
-    print("🌐 Sending login request -> $url");
 
     try {
       final response = await http.post(url);
-      print("📥 Response Status: ${response.statusCode}");
-      print("📥 Response Body: ${response.body}");
 
       if (response.statusCode == 200) {
         final responseData = jsonDecode(response.body);
-        print("✅ Decoded JSON: $responseData");
 
         final fullName = responseData['full_name'];
         final message = responseData['message'];
@@ -56,29 +51,24 @@ class LoginService {
 
         return message['success_key'] == 1;
       } else {
-        print("❌ Login failed with status: ${response.statusCode}");
         return false;
       }
     } catch (e) {
-      print("⚠️ Exception during login: $e");
       return false;
     }
   }
 
   Future<String?> getFullName() async {
     final name = await _secureStorage.read(key: 'full_name');
-    print("👤 Retrieved Full Name: $name");
     return name;
   }
 
   Future<String?> getApiKey() async {
     final key = await _secureStorage.read(key: 'api_key');
-    print("🔑 Retrieved API Key: $key");
     return key;
   }
 
   Future<void> logout() async {
-    print("🚪 Logging out -> Clearing all storage");
     await _secureStorage.deleteAll();
   }
 }
