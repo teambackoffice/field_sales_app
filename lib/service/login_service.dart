@@ -54,6 +54,7 @@ class LoginService {
         return false;
       }
     } catch (e) {
+      print("❌ ERROR: $e");
       return false;
     }
   }

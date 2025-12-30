@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:location_tracker_app/controller/employee_location_controller.dart';
 import 'package:location_tracker_app/view/mainscreen/location_track/customer_visit_log.dart';
 import 'package:location_tracker_app/view/mainscreen/location_track/customer_visit_timer.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 
 class LocationTrackingPage extends StatefulWidget {
@@ -530,6 +531,94 @@ class _LocationTrackingPageState extends State<LocationTrackingPage>
                               ),
                             ),
                           ),
+
+                          SizedBox(height: 20),
+
+                          // Show "Open Settings" button if there's a permission error
+                          if (controller.error != null &&
+                              controller.error!.contains('Settings'))
+                            GestureDetector(
+                              onTap: () async {
+                                await Permission.location.request();
+                                // Try to open app settings
+                                final opened = await openAppSettings();
+                                if (opened) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Please enable location permission and return to the app',
+                                      ),
+                                      backgroundColor: Colors.blue,
+                                      duration: Duration(seconds: 3),
+                                    ),
+                                  );
+                                }
+                              },
+                              child: Container(
+                                width: 280,
+                                height: 50,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(25),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.5),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.settings,
+                                      color: Colors.white,
+                                      size: 22,
+                                    ),
+                                    SizedBox(width: 10),
+                                    Text(
+                                      'Open Settings',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                          // Show error message
+                          if (controller.error != null)
+                            Container(
+                              margin: EdgeInsets.only(top: 20),
+                              padding: EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.red.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.red.withOpacity(0.3),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      controller.error!,
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
 
                           SizedBox(height: 30),
 

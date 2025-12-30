@@ -319,40 +319,97 @@ class LocationController extends ChangeNotifier {
     try {
       print("🔐 Requesting permissions using permission_handler...");
 
-      // 1. Request Foreground Permission (While using the app)
-      PermissionStatus locationStatus = await Permission.locationWhenInUse
-          .request();
-      print("📍 Foreground location status: $locationStatus");
+      // 1. Check current permission status first
+      PermissionStatus currentStatus =
+          await Permission.locationWhenInUse.status;
+      print("📍 Current location status: $currentStatus");
 
-      if (!locationStatus.isGranted) {
-        error = 'Location permission is required to track attendance.';
-        print("❌ Foreground permission denied");
+      // 2. If already granted, skip to background permission
+      if (currentStatus.isGranted) {
+        print("✅ Foreground location permission already granted");
+      }
+      // 3. If denied (but not permanently), request it - DON'T open settings yet
+      else if (currentStatus.isDenied || currentStatus.isRestricted) {
+        print("📍 Requesting foreground location permission...");
+        currentStatus = await Permission.locationWhenInUse.request();
+        print("📍 Foreground location status after request: $currentStatus");
+
+        // Only open settings if it became permanently denied after the request
+        if (currentStatus.isPermanentlyDenied) {
+          print(
+            "⚠️ Permission permanently denied. User must enable in Settings.",
+          );
+          error =
+              'Location permission is denied.\n'
+              'To enable: Settings > Privacy & Security > Location Services > Chundakadan App';
+          notifyListeners();
+          // Don't automatically open settings - let user do it manually
+          // This prevents the jarring UX of being sent to Settings immediately
+          return false;
+        }
+
+        if (!currentStatus.isGranted) {
+          error = 'Location permission is required to track attendance.';
+          print("❌ Foreground permission not granted");
+          notifyListeners();
+          return false;
+        }
+      }
+      // 4. If permanently denied from the start, inform user
+      else if (currentStatus.isPermanentlyDenied) {
+        print("⚠️ Permission was already permanently denied.");
+        error =
+            'Location permission is denied.\n'
+            'To enable: Settings > Privacy & Security > Location Services > Chundakadan App';
         notifyListeners();
         return false;
       }
 
-      // 2. Request Background Permission (Allow all the time)
-      // On Android 11+, this will guide the user to settings
-      print("📍 Requesting background location (Allow all the time)...");
-      PermissionStatus backgroundStatus = await Permission.locationAlways
-          .request();
-      print("📍 Background location status: $backgroundStatus");
+      print("✅ Foreground location permission granted");
 
+      // 5. Request Background Permission (Allow all the time)
+      PermissionStatus backgroundStatus =
+          await Permission.locationAlways.status;
+      print("📍 Current background location status: $backgroundStatus");
+
+      // If already granted, we're done
       if (backgroundStatus.isGranted) {
         print("✅ All permissions granted (Foreground + Background)");
+        error = null; // Clear any previous errors
+        notifyListeners();
         return true;
       }
 
-      // 3. If Background is not granted, guide user to settings
-      print("⚠️ Background permission not granted. Opening settings...");
-      error =
-          "Please select 'Allow all the time' in settings for background tracking.";
-      notifyListeners();
+      // If background is denied but not permanently, request it
+      if (backgroundStatus.isDenied || backgroundStatus.isRestricted) {
+        print("📍 Requesting background location (Allow all the time)...");
+        backgroundStatus = await Permission.locationAlways.request();
+        print("📍 Background location status after request: $backgroundStatus");
+      }
 
-      // Open app settings so user can select "Allow all the time"
-      await openAppSettings();
+      if (backgroundStatus.isGranted) {
+        print("✅ All permissions granted (Foreground + Background)");
+        error = null; // Clear any previous errors
+        notifyListeners();
+        return true;
+      }
 
-      return false;
+      // Background not granted but foreground is - still usable
+      if (backgroundStatus.isPermanentlyDenied) {
+        print("⚠️ Background permission permanently denied.");
+        error =
+            "Background location is denied.\n"
+            "For continuous tracking: Settings > Privacy & Security > Location Services > Chundakadan App > Always";
+        notifyListeners();
+      } else {
+        print("⚠️ Background permission not granted, but foreground is OK");
+        error =
+            "For best results, enable 'Always' location access.\n"
+            "Currently using 'While Using' only.";
+        notifyListeners();
+      }
+
+      return true; // Can still track with foreground permission
     } catch (e) {
       error = 'Permission error: $e';
       print("❌ Permission error: $e");

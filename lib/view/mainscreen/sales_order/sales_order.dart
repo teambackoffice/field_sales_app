@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:location_tracker_app/controller/sales_order_controller.dart';
 import 'package:location_tracker_app/modal/sales_order_modal.dart' as modal;
 import 'package:location_tracker_app/view/mainscreen/sales_order/create_sales_order/create_sales_order.dart';
+import 'package:location_tracker_app/view/mainscreen/sales_order/create_sales_order/stock.dart';
 import 'package:location_tracker_app/view/mainscreen/sales_order/sales_return.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -164,25 +165,34 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
 
           // Manual refresh button
           PopupMenuButton<String>(
-            key: Key('filterPopupMenu'),
-            icon: Icon(Icons.filter_list, color: Color(0xFF2D3436)),
+            key: const Key('filterPopupMenu'),
+            icon: const Icon(Icons.filter_list, color: Color(0xFF2D3436)),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
             itemBuilder: (context) {
-              return [
-                PopupMenuItem(value: 'All', child: Text('Sales Returns')),
+              return const [
+                PopupMenuItem(
+                  value: 'salesReturn',
+                  child: Text('Sales Returns'),
+                ),
+                PopupMenuItem(value: 'stocks', child: Text('Stocks')),
               ];
             },
             onSelected: (value) {
-              setState(() {
+              if (value == 'salesReturn') {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
                     builder: (context) => SalesReturnListPage(),
                   ),
                 );
-              });
+              } else if (value == 'stocks') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => StockAvailable()),
+                );
+              }
             },
           ),
         ],
@@ -377,7 +387,7 @@ class _SalesOrdersListPageState extends State<SalesOrdersListPage>
     return SingleChildScrollView(
       // Make empty state scrollable for pull-to-refresh
       physics: AlwaysScrollableScrollPhysics(),
-      child: Container(
+      child: SizedBox(
         height: MediaQuery.of(context).size.height * 0.5,
         child: Center(
           child: Column(
