@@ -21,6 +21,8 @@ class LoginService {
       final response = await http.post(url);
 
       if (response.statusCode == 200) {
+        print("url: $url");
+        print(response.body);
         final responseData = jsonDecode(response.body);
 
         final fullName = responseData['full_name'];
@@ -54,7 +56,6 @@ class LoginService {
         return false;
       }
     } catch (e) {
-      print("❌ ERROR: $e");
       return false;
     }
   }

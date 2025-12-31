@@ -32,6 +32,7 @@ class Message {
   String uom;
   double price;
   int maintainStock;
+  double totalStock;
   String taxTemplate;
 
   Message({
@@ -40,6 +41,7 @@ class Message {
     required this.description,
     required this.uom,
     required this.price,
+    required this.totalStock,
     required this.maintainStock,
     required this.taxTemplate,
   });
@@ -51,6 +53,7 @@ class Message {
     uom: json["uom"],
     price: (json["price"] as num).toDouble(),
     maintainStock: json["maintain_stock"],
+    totalStock: (json["total_stock"] as num?)?.toDouble() ?? 0.0,
     taxTemplate: json["tax_template"] ?? "",
   );
 
@@ -61,6 +64,7 @@ class Message {
     "uom": uom,
     "price": price,
     "maintain_stock": maintainStock,
+    "total_stock": totalStock,
     "tax_template": taxTemplate,
   };
 }

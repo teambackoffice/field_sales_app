@@ -72,7 +72,7 @@ class CreateSalesOrder extends StatefulWidget {
 }
 
 class _CreateSalesOrderState extends State<CreateSalesOrder> {
-  TextEditingController _searchCtrl = TextEditingController();
+  final TextEditingController _searchCtrl = TextEditingController();
   List<MessageElement> _filteredCustomers = [];
 
   final _formKey = GlobalKey<FormState>();
@@ -1665,6 +1665,7 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                               return _buildItemCard(
                                 product,
                                 taxRate,
+
                                 inventoryItem,
                                 taxList,
                               );
@@ -1680,7 +1681,6 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
     );
   }
 
-  // ✅ Extract item card to separate method for better performance
   Widget _buildItemCard(
     dynamic product,
     double taxRate,
@@ -1738,7 +1738,22 @@ class _CreateSalesOrderState extends State<CreateSalesOrder> {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    SizedBox(height: 4),
+                    // ✅ TOTAL STOCK DISPLAY
+                    Row(
+                      children: [
+                        Text(
+                          'Stock: ${product.totalStock} ${product.uom}',
+                          style: TextStyle(
+                            color: product.totalStock > 0
+                                ? Colors.green.shade700
+                                : Colors.red.shade700,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
                     Row(
                       children: [
                         // Price

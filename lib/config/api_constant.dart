@@ -1,4 +1,4 @@
 class ApiConstants {
   static const String baseUrl =
-      "https://chundakadan.in/api/method/field_sales.Api.auth.";
+      "https://uat-fieldsales.tbo365.cloud/api/method/field_sales.Api.auth.";
 }
