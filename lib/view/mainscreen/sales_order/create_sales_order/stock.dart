@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:location_tracker_app/controller/item_stock_controller.dart';
+import 'package:location_tracker_app/modal/item_stock_modal.dart';
+import 'package:provider/provider.dart';
 
 class StockAvailable extends StatefulWidget {
   const StockAvailable({super.key});
@@ -10,7 +13,6 @@ class StockAvailable extends StatefulWidget {
 class _StockAvailableState extends State<StockAvailable>
     with SingleTickerProviderStateMixin {
   String _searchQuery = '';
-  bool _isLoading = false;
   late AnimationController _animationController;
 
   @override
@@ -20,6 +22,11 @@ class _StockAvailableState extends State<StockAvailable>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
+
+    // Fetch items when screen loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ItemStockController>().fetchItems();
+    });
   }
 
   @override
@@ -28,93 +35,35 @@ class _StockAvailableState extends State<StockAvailable>
     super.dispose();
   }
 
-  // Sample data - replace with your API call
-  final List<Map<String, dynamic>> _stockItems = [
-    {
-      'name': 'Premium Wireless Headphones',
-      'itemCode': 'PRD-001',
-      'warehouse': 'Main Warehouse',
-      'availableQty': 130.0,
-      'uom': 'Nos',
-      'reorderLevel': 50.0,
-      'image': null,
-      'category': 'Electronics',
-    },
-    {
-      'name': 'Organic Coffee Beans',
-      'itemCode': 'PRD-002',
-      'warehouse': 'Store A',
-      'availableQty': 40.0,
-      'uom': 'Kg',
-      'reorderLevel': 50.0,
-      'image': null,
-      'category': 'Food & Beverage',
-    },
-    {
-      'name': 'Office Chair Pro',
-      'itemCode': 'PRD-003',
-      'warehouse': 'Main Warehouse',
-      'availableQty': 170.0,
-      'uom': 'Nos',
-      'reorderLevel': 100.0,
-      'image': null,
-      'category': 'Furniture',
-    },
-    {
-      'name': 'Notebook Set A4',
-      'itemCode': 'PRD-004',
-      'warehouse': 'Store B',
-      'availableQty': 5.0,
-      'uom': 'Pcs',
-      'reorderLevel': 20.0,
-      'image': null,
-      'category': 'Stationery',
-    },
-    {
-      'name': 'Desk Lamp LED',
-      'itemCode': 'PRD-005',
-      'warehouse': 'Main Warehouse',
-      'availableQty': 0.0,
-      'uom': 'Nos',
-      'reorderLevel': 30.0,
-      'image': null,
-      'category': 'Electronics',
-    },
-  ];
+  List<Datum> _getFilteredItems(List<Datum> items) {
+    if (_searchQuery.isEmpty) return items;
 
-  List<Map<String, dynamic>> get _filteredItems {
-    return _stockItems.where((item) {
-      return item['name'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          ) ||
-          item['itemCode'].toString().toLowerCase().contains(
-            _searchQuery.toLowerCase(),
-          );
+    return items.where((item) {
+      return item.itemName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          item.itemCode.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
   }
 
-  Color _getStockStatusColor(double available, double reorderLevel) {
-    if (available == 0) return const Color(0xFFE53E3E);
-    if (available < reorderLevel) return const Color(0xFFED8936);
+  Color _getStockStatusColor(double actualQty) {
+    if (actualQty == 0) return const Color(0xFFE53E3E);
+    if (actualQty < 50) return const Color(0xFFED8936); // Low stock threshold
     return const Color(0xFF38A169);
   }
 
-  String _getStockStatus(double available, double reorderLevel) {
-    if (available == 0) return 'Out of Stock';
-    if (available < reorderLevel) return 'Low Stock';
+  String _getStockStatus(double actualQty) {
+    if (actualQty == 0) return 'Out of Stock';
+    if (actualQty < 50) return 'Low Stock';
     return 'In Stock';
   }
 
-  IconData _getStockStatusIcon(double available, double reorderLevel) {
-    if (available == 0) return Icons.error_outline;
-    if (available < reorderLevel) return Icons.warning_amber_rounded;
+  IconData _getStockStatusIcon(double actualQty) {
+    if (actualQty == 0) return Icons.error_outline;
+    if (actualQty < 50) return Icons.warning_amber_rounded;
     return Icons.check_circle_outline;
   }
 
   @override
   Widget build(BuildContext context) {
-    final filteredItems = _filteredItems;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF7FAFC),
       appBar: AppBar(
@@ -128,7 +77,7 @@ class _StockAvailableState extends State<StockAvailable>
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: _refreshStock,
+            onPressed: () => context.read<ItemStockController>().fetchItems(),
             tooltip: 'Refresh',
           ),
           const SizedBox(width: 8),
@@ -201,47 +150,57 @@ class _StockAvailableState extends State<StockAvailable>
 
           // Stock List
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(strokeWidth: 3))
-                : filteredItems.isEmpty
-                ? _buildEmptyState()
-                : RefreshIndicator(
-                    onRefresh: _refreshStock,
-                    color: Theme.of(context).primaryColor,
-                    child: ListView.builder(
-                      padding: const EdgeInsets.all(20),
-                      itemCount: filteredItems.length,
-                      itemBuilder: (context, index) {
-                        return TweenAnimationBuilder<double>(
-                          duration: Duration(milliseconds: 300 + (index * 50)),
-                          tween: Tween(begin: 0.0, end: 1.0),
-                          builder: (context, value, child) {
-                            return Transform.translate(
-                              offset: Offset(0, 20 * (1 - value)),
-                              child: Opacity(opacity: value, child: child),
-                            );
-                          },
-                          child: _buildStockCard(filteredItems[index]),
-                        );
-                      },
-                    ),
+            child: Consumer<ItemStockController>(
+              builder: (context, controller, child) {
+                if (controller.isLoading) {
+                  return const Center(
+                    child: CircularProgressIndicator(strokeWidth: 3),
+                  );
+                }
+
+                if (controller.errorMessage != null) {
+                  return _buildErrorState(controller.errorMessage!);
+                }
+
+                final filteredItems = _getFilteredItems(controller.items);
+
+                if (filteredItems.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                return RefreshIndicator(
+                  onRefresh: () => controller.fetchItems(),
+                  color: Theme.of(context).primaryColor,
+                  child: ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: filteredItems.length,
+                    itemBuilder: (context, index) {
+                      return TweenAnimationBuilder<double>(
+                        duration: Duration(milliseconds: 300 + (index * 50)),
+                        tween: Tween(begin: 0.0, end: 1.0),
+                        builder: (context, value, child) {
+                          return Transform.translate(
+                            offset: Offset(0, 20 * (1 - value)),
+                            child: Opacity(opacity: value, child: child),
+                          );
+                        },
+                        child: _buildStockCard(filteredItems[index]),
+                      );
+                    },
                   ),
+                );
+              },
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildStockCard(Map<String, dynamic> item) {
-    final statusColor = _getStockStatusColor(
-      item['availableQty'],
-      item['reorderLevel'],
-    );
-    final status = _getStockStatus(item['availableQty'], item['reorderLevel']);
-    final statusIcon = _getStockStatusIcon(
-      item['availableQty'],
-      item['reorderLevel'],
-    );
+  Widget _buildStockCard(Datum item) {
+    final statusColor = _getStockStatusColor(item.actualQty);
+    final status = _getStockStatus(item.actualQty);
+    final statusIcon = _getStockStatusIcon(item.actualQty);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -267,7 +226,7 @@ class _StockAvailableState extends State<StockAvailable>
               children: [
                 // Product Image
                 Hero(
-                  tag: 'product-${item['itemCode']}',
+                  tag: 'product-${item.itemCode}',
                   child: Container(
                     width: 70,
                     height: 70,
@@ -286,19 +245,11 @@ class _StockAvailableState extends State<StockAvailable>
                         width: 1.5,
                       ),
                     ),
-                    child: item['image'] != null
-                        ? ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              item['image'],
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                        : Icon(
-                            Icons.inventory_2_rounded,
-                            size: 32,
-                            color: statusColor.withOpacity(0.4),
-                          ),
+                    child: Icon(
+                      Icons.inventory_2_rounded,
+                      size: 32,
+                      color: statusColor.withOpacity(0.4),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -309,7 +260,7 @@ class _StockAvailableState extends State<StockAvailable>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        item['name'],
+                        item.itemName,
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
@@ -330,7 +281,7 @@ class _StockAvailableState extends State<StockAvailable>
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          item['itemCode'],
+                          item.itemCode,
                           style: TextStyle(
                             fontSize: 11,
                             color: Colors.grey[600],
@@ -350,7 +301,7 @@ class _StockAvailableState extends State<StockAvailable>
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
-                              item['warehouse'],
+                              item.warehouse,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey[600],
@@ -397,7 +348,7 @@ class _StockAvailableState extends State<StockAvailable>
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      item['availableQty'].toStringAsFixed(0),
+                      item.actualQty.toString(),
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
@@ -407,7 +358,7 @@ class _StockAvailableState extends State<StockAvailable>
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      item['uom'],
+                      item.stockUom,
                       style: TextStyle(
                         fontSize: 11,
                         color: Colors.grey[500],
@@ -462,16 +413,55 @@ class _StockAvailableState extends State<StockAvailable>
     );
   }
 
-  void _showStockDetails(Map<String, dynamic> item) {
-    final statusColor = _getStockStatusColor(
-      item['availableQty'],
-      item['reorderLevel'],
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: Colors.red[50],
+              shape: BoxShape.circle,
+            ),
+            child: Icon(Icons.error_outline, size: 64, color: Colors.red[400]),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Failed to load stock',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[700],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 40),
+            child: Text(
+              error,
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            onPressed: () => context.read<ItemStockController>().fetchItems(),
+            icon: const Icon(Icons.refresh),
+            label: const Text('Retry'),
+            style: ElevatedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+          ),
+        ],
+      ),
     );
-    final status = _getStockStatus(item['availableQty'], item['reorderLevel']);
-    final statusIcon = _getStockStatusIcon(
-      item['availableQty'],
-      item['reorderLevel'],
-    );
+  }
+
+  void _showStockDetails(Datum item) {
+    final statusColor = _getStockStatusColor(item.actualQty);
+    final status = _getStockStatus(item.actualQty);
+    final statusIcon = _getStockStatusIcon(item.actualQty);
 
     showModalBottomSheet(
       context: context,
@@ -532,7 +522,7 @@ class _StockAvailableState extends State<StockAvailable>
                         // Product Image (larger)
                         Center(
                           child: Hero(
-                            tag: 'product-${item['itemCode']}',
+                            tag: 'product-${item.itemCode}',
                             child: Container(
                               width: 140,
                               height: 140,
@@ -558,19 +548,11 @@ class _StockAvailableState extends State<StockAvailable>
                                   ),
                                 ],
                               ),
-                              child: item['image'] != null
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(18),
-                                      child: Image.network(
-                                        item['image'],
-                                        fit: BoxFit.cover,
-                                      ),
-                                    )
-                                  : Icon(
-                                      Icons.inventory_2_rounded,
-                                      size: 70,
-                                      color: statusColor.withOpacity(0.4),
-                                    ),
+                              child: Icon(
+                                Icons.inventory_2_rounded,
+                                size: 70,
+                                color: statusColor.withOpacity(0.4),
+                              ),
                             ),
                           ),
                         ),
@@ -578,7 +560,7 @@ class _StockAvailableState extends State<StockAvailable>
 
                         // Product Name
                         Text(
-                          item['name'],
+                          item.itemName,
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
@@ -600,7 +582,7 @@ class _StockAvailableState extends State<StockAvailable>
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
-                                item['itemCode'],
+                                item.itemCode,
                                 style: TextStyle(
                                   color: Colors.grey[700],
                                   fontSize: 13,
@@ -655,7 +637,7 @@ class _StockAvailableState extends State<StockAvailable>
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                item['availableQty'].toStringAsFixed(0),
+                                item.actualQty.toString(),
                                 style: TextStyle(
                                   fontSize: 48,
                                   fontWeight: FontWeight.bold,
@@ -665,7 +647,7 @@ class _StockAvailableState extends State<StockAvailable>
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                item['uom'],
+                                item.stockUom,
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.grey[600],
@@ -725,25 +707,19 @@ class _StockAvailableState extends State<StockAvailable>
                             children: [
                               _buildDetailRow(
                                 'Warehouse',
-                                item['warehouse'],
+                                item.warehouse,
                                 Icons.location_on_outlined,
                               ),
                               const Divider(height: 24),
                               _buildDetailRow(
-                                'Reorder Level',
-                                '${item['reorderLevel'].toStringAsFixed(0)} ${item['uom']}',
-                                Icons.refresh_rounded,
-                              ),
-                              const Divider(height: 24),
-                              _buildDetailRow(
                                 'Unit of Measure',
-                                item['uom'],
+                                item.stockUom,
                                 Icons.straighten_rounded,
                               ),
                               const Divider(height: 24),
                               _buildDetailRow(
                                 'Category',
-                                item['category'],
+                                item.itemGroup,
                                 Icons.category_outlined,
                               ),
                             ],
@@ -849,42 +825,5 @@ class _StockAvailableState extends State<StockAvailable>
         ),
       ],
     );
-  }
-
-  Future<void> _refreshStock() async {
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Simulate API call - replace with your actual API call
-    await Future.delayed(const Duration(seconds: 1));
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.white, size: 20),
-              SizedBox(width: 12),
-              Text(
-                'Stock data refreshed successfully',
-                style: TextStyle(fontWeight: FontWeight.w500),
-              ),
-            ],
-          ),
-          backgroundColor: const Color(0xFF38A169),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
   }
 }
