@@ -21,6 +21,13 @@ if (keystorePropertiesFile.exists()) {
     throw GradleException("⚠️ key.properties file not found at ${keystorePropertiesFile.path}")
 }
 
+configurations.all {
+    resolutionStrategy {
+        force("androidx.activity:activity:1.9.3")
+        force("androidx.activity:activity-ktx:1.9.3")
+    }
+}
+
 android {
     namespace = "com.location_tracker_app"
     compileSdk = 36
@@ -29,7 +36,7 @@ android {
         applicationId = "com.location_tracker_app"
         minSdk = flutter.minSdkVersion
         targetSdk = 36
-        versionCode = 5
+        versionCode = 6
         versionName = "1.0.4"
     }
 

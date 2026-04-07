@@ -3,6 +3,7 @@ import 'package:location_tracker_app/controller/task_controller.dart';
 import 'package:location_tracker_app/modal/task_modal.dart';
 import 'package:location_tracker_app/view/mainscreen/tasks/task_details.dart';
 import 'package:provider/provider.dart';
+import 'package:shimmer/shimmer.dart';
 
 enum TaskStatus { inProgress, completed, cancelled, overdue }
 
@@ -91,16 +92,7 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
             final errorMessage = controller.errorMessage;
 
             if (isLoading) {
-              return const Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('Loading tasks...'),
-                  ],
-                ),
-              );
+              return _buildShimmerLoading();
             }
 
             if (errorMessage != null) {
@@ -367,6 +359,90 @@ class _EmployeeTasksState extends State<EmployeeTasks> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildShimmerLoading() {
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: 6,
+      itemBuilder: (context, index) => _buildShimmerTaskCard(),
+    );
+  }
+
+  Widget _buildShimmerTaskCard() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Card(
+        margin: const EdgeInsets.only(bottom: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Title + Status
+              Row(
+                children: [
+                  Expanded(
+                    child: _shimmerBox(height: 18, width: double.infinity),
+                  ),
+                  const SizedBox(width: 12),
+                  _shimmerBox(height: 20, width: 80, radius: 20),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // Customer
+              _shimmerRow(),
+
+              const SizedBox(height: 8),
+
+              // Start date
+              _shimmerRow(),
+
+              const SizedBox(height: 8),
+
+              // End date
+              _shimmerRow(),
+
+              const SizedBox(height: 12),
+
+              // Description
+              _shimmerBox(height: 14, width: double.infinity),
+              const SizedBox(height: 6),
+              _shimmerBox(height: 14, width: 200),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _shimmerBox({
+    required double height,
+    required double width,
+    double radius = 6,
+  }) {
+    return Container(
+      height: height,
+      width: width,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  Widget _shimmerRow() {
+    return Row(
+      children: [
+        _shimmerBox(height: 16, width: 16, radius: 4),
+        const SizedBox(width: 8),
+        _shimmerBox(height: 14, width: 160),
+      ],
     );
   }
 

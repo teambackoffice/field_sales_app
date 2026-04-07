@@ -12,7 +12,7 @@ class EmployeeLocationService {
     required double longitude,
     required String date,
     required String time,
-    required String entryType, // NEW: Added entry type
+    required String entryType,
   }) async {
     try {
       // Get stored values
@@ -51,12 +51,15 @@ class EmployeeLocationService {
 
       if (response.statusCode == 200) {
         final responseBody = await response.stream.bytesToString();
+        print("✅ Location sent successfully: $responseBody");
       } else {
         final responseBody = await response.stream.bytesToString();
-
+        print("❌ Server error ${response.statusCode}: $responseBody");
+        print("📤 Request body was: $body");
         throw Exception('Failed to send location: ${response.statusCode}');
       }
     } catch (e) {
+      print("❌ Error sending location: $e");
       rethrow;
     }
   }

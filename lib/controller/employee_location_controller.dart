@@ -4,7 +4,6 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:intl/intl.dart';
 import 'package:location_tracker_app/service/employee_location_service.dart';
 import 'package:location_tracker_app/service/location_interval_service.dart';
-import 'package:permission_handler/permission_handler.dart';
 
 class LocationController extends ChangeNotifier {
   static const MethodChannel _channel = MethodChannel('location_tracking');
@@ -23,6 +22,13 @@ class LocationController extends ChangeNotifier {
   bool enableBatchSending = false;
   int batchSize = 10;
   final List<LocationEntry> _pendingEntries = [];
+
+  // Debouncing to prevent duplicate submissions
+  DateTime? _lastLocationSentTime;
+  double? _lastSentLatitude;
+  double? _lastSentLongitude;
+  static const int _minSecondsBetweenSends =
+      5; // Minimum 5 seconds between sends
 
   LocationController() {
     _setupMethodCallHandler();
@@ -264,7 +270,32 @@ class LocationController extends ChangeNotifier {
 
       print("📍 Processing location: $latitude, $longitude");
 
+      // DEBOUNCING: Check if we should send this location
       final now = DateTime.now();
+
+      // Check if this is a duplicate location (same coordinates)
+      bool isDuplicateLocation =
+          _lastSentLatitude == latitude && _lastSentLongitude == longitude;
+
+      // Check if enough time has passed since last send
+      bool enoughTimePassed =
+          _lastLocationSentTime == null ||
+          now.difference(_lastLocationSentTime!).inSeconds >=
+              _minSecondsBetweenSends;
+
+      if (isDuplicateLocation && !enoughTimePassed) {
+        print(
+          "⏭️ SKIPPING: Duplicate location within ${_minSecondsBetweenSends}s window",
+        );
+        print(
+          "   Last sent: $_lastSentLatitude, $_lastSentLongitude at $_lastLocationSentTime",
+        );
+        print(
+          "   Time since last send: ${now.difference(_lastLocationSentTime!).inSeconds}s",
+        );
+        return; // Skip this update
+      }
+
       final date = DateFormat('yyyy-MM-dd').format(now);
       final time = DateFormat('HH:mm:ss').format(now);
 
@@ -279,6 +310,11 @@ class LocationController extends ChangeNotifier {
         time: time,
         entryType: "Track", // Automatic tracking entry type
       );
+
+      // Update last sent tracking
+      _lastLocationSentTime = now;
+      _lastSentLatitude = latitude;
+      _lastSentLongitude = longitude;
 
       lastResult =
           '✅ AUTO-SENT: $latitude, $longitude at $time (${trackingInterval}s interval)';
@@ -299,6 +335,8 @@ class LocationController extends ChangeNotifier {
         error = '❌ Authentication failed - please login again';
       } else if (errorMessage.contains('Failed to send location: 403')) {
         error = '❌ Access denied - check permissions';
+      } else if (errorMessage.contains('Failed to send location: 417')) {
+        error = '❌ Duplicate request rejected by server';
       } else if (errorMessage.contains('Failed to send location: 500')) {
         error = '❌ Server error - try again later';
       } else if (errorMessage.contains('SocketException') ||
@@ -317,99 +355,34 @@ class LocationController extends ChangeNotifier {
 
   Future<bool> requestPermissions() async {
     try {
-      print("🔐 Requesting permissions using permission_handler...");
+      print("🔐 Requesting permissions using NATIVE iOS method...");
 
-      // 1. Check current permission status first
-      PermissionStatus currentStatus =
-          await Permission.locationWhenInUse.status;
-      print("📍 Current location status: $currentStatus");
+      // Call native iOS method directly to request permissions
+      final bool permissionGranted = await _channel.invokeMethod(
+        'requestLocationPermission',
+      );
 
-      // 2. If already granted, skip to background permission
-      if (currentStatus.isGranted) {
-        print("✅ Foreground location permission already granted");
-      }
-      // 3. If denied (but not permanently), request it - DON'T open settings yet
-      else if (currentStatus.isDenied || currentStatus.isRestricted) {
-        print("📍 Requesting foreground location permission...");
-        currentStatus = await Permission.locationWhenInUse.request();
-        print("📍 Foreground location status after request: $currentStatus");
+      print("📍 Native permission request result: $permissionGranted");
 
-        // Only open settings if it became permanently denied after the request
-        if (currentStatus.isPermanentlyDenied) {
-          print(
-            "⚠️ Permission permanently denied. User must enable in Settings.",
-          );
-          error =
-              'Location permission is denied.\n'
-              'To enable: Settings > Privacy & Security > Location Services > Chundakadan App';
-          notifyListeners();
-          // Don't automatically open settings - let user do it manually
-          // This prevents the jarring UX of being sent to Settings immediately
-          return false;
-        }
-
-        if (!currentStatus.isGranted) {
-          error = 'Location permission is required to track attendance.';
-          print("❌ Foreground permission not granted");
-          notifyListeners();
-          return false;
-        }
-      }
-      // 4. If permanently denied from the start, inform user
-      else if (currentStatus.isPermanentlyDenied) {
-        print("⚠️ Permission was already permanently denied.");
+      // Trust the native iOS result - it directly checks CLAuthorizationStatus
+      // which is the source of truth for iOS location permissions
+      if (permissionGranted) {
+        print("✅ Location permission granted by native iOS!");
+        error = null;
+        notifyListeners();
+        return true;
+      } else {
+        print("❌ Location permission denied by native iOS");
         error =
-            'Location permission is denied.\n'
-            'To enable: Settings > Privacy & Security > Location Services > Chundakadan App';
+            'Location permission denied.\n\n'
+            'To enable:\n'
+            '1. Open Settings\n'
+            '2. Scroll to "Chundakadan App"\n'
+            '3. Tap "Location"\n'
+            '4. Select "While Using the App" or "Always"';
         notifyListeners();
         return false;
       }
-
-      print("✅ Foreground location permission granted");
-
-      // 5. Request Background Permission (Allow all the time)
-      PermissionStatus backgroundStatus =
-          await Permission.locationAlways.status;
-      print("📍 Current background location status: $backgroundStatus");
-
-      // If already granted, we're done
-      if (backgroundStatus.isGranted) {
-        print("✅ All permissions granted (Foreground + Background)");
-        error = null; // Clear any previous errors
-        notifyListeners();
-        return true;
-      }
-
-      // If background is denied but not permanently, request it
-      if (backgroundStatus.isDenied || backgroundStatus.isRestricted) {
-        print("📍 Requesting background location (Allow all the time)...");
-        backgroundStatus = await Permission.locationAlways.request();
-        print("📍 Background location status after request: $backgroundStatus");
-      }
-
-      if (backgroundStatus.isGranted) {
-        print("✅ All permissions granted (Foreground + Background)");
-        error = null; // Clear any previous errors
-        notifyListeners();
-        return true;
-      }
-
-      // Background not granted but foreground is - still usable
-      if (backgroundStatus.isPermanentlyDenied) {
-        print("⚠️ Background permission permanently denied.");
-        error =
-            "Background location is denied.\n"
-            "For continuous tracking: Settings > Privacy & Security > Location Services > Chundakadan App > Always";
-        notifyListeners();
-      } else {
-        print("⚠️ Background permission not granted, but foreground is OK");
-        error =
-            "For best results, enable 'Always' location access.\n"
-            "Currently using 'While Using' only.";
-        notifyListeners();
-      }
-
-      return true; // Can still track with foreground permission
     } catch (e) {
       error = 'Permission error: $e';
       print("❌ Permission error: $e");
@@ -472,6 +445,11 @@ class LocationController extends ChangeNotifier {
 
         print("✅ Check In entry sent successfully");
         lastResult = '✅ Check In sent: $latitude, $longitude at $time';
+
+        // Initialize debouncing with Check In location
+        _lastLocationSentTime = now;
+        _lastSentLatitude = latitude;
+        _lastSentLongitude = longitude;
       } else {
         throw Exception('Failed to get current location for Check In');
       }

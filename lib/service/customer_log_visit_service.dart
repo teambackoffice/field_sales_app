@@ -56,6 +56,7 @@ class LogCustomerVisitService {
 
       if (response.statusCode == 200) {
         final decoded = json.decode(responseBody);
+
         return decoded;
       } else {
         throw Exception(

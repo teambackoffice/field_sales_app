@@ -58,6 +58,7 @@ class MainActivity: FlutterActivity() {
 
     private fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
         when (call.method) {
+            "requestLocationPermission" -> requestLocationPermission(result)
             "requestBackgroundPermission" -> requestBackgroundPermission(result)
             "startLocationTracking" -> {
                 val intervalSeconds = call.argument<Int>("intervalSeconds") ?: 60
@@ -73,27 +74,51 @@ class MainActivity: FlutterActivity() {
         }
     }
 
-    private fun requestBackgroundPermission(result: MethodChannel.Result) {
+    private fun requestLocationPermission(result: MethodChannel.Result) {
+        android.util.Log.d("LocationTracking", "📍 Requesting location permissions")
         pendingResult = result
         
         if (hasLocationPermissions()) {
+            android.util.Log.d("LocationTracking", "✅ Location permissions already granted")
+            result.success(true)
+            return
+        }
+
+        val permissions = arrayOf(
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
+
+        android.util.Log.d("LocationTracking", "📍 Showing permission dialog...")
+        ActivityCompat.requestPermissions(this, permissions, PERMISSION_REQUEST_CODE)
+    }
+
+    private fun requestBackgroundPermission(result: MethodChannel.Result) {
+        android.util.Log.d("LocationTracking", "📍 Requesting background location permissions")
+        pendingResult = result
+        
+        if (hasLocationPermissions()) {
+            android.util.Log.d("LocationTracking", "✅ All location permissions already granted")
             result.success(true)
             return
         }
 
         val permissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            android.util.Log.d("LocationTracking", "📍 Android 10+: Requesting fine, coarse, and background location")
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION,
                 Manifest.permission.ACCESS_BACKGROUND_LOCATION
             )
         } else {
+            android.util.Log.d("LocationTracking", "📍 Android 9-: Requesting fine and coarse location")
             arrayOf(
                 Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             )
         }
 
+        android.util.Log.d("LocationTracking", "📍 Showing permission dialog...")
         ActivityCompat.requestPermissions(this, permissions, PERMISSION_REQUEST_CODE)
     }
 
@@ -114,17 +139,26 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun startLocationTracking(intervalSeconds: Int, result: MethodChannel.Result) {
+        android.util.Log.d("LocationTracking", "📍 Starting location tracking with ${intervalSeconds}s interval")
+        
+        // Check if permissions are granted
         if (!hasLocationPermissions()) {
-            result.success(false)
+            android.util.Log.w("LocationTracking", "⚠️ Location permissions not granted, requesting...")
+            // Request permissions first
+            pendingResult = result
+            requestBackgroundPermission(result)
             return
         }
 
         if (!isServiceBound || locationService == null) {
+            android.util.Log.e("LocationTracking", "❌ Location service not bound or unavailable")
             result.success(false)
             return
         }
 
+        android.util.Log.d("LocationTracking", "✅ Permissions granted, starting tracking service")
         val started = locationService!!.startTracking((intervalSeconds * 1000).toLong())
+        android.util.Log.d("LocationTracking", "📍 Tracking started: $started")
         result.success(started)
     }
 
@@ -149,16 +183,25 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun getCurrentLocation(result: MethodChannel.Result) {
-        if (!hasLocationPermissions()) {
+        // Only check for basic location permissions, not background
+        val hasFineLocation = ContextCompat.checkSelfPermission(this, 
+            Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        val hasCoarseLocation = ContextCompat.checkSelfPermission(this, 
+            Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        
+        if (!hasFineLocation && !hasCoarseLocation) {
+            android.util.Log.e("LocationTracking", "❌ No location permissions for getCurrentLocation")
             result.error("PERMISSION_DENIED", "Location permissions not granted", null)
             return
         }
 
         if (!isServiceBound || locationService == null) {
+            android.util.Log.e("LocationTracking", "❌ Service not available for getCurrentLocation")
             result.error("SERVICE_UNAVAILABLE", "Location service not available", null)
             return
         }
 
+        android.util.Log.d("LocationTracking", "✅ Getting current location...")
         locationService!!.getCurrentLocation(result)
     }
 
@@ -168,7 +211,14 @@ class MainActivity: FlutterActivity() {
         if (requestCode == PERMISSION_REQUEST_CODE && pendingResult != null) {
             val allGranted = grantResults.all { it == PackageManager.PERMISSION_GRANTED }
             
+            android.util.Log.d("LocationTracking", "📍 Permission result: allGranted=$allGranted")
+            permissions.forEachIndexed { index, permission ->
+                val granted = if (index < grantResults.size) grantResults[index] == PackageManager.PERMISSION_GRANTED else false
+                android.util.Log.d("LocationTracking", "  - $permission: ${if (granted) "✅ GRANTED" else "❌ DENIED"}")
+            }
+            
             if (!allGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                android.util.Log.w("LocationTracking", "⚠️ Not all permissions granted, opening app settings")
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
                     data = Uri.fromParts("package", packageName, null)
                 }

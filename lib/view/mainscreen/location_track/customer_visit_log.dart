@@ -124,15 +124,18 @@ class _CustomerVisitLoggerState extends State<CustomerVisitLogger> {
       String date = DateFormat('yyyy-MM-dd').format(DateTime.now());
       String time = DateFormat('HH:mm:ss').format(DateTime.now());
 
+      final customerNameStr =
+          _selectedCustomer?.customerName ??
+          _customerNameController.text.trim();
+      final descriptionStr = _descriptionController.text.trim();
+
       await controller.logCustomerVisit(
         date: date,
         time: time,
         longitude: position.longitude,
         latitude: position.latitude,
-        customerName:
-            _selectedCustomer?.customerName ??
-            _customerNameController.text.trim(),
-        description: _descriptionController.text.trim(),
+        customerName: customerNameStr,
+        description: descriptionStr,
       );
 
       if (controller.errorMessage == null) {
